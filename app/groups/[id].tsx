@@ -11,7 +11,7 @@ import { useFriends } from "@/src/hooks/useFriends";
 import { useExpenses } from "@/src/hooks/useExpenses";
 import { useTheme } from "@/src/theme";
 import { radius, spacing } from "@/src/theme/tokens";
-import type { Expense } from "@/src/types/domain";
+import type { Expense, GroupBalance } from "@/src/types/domain";
 
 const CURRENT_USER = { id: "You", name: "You" };
 
@@ -25,9 +25,9 @@ export default function GroupDetailScreen() {
   const { colors } = useTheme();
   const { groups, loading, updateGroup, deleteGroup } = useGroups();
   const { friends, refresh: refreshFriends } = useFriends();
-  const { listByGroup } = useExpenses();
+  const { listByGroup, getGroupBalances } = useExpenses();
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [expensesLoading, setExpensesLoading] = useState(true);
+  const [expensesLoading, setExpensesLoading] = useState(true);\n  const [balances, setBalances] = useState<GroupBalance[]>([]);\n  const [balancesLoading, setBalancesLoading] = useState(true);
   const [editorVisible, setEditorVisible] = useState(false);
   const [name, setName] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
@@ -56,7 +56,7 @@ export default function GroupDetailScreen() {
     header: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginBottom: spacing.xl },
     headerActions: { marginLeft: "auto", flexDirection: "row", gap: spacing.sm },
     iconButton: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
-    hero: { backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, padding: spacing.xl, marginBottom: spacing.xl },
+    hero: { backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, padding: spacing.xl, marginBottom: spacing.xl },\n    balanceCard: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, marginBottom: spacing.xl },\n    balanceRow: { flexDirection: "row", alignItems: "center", paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },\n    balanceAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center", marginRight: spacing.md },\n    balanceCopy: { flex: 1 },
     icon: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
     member: { flexDirection: "row", alignItems: "center", paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
     avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center", marginRight: spacing.md },
