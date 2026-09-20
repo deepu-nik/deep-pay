@@ -9,9 +9,10 @@ import { PrimaryButton } from "@/src/components/common/PrimaryButton";
 import { useGroups } from "@/src/hooks/useGroups";
 import { useFriends } from "@/src/hooks/useFriends";
 import { useExpenses } from "@/src/hooks/useExpenses";
+import { useSettlements } from "@/src/hooks/useSettlements";
 import { useTheme } from "@/src/theme";
 import { radius, spacing } from "@/src/theme/tokens";
-import type { Expense, GroupBalance } from "@/src/types/domain";
+import type { Expense, GroupBalance, Settlement } from "@/src/types/domain";
 
 const CURRENT_USER = { id: "You", name: "You" };
 
@@ -26,10 +27,16 @@ export default function GroupDetailScreen() {
   const { groups, loading, updateGroup, deleteGroup } = useGroups();
   const { friends, refresh: refreshFriends } = useFriends();
   const { listByGroup, getGroupBalances } = useExpenses();
+  const { listByGroup: listSettlementsByGroup, createSettlement, saving: settlementSaving } = useSettlements();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expensesLoading, setExpensesLoading] = useState(true);
   const [balances, setBalances] = useState<GroupBalance[]>([]);
   const [balancesLoading, setBalancesLoading] = useState(true);
+  const [settlements, setSettlements] = useState<Settlement[]>([]);
+  const [settlementsLoading, setSettlementsLoading] = useState(true);
+  const [settlementVisible, setSettlementVisible] = useState(false);
+  const [settlementTarget, setSettlementTarget] = useState("");
+  const [settlementAmount, setSettlementAmount] = useState("");
   const [editorVisible, setEditorVisible] = useState(false);
   const [name, setName] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
@@ -44,14 +51,18 @@ export default function GroupDetailScreen() {
     if (!id) return;
     setExpensesLoading(true);
     setBalancesLoading(true);
-    const [nextExpenses, nextBalances] = await Promise.all([
+    setSettlementsLoading(true);
+    const [nextExpenses, nextBalances, nextSettlements] = await Promise.all([
       listByGroup(id),
       getGroupBalances(id),
+      listSettlementsByGroup(id),
     ]);
     setExpenses(nextExpenses);
     setBalances(nextBalances);
+    setSettlements(nextSettlements);
     setExpensesLoading(false);
     setBalancesLoading(false);
+    setSettlementsLoading(false);
   };
 
   useEffect(() => {
@@ -83,6 +94,7 @@ export default function GroupDetailScreen() {
     sheet: { backgroundColor: colors.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.lg },
     input: { minHeight: 52, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: spacing.lg, color: colors.text, fontSize: 16, backgroundColor: colors.background },
     chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+    settlementSummary: { backgroundColor: colors.surfaceMuted, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.lg },
     chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.background },
     selectedChip: { borderColor: colors.primary, backgroundColor: colors.iconBackground },
   });
@@ -107,6 +119,41 @@ export default function GroupDetailScreen() {
     if (!name.trim()) return;
     await updateGroup(group.id, { name: name.trim(), memberIds: [CURRENT_USER.id, ...selected] });
     setEditorVisible(false);
+  };
+
+  const openSettlement = () => {
+    const current = balances.find((balance) => balance.userId === CURRENT_USER.id);
+    if (!current || current.net >= -0.005) return;
+    const creditors = balances.filter((balance) => balance.userId !== CURRENT_USER.id && balance.net > 0.005);
+    if (creditors.length === 0) return;
+    const target = creditors[0];
+    setSettlementTarget(target.userId);
+    setSettlementAmount(Math.min(Math.abs(current.net), target.net).toFixed(2));
+    setSettlementVisible(true);
+  };
+
+  const saveSettlement = async () => {
+    if (!id || !settlementTarget) return;
+    const amount = Number(settlementAmount);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    const current = balances.find((balance) => balance.userId === CURRENT_USER.id);
+    const target = balances.find((balance) => balance.userId === settlementTarget);
+    if (!current || !target || amount > Math.abs(current.net) + 0.005 || amount > target.net + 0.005) {
+      Alert.alert("Invalid amount", "Enter an amount within the current balances.");
+      return;
+    }
+    const result = await createSettlement({
+      groupId: id,
+      fromUserId: CURRENT_USER.id,
+      toUserId: settlementTarget,
+      amount: Math.round(amount * 100) / 100,
+      date: new Date().toISOString().slice(0, 10),
+    });
+    if (!result) return;
+    setSettlementVisible(false);
+    setSettlementTarget("");
+    setSettlementAmount("");
+    await loadExpenses();
   };
 
   const confirmDelete = () => {
@@ -159,11 +206,27 @@ export default function GroupDetailScreen() {
         const net = current?.net ?? 0;
         return <View style={{ backgroundColor: colors.surfaceMuted, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.xl }}>
           <AppText variant="bodyMedium">{Math.abs(net) < 0.005 ? "You're settled up" : net > 0 ? `You're owed ${formatMoney(net)}` : `You owe ${formatMoney(Math.abs(net))}`}</AppText>
-          <AppText variant="caption" style={styles.muted}>Based on all expenses currently recorded in this group.</AppText>
+          <AppText variant="caption" style={styles.muted}>Based on expenses and recorded settlements in this group.</AppText>
+          {net < -0.005 ? <Pressable onPress={openSettlement} style={{ marginTop: spacing.md }}>
+            <AppText variant="bodyMedium" style={{ color: colors.primary }}>Settle up</AppText>
+          </Pressable> : null}
         </View>;
       })() : null}
 
-      <View style={styles.sectionHeader}>
+      <AppText variant="h2" style={{ marginBottom: spacing.sm }}>Settlement history</AppText>
+      {settlementsLoading ? <LoadingState message="Loading settlements…" /> : settlements.length === 0 ? (
+        <View style={styles.settlementSummary}>
+          <AppText variant="bodyMedium">No settlements yet</AppText>
+          <AppText variant="caption" style={styles.muted}>Recorded payments between group members will appear here.</AppText>
+        </View>
+      ) : settlements.map((settlement) => (
+        <View key={settlement.id} style={styles.settlementSummary}>
+          <AppText variant="bodyMedium">{friendNames[settlement.fromUserId] ?? settlement.fromUserId} paid {friendNames[settlement.toUserId] ?? settlement.toUserId}</AppText>
+          <AppText variant="caption" style={styles.muted}>{settlement.date} · {formatMoney(settlement.amount)}</AppText>
+        </View>
+      ))}
+
+            <View style={styles.sectionHeader}>
         <AppText variant="h2">Expenses</AppText>
         <Pressable onPress={() => router.push("/expenses/new")} accessibilityRole="button">
           <AppText variant="bodyMedium" style={{ color: colors.primary }}>+ Add expense</AppText>
@@ -194,6 +257,15 @@ export default function GroupDetailScreen() {
       <AppText variant="h2" style={{ marginTop: spacing.xl, marginBottom: spacing.sm }}>Members</AppText>
       <View>{names.map((memberName, index) => <View key={memberName + "-" + index} style={styles.member}><View style={styles.avatar}><AppText variant="caption">{memberName.slice(0, 1).toUpperCase()}</AppText></View><AppText variant="bodyMedium">{memberName}</AppText></View>)}</View>
     </ScrollView>
+
+    <Modal visible={settlementVisible} transparent animationType="slide" onRequestClose={() => setSettlementVisible(false)}>
+      <View style={styles.modal}><View style={styles.sheet}>
+        <View style={styles.header}><AppText variant="h2">Settle up</AppText><Pressable onPress={() => setSettlementVisible(false)}><Ionicons name="close" size={24} color={colors.text} /></Pressable></View>
+        <AppText variant="body" style={styles.muted}>Record a payment from You to {friendNames[settlementTarget] ?? settlementTarget}.</AppText>
+        <TextInput value={settlementAmount} onChangeText={setSettlementAmount} placeholder="Amount" placeholderTextColor={colors.textMuted} style={styles.input} keyboardType="decimal-pad" />
+        <PrimaryButton title={settlementSaving ? "Saving…" : "Record settlement"} onPress={saveSettlement} disabled={settlementSaving || !settlementAmount} />
+      </View></View>
+    </Modal>
 
     <Modal visible={editorVisible} transparent animationType="slide" onRequestClose={() => setEditorVisible(false)}>
       <View style={styles.modal}><View style={styles.sheet}>
