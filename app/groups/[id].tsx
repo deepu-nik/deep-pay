@@ -33,6 +33,10 @@ export default function GroupDetailScreen() {
   const [selected, setSelected] = useState<string[]>([]);
 
   const group = groups.find((item) => item.id === id);
+  const friendNames = useMemo(() => Object.fromEntries([
+    [CURRENT_USER.id, CURRENT_USER.name],
+    ...friends.map((friend) => [friend.id, friend.name]),
+  ]), [friends]);
 
   const loadExpenses = async () => {
     if (!id) return;
@@ -74,12 +78,7 @@ export default function GroupDetailScreen() {
 
   if (!group) return <SafeAreaView style={styles.safe}><View style={styles.content}><Pressable onPress={() => router.back()} style={styles.iconButton}><Ionicons name="arrow-back" size={21} color={colors.text} /></Pressable><AppText variant="h2" style={{ marginTop: spacing.xl }}>Group not found</AppText></View></SafeAreaView>;
 
-  const names = group.memberIds.map((memberId) => memberId === CURRENT_USER.id ? CURRENT_USER.name : friends.find((f) => f.id === memberId)?.name ?? memberId);
-  const friendNames = useMemo(() => Object.fromEntries([
-    [CURRENT_USER.id, CURRENT_USER.name],
-    ...friends.map((friend) => [friend.id, friend.name]),
-  ]), [friends]);
-
+  const names = group.memberIds.map((memberId) => friendNames[memberId] ?? memberId);
   const totalSpent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
   const openEdit = async () => {
