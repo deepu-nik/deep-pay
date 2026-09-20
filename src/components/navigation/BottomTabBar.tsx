@@ -1,29 +1,51 @@
-import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, spacing } from "@/src/theme/tokens";
-import { navigationItems } from "@/src/constants/navigation";
+import { Pressable, StyleSheet, View } from "react-native";
+import { AppText } from "@/src/components/common/AppText";
+import { colors, radius, spacing } from "@/src/theme/tokens";
 
-export type TabKey = "home" | "groups" | "activity" | "profile";
+type Tab = "home" | "groups" | "activity" | "profile";
 
-type Props = { activeTab: TabKey; onTabPress: (tab: TabKey) => void; onAddPress: () => void };
+type Props = {
+  activeTab: Tab;
+  onTabPress: (tab: Tab) => void;
+  onAddPress: () => void;
+};
+
+const tabs: { key: Tab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: "home", label: "Home", icon: "home-outline" },
+  { key: "groups", label: "Groups", icon: "people-outline" },
+  { key: "activity", label: "Activity", icon: "time-outline" },
+  { key: "profile", label: "Profile", icon: "person-outline" },
+];
 
 export function BottomTabBar({ activeTab, onTabPress, onAddPress }: Props) {
-  return <View style={styles.bar}>
-    <TabButton item={navigationItems[0]} active={activeTab === "home"} onPress={() => onTabPress("home")} />
-    <TabButton item={navigationItems[1]} active={activeTab === "groups"} onPress={() => onTabPress("groups")} />
-    <Pressable accessibilityRole="button" accessibilityLabel="Create or add" onPress={onAddPress} style={({ pressed }) => [styles.addButton, pressed && styles.pressed]}><Ionicons name="add" size={28} color={colors.white} /></Pressable>
-    <TabButton item={navigationItems[2]} active={activeTab === "activity"} onPress={() => onTabPress("activity")} />
-    <TabButton item={navigationItems[3]} active={activeTab === "profile"} onPress={() => onTabPress("profile")} />
-  </View>;
+  return (
+    <View style={styles.bar}>
+      {tabs.slice(0, 2).map((tab) => (
+        <TabButton key={tab.key} tab={tab} active={activeTab === tab.key} onPress={() => onTabPress(tab.key)} />
+      ))}
+      <Pressable accessibilityRole="button" accessibilityLabel="Create" onPress={onAddPress} style={({ pressed }) => [styles.add, pressed && styles.pressed]}>
+        <Ionicons name="add" size={28} color={colors.white} />
+      </Pressable>
+      {tabs.slice(2).map((tab) => (
+        <TabButton key={tab.key} tab={tab} active={activeTab === tab.key} onPress={() => onTabPress(tab.key)} />
+      ))}
+    </View>
+  );
 }
-function TabButton({ item, active, onPress }: { item: typeof navigationItems[number]; active: boolean; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ selected: active }} onPress={onPress} style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
-    <Ionicons name={(active ? item.activeIcon : item.icon) as keyof typeof Ionicons.glyphMap} size={22} color={active ? colors.primary : colors.textMuted} />
-  </Pressable>;
+
+function TabButton({ tab, active, onPress }: { tab: (typeof tabs)[number]; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={tab.label} onPress={onPress} style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
+      <Ionicons name={active ? tab.icon.replace("-outline", "") as keyof typeof Ionicons.glyphMap : tab.icon} size={21} color={active ? colors.primary : colors.textMuted} />
+      <AppText variant="caption" style={{ color: active ? colors.primary : colors.textMuted }}>{tab.label}</AppText>
+    </Pressable>
+  );
 }
+
 const styles = StyleSheet.create({
-  bar: { position: "absolute", left: 0, right: 0, bottom: 0, height: 76, paddingHorizontal: spacing.md, paddingBottom: 8, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border, flexDirection: "row", alignItems: "center", justifyContent: "space-around" },
-  tab: { flex: 1, alignItems: "center", justifyContent: "center", minHeight: 52, minWidth: 52 },
-  addButton: { width: 54, height: 54, borderRadius: 27, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", marginHorizontal: spacing.sm, marginTop: -24, borderWidth: 4, borderColor: colors.background, elevation: 5 },
-  pressed: { opacity: 0.65 }
+  bar: { position: "absolute", bottom: 0, left: 0, right: 0, height: 78, paddingHorizontal: spacing.md, paddingBottom: spacing.sm, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border, flexDirection: "row", alignItems: "center", justifyContent: "space-around" },
+  tab: { width: 72, alignItems: "center", gap: 3, paddingVertical: spacing.sm },
+  add: { width: 54, height: 54, borderRadius: radius.pill, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center", marginTop: -24, borderWidth: 4, borderColor: colors.background },
+  pressed: { opacity: 0.7 },
 });
