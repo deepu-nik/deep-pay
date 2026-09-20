@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
 import { BottomTabBar, type TabKey } from "@/src/components/navigation/BottomTabBar";
+import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet";
 import { useTheme, type ThemeMode } from "@/src/theme";
 import { radius, spacing } from "@/src/theme/tokens";
 
@@ -13,14 +16,19 @@ const modes: { key: ThemeMode; label: string; icon: keyof typeof Ionicons.glyphM
 ];
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { colors, mode, setMode } = useTheme();
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const goTo = (tab: TabKey) => {
+    if (tab === "profile") return;
+    router.replace(tab === "home" ? "/(tabs)" : `/(tabs)/${tab}`);
+  };
   const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.background },
     content: { padding: spacing.lg, paddingBottom: 110 },
     header: { marginBottom: spacing.xl },
     avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
     card: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.lg },
-    row: { flexDirection: "row", alignItems: "center", gap: spacing.md },
     titleRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md },
     option: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
     optionLeft: { flexDirection: "row", alignItems: "center", gap: spacing.md },
@@ -29,9 +37,6 @@ export default function ProfileScreen() {
     radioSelected: { borderColor: colors.primary },
     dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
   });
-  const goTo = (tab: TabKey) => {
-    // Profile owns the theme controls; navigation is handled by the tab bar.
-  };
   return <SafeAreaView style={styles.safe} edges={["top"]}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.header}><View style={styles.avatar}><AppText variant="h2">DS</AppText></View><AppText variant="title">Profile</AppText><AppText variant="body" style={{ color: colors.textMuted }}>Account, preferences and app settings.</AppText></View>
@@ -43,6 +48,7 @@ export default function ProfileScreen() {
         </Pressable>)}
       </View>
     </ScrollView>
-    <BottomTabBar activeTab="profile" onTabPress={goTo} onAddPress={() => {}} />
+    <BottomTabBar activeTab="profile" onTabPress={goTo} onAddPress={() => setSheetVisible(true)} />
+    <CreateActionSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
   </SafeAreaView>;
 }
