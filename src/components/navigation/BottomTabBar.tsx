@@ -23,13 +23,13 @@ export function BottomTabBar({ activeTab, onTabPress, onAddPress }: Props) {
   });
   return <View style={styles.bar}>
     {tabs.slice(0, 2).map((tab) => <TabButton key={tab.key} tab={tab} active={activeTab === tab.key} onPress={() => onTabPress(tab.key)} colors={colors} styles={styles} />)}
-    <Pressable accessibilityRole="button" accessibilityLabel="Create" onPress={onAddPress} style={({ pressed }) => [styles.add, pressed && styles.pressed]}><Ionicons name="add" size={28} color={colors.white} /></Pressable>
+    <Pressable accessibilityRole="button" accessibilityLabel="Create" onPress={onAddPress} style={({ pressed }) => [styles.add, pressed ? styles.pressed : null]}><Ionicons name="add" size={28} color={colors.white} /></Pressable>
     {tabs.slice(2).map((tab) => <TabButton key={tab.key} tab={tab} active={activeTab === tab.key} onPress={() => onTabPress(tab.key)} colors={colors} styles={styles} />)}
   </View>;
 }
 
 function TabButton({ tab, active, onPress, colors, styles }: { tab: (typeof tabs)[number]; active: boolean; onPress: () => void; colors: ReturnType<typeof useTheme>["colors"]; styles: ReturnType<typeof StyleSheet.create> }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={tab.label} onPress={onPress} style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
+  return <Pressable accessibilityRole="button" accessibilityLabel={tab.label} onPress={onPress} style={{ ...styles.tab } as import("react-native").ViewStyle}>
     <Ionicons name={active ? tab.icon.replace("-outline", "") as keyof typeof Ionicons.glyphMap : tab.icon} size={21} color={active ? colors.primary : colors.textMuted} />
     <AppText variant="caption" style={{ color: active ? colors.primary : colors.textMuted }}>{tab.label}</AppText>
   </Pressable>;
