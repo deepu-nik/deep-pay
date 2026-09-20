@@ -48,6 +48,7 @@ export default function NewExpenseScreen() {
   const [category, setCategory] = useState<ExpenseCategory>("Food");
   const [splitMethod, setSplitMethod] = useState<ExpenseSplitMethod>("equal");
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
+  const [paidBy, setPaidBy] = useState(CURRENT_USER.id);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
   const [percentages, setPercentages] = useState<Record<string, string>>({});
@@ -105,9 +106,17 @@ export default function NewExpenseScreen() {
   const canSave = numericAmount > 0 && description.trim().length > 0 && splitIsValid && !saving;
 
   const toggleFriend = (friendId: string) => {
-    setSelectedFriends((current) => current.includes(friendId)
-      ? current.filter((id) => id !== friendId)
-      : [...current, friendId]);
+    setSelectedFriends((current) => {
+      const next = current.includes(friendId)
+        ? current.filter((id) => id !== friendId)
+        : [...current, friendId];
+
+      if (paidBy === friendId && !next.includes(friendId)) {
+        setPaidBy(CURRENT_USER.id);
+      }
+
+      return next;
+    });
     setValidation(null);
   };
 
@@ -140,7 +149,7 @@ export default function NewExpenseScreen() {
       description: description.trim(),
       category,
       date: "Today",
-      paidBy: CURRENT_USER.id,
+      paidBy,
       participants: participantIds,
       splitMethod,
       splits,
@@ -219,6 +228,32 @@ export default function NewExpenseScreen() {
             })}
           </View>
           {friendsLoading ? <LoadingState message="Loading friends…" /> : null}
+        </View>
+
+        <View style={styles.section}>
+          <AppText variant="bodyMedium">Paid by</AppText>
+          <AppText variant="caption" style={{ color: colors.textMuted }}>
+            Select who actually paid this expense.
+          </AppText>
+          <View style={styles.chips}>
+            {participantIds.map((id) => {
+              const selected = paidBy === id;
+              return <Pressable
+                key={id}
+                onPress={() => {
+                  setPaidBy(id);
+                  setValidation(null);
+                }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                style={[styles.chip, selected && styles.chipSelected]}
+              >
+                <AppText variant="caption" style={selected ? { color: colors.primary } : undefined}>
+                  {participantNames[id] ?? id}
+                </AppText>
+              </Pressable>;
+            })}
+          </View>
         </View>
 
         <View style={styles.section}>
