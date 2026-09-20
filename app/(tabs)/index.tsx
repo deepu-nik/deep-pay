@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
-import { useFocusEffect } from "expo-router";
-import { useRouter } from "expo-router";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
@@ -28,6 +27,29 @@ export default function HomeScreen() {
   }, [refresh]));
 
   const openCreate = () => setSheetVisible(true);
+
+  const handleQuickAction = (label: string) => {
+    if (label === "Expense" || label === "Split") {
+      router.push("/expenses/new");
+      return;
+    }
+
+    if (label === "Scan") {
+      Alert.alert(
+        "QR Scanner",
+        "QR scanning is planned for the payment and UPI phase."
+      );
+      return;
+    }
+
+    if (label === "Request") {
+      Alert.alert(
+        "Request Money",
+        "Money requests are planned for the settlements and payments phase."
+      );
+    }
+  };
+
   const goTo = (tab: "home" | "groups" | "activity" | "profile") => {
     if (tab === "home") return;
     router.push(`/(tabs)/${tab}` as any);
@@ -53,7 +75,7 @@ export default function HomeScreen() {
       { label: "Split", icon: "git-branch-outline" },
       { label: "Request", icon: "arrow-down-circle-outline" },
       { label: "Expense", icon: "add-circle-outline" },
-    ] as const).map(({ label, icon }) => <QuickAction key={label} label={label} icon={icon} onPress={openCreate} />)}</View>
+    ] as const).map(({ label, icon }) => <QuickAction key={label} label={label} icon={icon} onPress={() => handleQuickAction(label)} />)}</View>
     <SectionHeader title="Recent expenses" action="See all" />
     <View style={styles.list}>{loading ? <LoadingState message="Loading your expenses…" /> : expenses.length ? expenses.map(expense => <ExpenseRow key={expense.id} expense={expense} />) : <EmptyState icon="receipt-outline" title="No expenses yet" message="Use + to add your first expense and start tracking shared spending." />}</View>
   </ScrollView><BottomTabBar activeTab="home" onTabPress={goTo} onAddPress={openCreate} /><CreateActionSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} /></SafeAreaView>;
