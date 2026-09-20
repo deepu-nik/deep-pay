@@ -43,8 +43,15 @@ export default function GroupDetailScreen() {
   const loadExpenses = async () => {
     if (!id) return;
     setExpensesLoading(true);
-    setExpenses(await listByGroup(id));
+    setBalancesLoading(true);
+    const [nextExpenses, nextBalances] = await Promise.all([
+      listByGroup(id),
+      getGroupBalances(id),
+    ]);
+    setExpenses(nextExpenses);
+    setBalances(nextBalances);
     setExpensesLoading(false);
+    setBalancesLoading(false);
   };
 
   useEffect(() => {
