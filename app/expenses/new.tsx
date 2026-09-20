@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
@@ -38,6 +38,7 @@ function equalSplits(total: number, participantIds: string[]) {
 
 export default function NewExpenseScreen() {
   const router = useRouter();
+  const { groupId } = useLocalSearchParams<{ groupId?: string }>();
   const { colors } = useTheme();
   const { createExpense, saving, error } = useExpenses();
   const { friends, loading: friendsLoading } = useFriends();
@@ -53,6 +54,10 @@ export default function NewExpenseScreen() {
   const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
   const [percentages, setPercentages] = useState<Record<string, string>>({});
   const [validation, setValidation] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (groupId) setSelectedGroupId(groupId);
+  }, [groupId]);
 
   const numericAmount = useMemo(() => toAmount(amount), [amount]);
   const participantIds = useMemo(() => [CURRENT_USER.id, ...selectedFriends], [selectedFriends]);
