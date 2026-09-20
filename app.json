@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "DeepPay",
+    "slug": "deeppay",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "deeppay",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": ["expo-router"],
+    "experiments": { "typedRoutes": true }
+  }
+}
