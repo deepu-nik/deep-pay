@@ -1,6 +1,7 @@
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { AppText } from "@/src/components/common/AppText";
 import { useTheme } from "@/src/theme";
 import { radius, spacing } from "@/src/theme/tokens";
@@ -14,6 +15,7 @@ const actions: Action[] = [
 ];
 
 export function CreateActionSheet({ visible, onClose, onAction }: { visible: boolean; onClose: () => void; onAction?: (label: string) => void }) {
+  const router = useRouter();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const styles = StyleSheet.create({
@@ -26,5 +28,5 @@ export function CreateActionSheet({ visible, onClose, onAction }: { visible: boo
     icon: { width: 46, height: 46, borderRadius: 13, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center" },
     copy: { flex: 1, gap: 2 },
   });
-  return <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}><Pressable style={styles.backdrop} onPress={onClose}><Pressable style={styles.sheet} onPress={e => e.stopPropagation()}><View style={styles.handle} /><View style={styles.header}><View><AppText variant="h2">What do you want to do?</AppText><AppText variant="caption" style={{ color: colors.textMuted }}>Choose an action to get started.</AppText></View><Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose}><Ionicons name="close" size={24} color={colors.textMuted} /></Pressable></View>{actions.map(action => <Pressable accessibilityRole="button" key={action.label} onPress={() => { onAction?.(action.label); onClose(); }} style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}><View style={styles.icon}><Ionicons name={action.icon} size={21} color={colors.primary} /></View><View style={styles.copy}><AppText variant="bodyMedium">{action.label}</AppText><AppText variant="caption" style={{ color: colors.textMuted }}>{action.description}</AppText></View><Ionicons name="chevron-forward" size={18} color={colors.textMuted} /></Pressable>)}</Pressable></Pressable></Modal>;
+  return <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}><Pressable style={styles.backdrop} onPress={onClose}><Pressable style={styles.sheet} onPress={e => e.stopPropagation()}><View style={styles.handle} /><View style={styles.header}><View><AppText variant="h2">What do you want to do?</AppText><AppText variant="caption" style={{ color: colors.textMuted }}>Choose an action to get started.</AppText></View><Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose}><Ionicons name="close" size={24} color={colors.textMuted} /></Pressable></View>{actions.map(action => <Pressable accessibilityRole="button" key={action.label} onPress={() => { if (action.label === "Add Expense") router.push("/expenses/new"); onAction?.(action.label); onClose(); }} style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}><View style={styles.icon}><Ionicons name={action.icon} size={21} color={colors.primary} /></View><View style={styles.copy}><AppText variant="bodyMedium">{action.label}</AppText><AppText variant="caption" style={{ color: colors.textMuted }}>{action.description}</AppText></View><Ionicons name="chevron-forward" size={18} color={colors.textMuted} /></Pressable>)}</Pressable></Pressable></Modal>;
 }
