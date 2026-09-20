@@ -91,7 +91,7 @@ export default function NewExpenseScreen() {
     );
 
     return Object.fromEntries(
-      participantIds.map((id) => [id, Math.round(numericAmount * percentageValues[id] * 100) / 10000]),
+      participantIds.map((id) => [id, Math.round(numericAmount * (percentageValues[id] ?? 0) * 100) / 10000]),
     ) as Record<string, number>;
   }, [numericAmount, participantIds, splitMethod, customAmounts, percentages]);
 
