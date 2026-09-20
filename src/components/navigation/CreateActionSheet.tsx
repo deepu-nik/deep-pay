@@ -1,4 +1,5 @@
 import { Modal, Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
 import { useTheme } from "@/src/theme";
@@ -14,9 +15,10 @@ const actions: Action[] = [
 
 export function CreateActionSheet({ visible, onClose, onAction }: { visible: boolean; onClose: () => void; onAction?: (label: string) => void }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = StyleSheet.create({
     backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" },
-    sheet: { backgroundColor: colors.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, paddingBottom: 28 },
+    sheet: { backgroundColor: colors.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, paddingBottom: Math.max(spacing.lg, insets.bottom + spacing.md) },
     handle: { width: 42, height: 5, borderRadius: 3, backgroundColor: colors.border, alignSelf: "center", marginBottom: spacing.xl },
     header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: spacing.lg },
     action: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.md, minHeight: 68 },
