@@ -8,8 +8,8 @@ type Props = { label: string; icon: keyof typeof Ionicons.glyphMap; onPress?: ()
 export function QuickAction({ label, icon, onPress }: Props) {
   const { colors } = useTheme();
   const styles = StyleSheet.create({
-    container: { alignItems: "center", gap: spacing.sm, minWidth: 70 },
-    pressed: { opacity: 0.65 },
+    container: { alignItems: "center", gap: spacing.sm, minWidth: 70, paddingVertical: spacing.xs },
+    pressed: { opacity: 0.7, transform: [{ scale: 0.97 }] },
     icon: { width: 48, height: 48, borderRadius: radius.lg, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center" },
   });
   return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.container, pressed && styles.pressed]}>
