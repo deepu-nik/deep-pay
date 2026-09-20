@@ -29,7 +29,7 @@ export function BottomTabBar({ activeTab, onTabPress, onAddPress }: Props) {
 }
 
 function TabButton({ tab, active, onPress, colors, styles }: { tab: (typeof tabs)[number]; active: boolean; onPress: () => void; colors: ReturnType<typeof useTheme>["colors"]; styles: ReturnType<typeof StyleSheet.create> }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={tab.label} onPress={onPress} style={({ pressed }) => [styles.tab, pressed ? styles.pressed : null]}>
+  return <Pressable accessibilityRole="button" accessibilityLabel={tab.label} onPress={onPress} style={styles.tab}>
     <Ionicons name={active ? tab.icon.replace("-outline", "") as keyof typeof Ionicons.glyphMap : tab.icon} size={21} color={active ? colors.primary : colors.textMuted} />
     <AppText variant="caption" style={{ color: active ? colors.primary : colors.textMuted }}>{tab.label}</AppText>
   </Pressable>;
