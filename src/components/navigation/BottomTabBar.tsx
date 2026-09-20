@@ -23,7 +23,7 @@ export function BottomTabBar({ activeTab, onTabPress, onAddPress }: Props) {
   });
   return <View style={styles.bar}>
     {tabs.slice(0, 2).map((tab) => <TabButton key={tab.key} tab={tab} active={activeTab === tab.key} onPress={() => onTabPress(tab.key)} colors={colors} styles={styles} />)}
-    <Pressable accessibilityRole="button" accessibilityLabel="Create" onPress={onAddPress} style={({ pressed }) => [styles.add, pressed && styles.pressed]}><Ionicons name="add" size={28} color={colors.white} /></Pressable>
+    <Pressable accessibilityRole="button" accessibilityLabel="Create" onPress={onAddPress} style={({ pressed }) => [styles.add, pressed ? styles.pressed : null]}><Ionicons name="add" size={28} color={colors.white} /></Pressable>
     {tabs.slice(2).map((tab) => <TabButton key={tab.key} tab={tab} active={activeTab === tab.key} onPress={() => onTabPress(tab.key)} colors={colors} styles={styles} />)}
   </View>;
 }
