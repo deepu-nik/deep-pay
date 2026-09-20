@@ -1,18 +1,20 @@
-export const colors = {
-  background: "#F7F8FA",
-  surface: "#FFFFFF",
-  surfaceMuted: "#F0F2F5",
-  text: "#111827",
-  textMuted: "#667085",
-  border: "#E4E7EC",
-  primary: "#2563EB",
-  primaryPressed: "#1D4ED8",
-  success: "#16A34A",
-  warning: "#D97706",
-  danger: "#DC2626",
-  white: "#FFFFFF",
-  black: "#000000",
-} as const;
+export type ThemeColors = {
+  background: string;
+  surface: string;
+  surfaceMuted: string;
+  text: string;
+  textMuted: string;
+  border: string;
+  primary: string;
+  primaryPressed: string;
+  success: string;
+  warning: string;
+  danger: string;
+  iconBackground: string;
+  expenseIconBackground: string;
+  white: string;
+  black: string;
+};
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 40 } as const;
 export const radius = { sm: 8, md: 12, lg: 16, xl: 24, pill: 999 } as const;
