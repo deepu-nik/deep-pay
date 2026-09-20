@@ -1,4 +1,4 @@
-import type { CreateExpenseInput, CreateGroupInput, Expense, Friend, Group, GroupBalance, HomeSummary } from "@/src/types/domain";
+import type { CreateExpenseInput, CreateGroupInput, CreateSettlementInput, Expense, Friend, Group, GroupBalance, HomeSummary, Settlement } from "@/src/types/domain";
 
 export interface FriendService {
   listFriends(): Promise<Friend[]>;
@@ -11,6 +11,11 @@ export interface ExpenseService {
   getHomeSummary(): Promise<HomeSummary>;
   createExpense(input: CreateExpenseInput): Promise<Expense>;
   getGroupBalances(groupId: string): Promise<GroupBalance[]>;
+}
+
+export interface SettlementService {
+  listByGroup(groupId: string): Promise<Settlement[]>;
+  createSettlement(input: CreateSettlementInput): Promise<Settlement>;
 }
 
 export interface GroupService {

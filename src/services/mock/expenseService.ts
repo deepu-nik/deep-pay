@@ -1,6 +1,7 @@
 import type { ExpenseService } from "@/src/services/api/types";
 import type { CreateExpenseInput, Expense, GroupBalance, HomeSummary } from "@/src/types/domain";
 import { readMockList, writeMockList } from "@/src/services/mock/storage";
+import { mockSettlementService } from "@/src/services/mock/settlementService";
 
 const STORAGE_KEY = "@deeppay/mock-expenses";
 
@@ -12,13 +13,13 @@ async function getExpenses() {
   return expenses;
 }
 
-function calculateGroupBalances(expenses: Expense[]): GroupBalance[] {
-  const byUser = new Map<string, { paid: number; owed: number }>();
+function calculateGroupBalances(expenses: Expense[], settlements: { fromUserId: string; toUserId: string; amount: number }[] = []): GroupBalance[] {
+  const byUser = new Map<string, { paid: number; owed: number; settlementNet: number }>();
 
   const ensure = (userId: string) => {
     const existing = byUser.get(userId);
     if (existing) return existing;
-    const next = { paid: 0, owed: 0 };
+    const next = { paid: 0, owed: 0, settlementNet: 0 };
     byUser.set(userId, next);
     return next;
   };
@@ -38,11 +39,16 @@ function calculateGroupBalances(expenses: Expense[]): GroupBalance[] {
     }
   }
 
+  for (const settlement of settlements) {
+    ensure(settlement.fromUserId).settlementNet += settlement.amount;
+    ensure(settlement.toUserId).settlementNet -= settlement.amount;
+  }
+
   return [...byUser.entries()].map(([userId, balance]) => ({
     userId,
     paid: Math.round(balance.paid * 100) / 100,
     owed: Math.round(balance.owed * 100) / 100,
-    net: Math.round((balance.paid - balance.owed) * 100) / 100,
+    net: Math.round((balance.paid - balance.owed + balance.settlementNet) * 100) / 100,
   }));
 }
 
@@ -82,6 +88,7 @@ export const mockExpenseService: ExpenseService = {
 
   async getGroupBalances(groupId: string): Promise<GroupBalance[]> {
     const groupExpenses = (await getExpenses()).filter((expense) => expense.groupId === groupId);
-    return calculateGroupBalances(groupExpenses);
+    const groupSettlements = await mockSettlementService.listByGroup(groupId);
+    return calculateGroupBalances(groupExpenses, groupSettlements);
   },
 };
