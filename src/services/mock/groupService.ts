@@ -10,4 +10,14 @@ export const mockGroupService: GroupService = {
     const next: Group = { ...input, id: "group-" + Date.now(), createdAt: new Date().toISOString() };
     groups = [next, ...groups]; return next;
   },
+  async updateGroup(id: string, input: CreateGroupInput) {
+    const current = groups.find((group) => group.id === id);
+    if (!current) throw new Error("Group not found");
+    const updated: Group = { ...current, ...input };
+    groups = groups.map((group) => group.id === id ? updated : group);
+    return updated;
+  },
+  async deleteGroup(id: string) {
+    groups = groups.filter((group) => group.id !== id);
+  },
 };
