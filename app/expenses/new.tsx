@@ -12,6 +12,7 @@ import { radius, spacing } from "@/src/theme/tokens";
 import type { ExpenseCategory, ExpenseSplitMethod } from "@/src/types/domain";
 import { useExpenses } from "@/src/hooks/useExpenses";
 import { useFriends } from "@/src/hooks/useFriends";
+import { useGroups } from "@/src/hooks/useGroups";
 
 const categories: ExpenseCategory[] = ["Food", "Transport", "Rent", "Education", "Entertainment", "Shopping", "Technology", "Travel", "Health", "Other"];
 const CURRENT_USER = { id: "You", name: "You" };
@@ -40,12 +41,14 @@ export default function NewExpenseScreen() {
   const { colors } = useTheme();
   const { createExpense, saving, error } = useExpenses();
   const { friends, loading: friendsLoading } = useFriends();
+  const { groups, loading: groupsLoading } = useGroups();
 
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<ExpenseCategory>("Food");
   const [splitMethod, setSplitMethod] = useState<ExpenseSplitMethod>("equal");
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
   const [percentages, setPercentages] = useState<Record<string, string>>({});
   const [validation, setValidation] = useState<string | null>(null);
@@ -76,9 +79,7 @@ export default function NewExpenseScreen() {
   const calculatedSplits = useMemo(() => {
     if (!numericAmount || participantIds.length === 0) return {};
 
-    if (splitMethod === "equal") {
-      return equalSplits(numericAmount, participantIds);
-    }
+    if (splitMethod === "equal") return equalSplits(numericAmount, participantIds);
 
     if (splitMethod === "custom") {
       return Object.fromEntries(
@@ -119,10 +120,6 @@ export default function NewExpenseScreen() {
       setValidation("Add a short description for this expense.");
       return;
     }
-    if (participantIds.length < 1) {
-      setValidation("Select at least one participant.");
-      return;
-    }
     if (!splitIsValid) {
       setValidation(splitMethod === "percentage"
         ? `Percentages must add up to 100%. Current total: ${percentageTotal.toFixed(2)}%.`
@@ -147,9 +144,10 @@ export default function NewExpenseScreen() {
       participants: participantIds,
       splitMethod,
       splits,
+      ...(selectedGroupId ? { groupId: selectedGroupId } : {}),
     });
 
-    if (expense) router.replace("/(tabs)");
+    if (expense) router.replace(selectedGroupId ? `/groups/${selectedGroupId}` : "/(tabs)");
   };
 
   const styles = StyleSheet.create({
@@ -191,6 +189,25 @@ export default function NewExpenseScreen() {
         </View>
 
         <View style={styles.section}>
+          <AppText variant="bodyMedium">Group (optional)</AppText>
+          {groupsLoading ? <LoadingState message="Loading groups…" /> : groups.length === 0 ? (
+            <AppText variant="caption" style={{ color: colors.textMuted }}>Create a group first to link this expense to a group.</AppText>
+          ) : (
+            <View style={styles.chips}>
+              <Pressable onPress={() => setSelectedGroupId(null)} accessibilityRole="radio" accessibilityState={{ selected: selectedGroupId === null }} style={[styles.chip, selectedGroupId === null && styles.chipSelected]}>
+                <AppText variant="caption" style={selectedGroupId === null ? { color: colors.primary } : undefined}>No group</AppText>
+              </Pressable>
+              {groups.map((group) => {
+                const selected = selectedGroupId === group.id;
+                return <Pressable key={group.id} onPress={() => setSelectedGroupId(group.id)} accessibilityRole="radio" accessibilityState={{ selected }} style={[styles.chip, selected && styles.chipSelected]}>
+                  <AppText variant="caption" style={selected ? { color: colors.primary } : undefined}>{group.name}</AppText>
+                </Pressable>;
+              })}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.section}>
           <AppText variant="bodyMedium">Who was involved?</AppText>
           <View style={styles.chips}>
             <View style={[styles.chip, styles.chipSelected]}><AppText variant="caption" style={{ color: colors.primary }}>You</AppText></View>
@@ -220,31 +237,18 @@ export default function NewExpenseScreen() {
           {participantIds.map((id) => (
             <View key={id} style={styles.participantRow}>
               <AppText variant="body">{participantNames[id] ?? id}</AppText>
-              {splitMethod === "equal" ? (
-                <AppText variant="bodyMedium">{formatMoney(calculatedSplits[id] ?? 0)}</AppText>
-              ) : (
-                <TextInput
-                  value={splitMethod === "custom" ? (customAmounts[id] ?? "") : (percentages[id] ?? "")}
-                  onChangeText={(value) => {
-                    if (splitMethod === "custom") setCustomAmounts((current) => ({ ...current, [id]: value }));
-                    else setPercentages((current) => ({ ...current, [id]: value }));
-                    setValidation(null);
-                  }}
-                  keyboardType="decimal-pad"
-                  inputMode="decimal"
-                  style={styles.shareInput}
-                  placeholder={splitMethod === "custom" ? "₹0" : "0%"}
-                  placeholderTextColor={colors.textMuted}
-                  accessibilityLabel={`${participantNames[id] ?? id} ${splitMethod} share`}
-                />
+              {splitMethod === "equal" ? <AppText variant="bodyMedium">{formatMoney(calculatedSplits[id] ?? 0)}</AppText> : (
+                <TextInput value={splitMethod === "custom" ? (customAmounts[id] ?? "") : (percentages[id] ?? "")} onChangeText={(value) => {
+                  if (splitMethod === "custom") setCustomAmounts((current) => ({ ...current, [id]: value }));
+                  else setPercentages((current) => ({ ...current, [id]: value }));
+                  setValidation(null);
+                }} keyboardType="decimal-pad" inputMode="decimal" style={styles.shareInput} placeholder={splitMethod === "custom" ? "₹0" : "0%"} placeholderTextColor={colors.textMuted} accessibilityLabel={`${participantNames[id] ?? id} ${splitMethod} share`} />
               )}
             </View>
           ))}
           <View style={styles.summary}>
             <AppText variant="caption" style={{ color: colors.textMuted }}>
-              {splitMethod === "percentage"
-                ? `Percentage total: ${percentageTotal.toFixed(2)}%`
-                : `Split total: ${formatMoney(splitTotal)}`}
+              {splitMethod === "percentage" ? `Percentage total: ${percentageTotal.toFixed(2)}%` : `Split total: ${formatMoney(splitTotal)}`}
             </AppText>
             {splitMethod !== "equal" && !splitIsValid ? <AppText variant="caption" style={{ color: colors.danger }}>
               {splitMethod === "percentage" ? "Percentages must total 100%." : `Amounts must total ${formatMoney(numericAmount)}.`}
