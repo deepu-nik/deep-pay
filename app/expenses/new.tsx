@@ -86,9 +86,9 @@ export default function NewExpenseScreen() {
       ) as Record<string, number>;
     }
 
-    const percentageValues = Object.fromEntries(
+    const percentageValues: Record<string, number> = Object.fromEntries(
       participantIds.map((id) => [id, toAmount(percentages[id] ?? "")]),
-    ) as Record<string, number>;
+    );
 
     return Object.fromEntries(
       participantIds.map((id) => [id, Math.round(numericAmount * percentageValues[id] * 100) / 10000]),
@@ -96,7 +96,7 @@ export default function NewExpenseScreen() {
   }, [numericAmount, participantIds, splitMethod, customAmounts, percentages]);
 
   const splitTotal = Object.values(calculatedSplits).reduce((sum, value) => sum + value, 0);
-  const percentageTotal = Object.values(percentages).reduce((sum, value) => sum + value, 0);
+  const percentageTotal = Object.values(percentages).reduce((sum, value) => sum + toAmount(value), 0);
   const splitIsValid = splitMethod === "percentage"
     ? Math.abs(percentageTotal - 100) < 0.01 && Math.abs(splitTotal - numericAmount) < 0.01
     : Math.abs(splitTotal - numericAmount) < 0.01;
