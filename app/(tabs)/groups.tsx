@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
@@ -16,9 +16,14 @@ import { radius, spacing } from "@/src/theme/tokens";
 
 export default function GroupsScreen() {
   const router = useRouter(); const { colors } = useTheme();
-  const { groups, loading, createGroup } = useGroups(); const { friends, loading: friendsLoading } = useFriends();
+  const { groups, loading, createGroup } = useGroups(); const { friends, loading: friendsLoading, refresh: refreshFriends } = useFriends();
   const [createVisible, setCreateVisible] = useState(false); const [sheetVisible, setSheetVisible] = useState(false);
   const [name, setName] = useState(""); const [selected, setSelected] = useState<string[]>([]);
+
+  useFocusEffect(useCallback(() => {
+    refreshFriends();
+  }, [refreshFriends]));
+
   const styles = StyleSheet.create({
     safe:{flex:1,backgroundColor:colors.background}, content:{padding:spacing.lg,paddingBottom:110},
     header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:spacing.xl},
@@ -29,13 +34,15 @@ export default function GroupsScreen() {
     input:{minHeight:52,borderWidth:1,borderColor:colors.border,borderRadius:radius.md,paddingHorizontal:spacing.lg,color:colors.text,fontSize:16,backgroundColor:colors.background},
     chips:{flexDirection:"row",flexWrap:"wrap",gap:spacing.sm}, chip:{paddingHorizontal:spacing.md,paddingVertical:spacing.sm,borderRadius:radius.pill,borderWidth:1,borderColor:colors.border,backgroundColor:colors.background}, selectedChip:{borderColor:colors.primary,backgroundColor:colors.iconBackground},
   });
+
   const toggle = (id:string) => setSelected((current)=>current.includes(id)?current.filter(x=>x!==id):[...current,id]);
   const save = async () => { if (!name.trim()) return; await createGroup({name:name.trim(),memberIds:["You",...selected]}); setName("");setSelected([]);setCreateVisible(false); };
   const goTo=(tab:"home"|"groups"|"activity"|"profile")=>{ if(tab==="groups")return; router.push(tab==="home"?"/(tabs)":`/(tabs)/${tab}` as any); };
   const memberCount=(ids:string[])=>ids.length===1?"1 member":`${ids.length} members`;
+
   return <SafeAreaView style={styles.safe} edges={["top"]}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}><View><AppText variant="title">Groups</AppText><AppText variant="body" style={styles.muted}>Shared expenses, kept together.</AppText></View><View style={styles.headerActions}><Pressable onPress={()=>router.push("/friends")} accessibilityLabel="Open friends" style={styles.iconButton}><Ionicons name="people-outline" size={21} color={colors.primary}/></Pressable><Pressable onPress={()=>setCreateVisible(true)} accessibilityLabel="Create group" style={styles.iconButton}><Ionicons name="add" size={24} color={colors.primary}/></Pressable></View></View>
+      <View style={styles.header}><View><AppText variant="title">Groups</AppText><AppText variant="body" style={styles.muted}>Shared expenses, kept together.</AppText></View><View style={styles.headerActions}><Pressable onPress={()=>router.push("/friends")} accessibilityLabel="Open friends" style={styles.iconButton}><Ionicons name="people-outline" size={21} color={colors.primary}/></Pressable><Pressable onPress={()=>{refreshFriends();setCreateVisible(true);}} accessibilityLabel="Create group" style={styles.iconButton}><Ionicons name="add" size={24} color={colors.primary}/></Pressable></View></View>
       {loading ? <LoadingState message="Loading groups…" /> : groups.length ? groups.map(group=><Pressable key={group.id} onPress={()=>router.push(`/groups/${group.id}`)} style={styles.card}><View style={styles.row}><View style={styles.groupIcon}><Ionicons name="people-outline" size={23} color={colors.primary}/></View><View style={{flex:1}}><AppText variant="bodyMedium">{group.name}</AppText><AppText variant="caption" style={styles.muted}>{memberCount(group.memberIds)}</AppText></View><Ionicons name="chevron-forward" size={20} color={colors.textMuted}/></View></Pressable>) : <EmptyState icon="people-outline" title="No groups yet" message="Create a group for trips, roommates, clubs or projects." />}
     </ScrollView>
     <BottomTabBar activeTab="groups" onTabPress={goTo} onAddPress={()=>setSheetVisible(true)}/><CreateActionSheet visible={sheetVisible} onClose={()=>setSheetVisible(false)}/>
