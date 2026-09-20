@@ -11,3 +11,10 @@ export type CreateExpenseInput = Omit<Expense, "id" | "createdAt">;
 export type HomeSummary = { monthLabel: string; totalSpent: number; youOwe: number; owedToYou: number };
 export type Group = { id: string; name: string; memberIds: string[]; createdAt: string };
 export type CreateGroupInput = Omit<Group, "id" | "createdAt">;
+
+export type GroupBalance = {
+  userId: string;
+  paid: number;
+  owed: number;
+  net: number;
+};

@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { mockExpenseService } from "@/src/services/mock/expenseService";
-import type { CreateExpenseInput, Expense } from "@/src/types/domain";
+import type { CreateExpenseInput, Expense, GroupBalance } from "@/src/types/domain";
 
 export function useExpenses() {
   const [saving, setSaving] = useState(false);
@@ -23,5 +23,9 @@ export function useExpenses() {
     return mockExpenseService.listByGroup(groupId);
   }, []);
 
-  return { createExpense, listByGroup, saving, error };
+  const getGroupBalances = useCallback(async (groupId: string): Promise<GroupBalance[]> => {
+    return mockExpenseService.getGroupBalances(groupId);
+  }, []);
+
+  return { createExpense, listByGroup, getGroupBalances, saving, error };
 }

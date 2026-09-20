@@ -11,7 +11,7 @@ import { useFriends } from "@/src/hooks/useFriends";
 import { useExpenses } from "@/src/hooks/useExpenses";
 import { useTheme } from "@/src/theme";
 import { radius, spacing } from "@/src/theme/tokens";
-import type { Expense } from "@/src/types/domain";
+import type { Expense, GroupBalance } from "@/src/types/domain";
 
 const CURRENT_USER = { id: "You", name: "You" };
 
@@ -25,9 +25,11 @@ export default function GroupDetailScreen() {
   const { colors } = useTheme();
   const { groups, loading, updateGroup, deleteGroup } = useGroups();
   const { friends, refresh: refreshFriends } = useFriends();
-  const { listByGroup } = useExpenses();
+  const { listByGroup, getGroupBalances } = useExpenses();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expensesLoading, setExpensesLoading] = useState(true);
+  const [balances, setBalances] = useState<GroupBalance[]>([]);
+  const [balancesLoading, setBalancesLoading] = useState(true);
   const [editorVisible, setEditorVisible] = useState(false);
   const [name, setName] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
@@ -41,8 +43,15 @@ export default function GroupDetailScreen() {
   const loadExpenses = async () => {
     if (!id) return;
     setExpensesLoading(true);
-    setExpenses(await listByGroup(id));
+    setBalancesLoading(true);
+    const [nextExpenses, nextBalances] = await Promise.all([
+      listByGroup(id),
+      getGroupBalances(id),
+    ]);
+    setExpenses(nextExpenses);
+    setBalances(nextBalances);
     setExpensesLoading(false);
+    setBalancesLoading(false);
   };
 
   useEffect(() => {
@@ -57,6 +66,10 @@ export default function GroupDetailScreen() {
     headerActions: { marginLeft: "auto", flexDirection: "row", gap: spacing.sm },
     iconButton: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
     hero: { backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, padding: spacing.xl, marginBottom: spacing.xl },
+    balanceCard: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, marginBottom: spacing.xl },
+    balanceRow: { flexDirection: "row", alignItems: "center", paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
+    balanceAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center", marginRight: spacing.md },
+    balanceCopy: { flex: 1 },
     icon: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
     member: { flexDirection: "row", alignItems: "center", paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
     avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center", marginRight: spacing.md },
@@ -119,6 +132,36 @@ export default function GroupDetailScreen() {
         <AppText variant="title">{group.name}</AppText>
         <AppText variant="body" style={styles.muted}>{names.length} members · {formatMoney(totalSpent)} spent</AppText>
       </View>
+
+      <AppText variant="h2" style={{ marginBottom: spacing.sm }}>Balances</AppText>
+      <View style={styles.balanceCard}>
+        {balancesLoading ? <LoadingState message="Calculating balances…" /> : balances.length === 0 ? (
+          <AppText variant="body" style={styles.muted}>Add an expense to see who owes what.</AppText>
+        ) : balances.map((balance, index) => {
+          const memberName = friendNames[balance.userId] ?? balance.userId;
+          const positive = balance.net > 0;
+          const neutral = Math.abs(balance.net) < 0.005;
+          return <View key={balance.userId} style={[styles.balanceRow, index === balances.length - 1 && { borderBottomWidth: 0 }]}>
+            <View style={styles.balanceAvatar}><AppText variant="caption">{memberName.slice(0, 1).toUpperCase()}</AppText></View>
+            <View style={styles.balanceCopy}>
+              <AppText variant="bodyMedium">{memberName}</AppText>
+              <AppText variant="caption" style={styles.muted}>{formatMoney(balance.paid)} paid · {formatMoney(balance.owed)} share</AppText>
+            </View>
+            <AppText variant="bodyMedium" style={{ color: neutral ? colors.textMuted : positive ? colors.success : colors.danger }}>
+              {neutral ? "Settled" : positive ? `+ ${formatMoney(balance.net)}` : `- ${formatMoney(Math.abs(balance.net))}`}
+            </AppText>
+          </View>;
+        })}
+      </View>
+
+      {balances.length > 0 ? (() => {
+        const current = balances.find((balance) => balance.userId === CURRENT_USER.id);
+        const net = current?.net ?? 0;
+        return <View style={{ backgroundColor: colors.surfaceMuted, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.xl }}>
+          <AppText variant="bodyMedium">{Math.abs(net) < 0.005 ? "You're settled up" : net > 0 ? `You're owed ${formatMoney(net)}` : `You owe ${formatMoney(Math.abs(net))}`}</AppText>
+          <AppText variant="caption" style={styles.muted}>Based on all expenses currently recorded in this group.</AppText>
+        </View>;
+      })() : null}
 
       <View style={styles.sectionHeader}>
         <AppText variant="h2">Expenses</AppText>
