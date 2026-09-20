@@ -229,7 +229,7 @@ export default function GroupDetailScreen() {
 
             <View style={styles.sectionHeader}>
         <AppText variant="h2">Expenses</AppText>
-        <Pressable onPress={() => router.push("/expenses/new")} accessibilityRole="button">
+        <Pressable onPress={() => router.push({ pathname: "/expenses/new", params: { groupId: id } })} accessibilityRole="button">
           <AppText variant="bodyMedium" style={{ color: colors.primary }}>+ Add expense</AppText>
         </Pressable>
       </View>
