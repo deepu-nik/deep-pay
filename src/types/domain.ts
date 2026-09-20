@@ -1,3 +1,8 @@
+export type Friend = {
+  id: string;
+  name: string;
+};
+
 export type ExpenseCategory = "Food" | "Transport" | "Rent" | "Education" | "Entertainment" | "Shopping" | "Technology" | "Travel" | "Health" | "Other";
 
 export type ExpenseSplitMethod = "equal" | "custom" | "percentage";
