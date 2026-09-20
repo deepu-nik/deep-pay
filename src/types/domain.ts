@@ -18,3 +18,15 @@ export type GroupBalance = {
   owed: number;
   net: number;
 };
+
+export type Settlement = {
+  id: string;
+  groupId: string;
+  fromUserId: string;
+  toUserId: string;
+  amount: number;
+  date: string;
+  createdAt: string;
+};
+
+export type CreateSettlementInput = Omit<Settlement, "id" | "createdAt">;
