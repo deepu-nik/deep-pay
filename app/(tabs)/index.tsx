@@ -7,6 +7,8 @@ import { AppText } from "@/src/components/common/AppText";
 import { ExpenseRow } from "@/src/components/common/ExpenseRow";
 import { QuickAction } from "@/src/components/common/QuickAction";
 import { SectionHeader } from "@/src/components/common/SectionHeader";
+import { EmptyState } from "@/src/components/common/EmptyState";
+import { LoadingState } from "@/src/components/common/LoadingState";
 import { BottomTabBar } from "@/src/components/navigation/BottomTabBar";
 import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet";
 import { useHomeData } from "@/src/hooks/useHomeData";
@@ -40,6 +42,6 @@ export default function HomeScreen() {
     <View style={styles.summaryCard}><View style={styles.month}><AppText variant="caption" style={{ color: colors.textMuted }}>{summary?.monthLabel ?? "September"}</AppText><Ionicons name="chevron-down" size={16} color={colors.textMuted} /></View><AppText variant="amount">₹{(summary?.totalSpent ?? 0).toLocaleString("en-IN")}</AppText><AppText variant="caption" style={{ color: colors.textMuted }}>total spent this month</AppText><View style={styles.balanceRow}><View><AppText variant="caption" style={{ color: colors.textMuted }}>You owe</AppText><AppText variant="bodyMedium">₹{summary?.youOwe ?? 0}</AppText></View><View><AppText variant="caption" style={{ color: colors.textMuted }}>Owed to you</AppText><AppText variant="bodyMedium" style={{ color: colors.success }}>₹{summary?.owedToYou ?? 0}</AppText></View></View></View>
     <SectionHeader title="Quick actions" /><View style={styles.actions}>{[["Scan","qr-code"],["Split","git-branch-outline"],["Request","arrow-down-circle-outline"],["Expense","add-circle-outline"]].map(([label, icon]) => <QuickAction key={label} label={label} icon={icon as keyof typeof Ionicons.glyphMap} onPress={openCreate} />)}</View>
     <SectionHeader title="Recent expenses" action="See all" />
-    <View style={styles.list}>{loading ? <AppText style={{ color: colors.textMuted }}>Loading your expenses…</AppText> : expenses.length ? expenses.map(expense => <ExpenseRow key={expense.id} expense={expense} />) : <AppText style={{ color: colors.textMuted, paddingVertical: spacing.xl, textAlign: "center" }}>No expenses yet. Use + to add your first expense.</AppText>}</View>
+    <View style={styles.list}>{loading ? <LoadingState message="Loading your expenses…" /> : expenses.length ? expenses.map(expense => <ExpenseRow key={expense.id} expense={expense} />) : <EmptyState icon="receipt-outline" title="No expenses yet" message="Use + to add your first expense and start tracking shared spending." />}</View>
   </ScrollView><BottomTabBar activeTab="home" onTabPress={goTo} onAddPress={openCreate} /><CreateActionSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} /></SafeAreaView>;
 }
