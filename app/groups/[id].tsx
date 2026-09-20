@@ -127,6 +127,7 @@ export default function GroupDetailScreen() {
     const creditors = balances.filter((balance) => balance.userId !== CURRENT_USER.id && balance.net > 0.005);
     if (creditors.length === 0) return;
     const target = creditors[0];
+    if (!target) return;
     setSettlementTarget(target.userId);
     setSettlementAmount(Math.min(Math.abs(current.net), target.net).toFixed(2));
     setSettlementVisible(true);
