@@ -12,26 +12,53 @@ import { radius, spacing } from "@/src/theme/tokens";
 export default function SignInScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { signIn } = useAuth();
+  const { signIn, resetPassword } = useAuth();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const submit = async () => {
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
       setError("Enter a valid email address.");
       return;
     }
+    if (!password) {
+      setError("Enter your password.");
+      return;
+    }
 
     setSaving(true);
     setError(null);
+    setNotice(null);
     try {
-      await signIn(email);
+      await signIn(email, password);
       router.replace("/(tabs)");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "We couldn't sign you in.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+      setError("Enter your account email first.");
+      return;
+    }
+
+    setResetting(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await resetPassword(email);
+      setNotice("If an account exists for this email, Firebase will send a password reset link.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "We couldn't send a reset email.");
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -43,6 +70,7 @@ export default function SignInScreen() {
     field: { gap: spacing.xs },
     input: { minHeight: 56, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, color: colors.text, fontSize: 16 },
     note: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceMuted, gap: spacing.xs },
+    textButton: { alignSelf: "flex-end", paddingVertical: spacing.xs },
   });
 
   return (
@@ -59,7 +87,7 @@ export default function SignInScreen() {
           <View style={{ gap: spacing.sm }}>
             <AppText variant="title">Pick up where you left off.</AppText>
             <AppText variant="body" style={{ color: colors.textMuted }}>
-              Enter the email address attached to your local DeepPay demo profile.
+              Sign in to your DeepPay account from any device.
             </AppText>
           </View>
 
@@ -67,7 +95,7 @@ export default function SignInScreen() {
             <AppText variant="bodyMedium">Email address</AppText>
             <TextInput
               value={email}
-              onChangeText={(value) => { setEmail(value); setError(null); }}
+              onChangeText={(value) => { setEmail(value); setError(null); setNotice(null); }}
               placeholder="you@example.com"
               placeholderTextColor={colors.textMuted}
               keyboardType="email-address"
@@ -75,24 +103,47 @@ export default function SignInScreen() {
               autoCorrect={false}
               autoComplete="email"
               textContentType="emailAddress"
-              returnKeyType="done"
-              onSubmitEditing={() => void submit()}
+              returnKeyType="next"
               style={styles.input}
             />
           </View>
 
+          <View style={styles.field}>
+            <AppText variant="bodyMedium">Password</AppText>
+            <TextInput
+              value={password}
+              onChangeText={(value) => { setPassword(value); setError(null); }}
+              placeholder="Your password"
+              placeholderTextColor={colors.textMuted}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="current-password"
+              textContentType="password"
+              returnKeyType="done"
+              onSubmitEditing={() => void submit()}
+              style={styles.input}
+            />
+            <Pressable onPress={() => void handleResetPassword()} disabled={resetting}>
+              <AppText variant="caption" style={{ color: colors.primary, textAlign: "right" }}>
+                {resetting ? "Sending reset link…" : "Forgot password?"}
+              </AppText>
+            </Pressable>
+          </View>
+
           <View style={styles.note}>
-            <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
+            <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
             <AppText variant="caption" style={{ color: colors.textMuted }}>
-              Demo sign-in only checks for a profile saved on this device. It does not verify email ownership or use a password.
+              Your sign-in is securely managed by Firebase Authentication.
             </AppText>
           </View>
 
           {error ? <AppText variant="caption" style={{ color: colors.danger }}>{error}</AppText> : null}
-          <PrimaryButton title={saving ? "Signing in…" : "Continue"} onPress={submit} disabled={saving} />
+          {notice ? <AppText variant="caption" style={{ color: colors.success }}>{notice}</AppText> : null}
+          <PrimaryButton title={saving ? "Signing in…" : "Sign in"} onPress={submit} disabled={saving} />
 
           <AppText variant="body" style={{ color: colors.textMuted, textAlign: "center" }}>
-            New to DeepPay? <AppText variant="bodyMedium" style={{ color: colors.primary }} onPress={() => router.replace("/auth/sign-up" as Href)}>Create a profile</AppText>
+            New to DeepPay? <AppText variant="bodyMedium" style={{ color: colors.primary }} onPress={() => router.replace("/auth/sign-up" as Href)}>Create an account</AppText>
           </AppText>
         </ScrollView>
       </KeyboardAvoidingView>
