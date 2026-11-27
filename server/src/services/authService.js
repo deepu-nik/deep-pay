@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { AppError, unauthorized } from "../utils/appError.js";
 import { User } from "../models/User.js";
 import { RefreshSession } from "../models/RefreshSession.js";
@@ -101,7 +102,7 @@ export async function rotateRefreshToken(rawRefreshToken, metadata) {
     {
       _id: currentSession._id,
       revokedAt: null,
-      expiresAt: { $gt: now },
+      expiresAt: mongoose.trusted({ $gt: now }),
     },
     {
       $set: {
