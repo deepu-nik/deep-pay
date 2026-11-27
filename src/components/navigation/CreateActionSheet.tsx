@@ -77,9 +77,15 @@ export function CreateActionSheet({
             </Pressable>
           </View>
 
-          {actions.map((action, index) => {
-            const gradient = index === 0 ? colors.gradientSky : index === 1 ? colors.gradientSunset : colors.gradientPrimary;
-            const iconColor = index === 2 ? colors.white : colors.onAccent;
+          {actions.map((action) => {
+            const gradient = action.label === "Create Group"
+              ? colors.gradientSky
+              : action.label === "Add Friend"
+                ? colors.gradientSunset
+                : colors.gradientPrimary;
+            const iconColor = action.label === "Split a Bill" || action.label === "Add Expense"
+              ? colors.white
+              : colors.onAccent;
             return (
               <Pressable
                 accessibilityRole="button"
