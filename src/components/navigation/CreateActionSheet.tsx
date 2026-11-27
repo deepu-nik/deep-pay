@@ -12,6 +12,7 @@ type Action = { label: string; icon: keyof typeof Ionicons.glyphMap; description
 const actions: Action[] = [
   { label: "Create Group", icon: "people-outline", description: "Start a trip, club, or shared expense group" },
   { label: "Add Friend", icon: "person-add-outline", description: "Add someone to your DeepPay friends" },
+  { label: "Split a Bill", icon: "git-branch-outline", description: "Quickly split a bill with friends" },
   { label: "Add Expense", icon: "receipt-outline", description: "Record something you paid for" },
 ];
 
@@ -51,6 +52,7 @@ export function CreateActionSheet({
   });
 
   const handleAction = (label: string) => {
+    if (label === "Split a Bill") router.push({ pathname: "/expenses/new", params: { intent: "split" } });
     if (label === "Add Expense") router.push("/expenses/new");
     if (label === "Create Group") router.push("/groups");
     if (label === "Add Friend") router.push("/friends");
@@ -75,9 +77,15 @@ export function CreateActionSheet({
             </Pressable>
           </View>
 
-          {actions.map((action, index) => {
-            const gradient = index === 0 ? colors.gradientSky : index === 1 ? colors.gradientSunset : colors.gradientPrimary;
-            const iconColor = index === 2 ? colors.white : colors.onAccent;
+          {actions.map((action) => {
+            const gradient = action.label === "Create Group"
+              ? colors.gradientSky
+              : action.label === "Add Friend"
+                ? colors.gradientSunset
+                : colors.gradientPrimary;
+            const iconColor = action.label === "Split a Bill" || action.label === "Add Expense"
+              ? colors.white
+              : colors.onAccent;
             return (
               <Pressable
                 accessibilityRole="button"
