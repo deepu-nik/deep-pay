@@ -117,20 +117,10 @@ export const firebaseAuthService = {
     return onAuthStateChanged(
       firebaseAuth,
       (firebaseUser) => {
-        if (!firebaseUser) {
-          onUserChanged(null);
-          return;
-        }
-
-        void ensureUserProfile(firebaseUser)
-          .then(onUserChanged)
-          .catch((error: unknown) => {
-            onError?.(toUserFacingError(error));
-            // Keep the authenticated user available even if the profile read
-            // is temporarily unavailable. Profile writes will still surface
-            // the Firestore error to the user.
-            onUserChanged(toAuthUser(firebaseUser));
-          });
+        // Firebase Auth is the source of truth for the signed-in identity.
+        // Profile reads/writes happen in explicit service operations so the
+        // auth observer cannot race profile creation on first sign-up.
+        onUserChanged(firebaseUser ? toAuthUser(firebaseUser) : null);
       },
       (error) => onError?.(toUserFacingError(error)),
     );
