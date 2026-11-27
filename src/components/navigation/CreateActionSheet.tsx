@@ -12,6 +12,7 @@ type Action = { label: string; icon: keyof typeof Ionicons.glyphMap; description
 const actions: Action[] = [
   { label: "Create Group", icon: "people-outline", description: "Start a trip, club, or shared expense group" },
   { label: "Add Friend", icon: "person-add-outline", description: "Add someone to your DeepPay friends" },
+  { label: "Split a Bill", icon: "git-branch-outline", description: "Quickly split a bill with friends" },
   { label: "Add Expense", icon: "receipt-outline", description: "Record something you paid for" },
 ];
 
@@ -51,6 +52,7 @@ export function CreateActionSheet({
   });
 
   const handleAction = (label: string) => {
+    if (label === "Split a Bill") router.push({ pathname: "/expenses/new", params: { intent: "split" } });
     if (label === "Add Expense") router.push("/expenses/new");
     if (label === "Create Group") router.push("/groups");
     if (label === "Add Friend") router.push("/friends");
