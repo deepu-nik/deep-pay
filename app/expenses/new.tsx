@@ -13,6 +13,7 @@ import type { ExpenseCategory, ExpenseSplitMethod } from "@/src/types/domain";
 import { useExpenses } from "@/src/hooks/useExpenses";
 import { useFriends } from "@/src/hooks/useFriends";
 import { useGroups } from "@/src/hooks/useGroups";
+import { useQuickSplitPreferences } from "@/src/hooks/useQuickSplitPreferences";
 
 const categories: ExpenseCategory[] = ["Food", "Transport", "Rent", "Education", "Entertainment", "Shopping", "Technology", "Travel", "Health", "Other"];
 const CURRENT_USER = { id: "You", name: "You" };
@@ -43,6 +44,7 @@ export default function NewExpenseScreen() {
   const { createExpense, saving, error } = useExpenses();
   const { friends, loading: friendsLoading } = useFriends();
   const { groups, loading: groupsLoading } = useGroups();
+  const { lastPreset, saveLastPreset } = useQuickSplitPreferences();
   const isSplitIntent = intent === "split";
 
   const [amount, setAmount] = useState("");
@@ -51,14 +53,20 @@ export default function NewExpenseScreen() {
   const [splitMethod, setSplitMethod] = useState<ExpenseSplitMethod>("equal");
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [paidBy, setPaidBy] = useState(CURRENT_USER.id);
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(groupId ?? null);
   const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
   const [percentages, setPercentages] = useState<Record<string, string>>({});
   const [validation, setValidation] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showPayerPicker, setShowPayerPicker] = useState(false);
 
   useEffect(() => {
-    if (groupId) setSelectedGroupId(groupId);
-  }, [groupId]);
+    if (!groupId || groupsLoading || friendsLoading) return;
+    const initialGroup = groups.find((group) => group.id === groupId);
+    if (initialGroup) {
+      setSelectedFriends(initialGroup.memberIds.filter((memberId) => memberId !== CURRENT_USER.id));
+    }
+  }, [groupId, groups, groupsLoading, friendsLoading]);
 
   const numericAmount = useMemo(() => toAmount(amount), [amount]);
   const participantIds = useMemo(() => [CURRENT_USER.id, ...selectedFriends], [selectedFriends]);
@@ -111,6 +119,34 @@ export default function NewExpenseScreen() {
 
   const canSave = numericAmount > 0 && description.trim().length > 0 && splitIsValid && !saving;
 
+  const selectGroup = (nextGroupId: string | null) => {
+    setSelectedGroupId(nextGroupId);
+    if (!nextGroupId) return;
+
+    const group = groups.find((item) => item.id === nextGroupId);
+    if (!group) return;
+
+    const memberIds = group.memberIds.filter((memberId) => memberId !== CURRENT_USER.id);
+    setSelectedFriends(memberIds);
+    if (paidBy !== CURRENT_USER.id && !memberIds.includes(paidBy)) {
+      setPaidBy(CURRENT_USER.id);
+    }
+    setValidation(null);
+  };
+
+  const applyLastPreset = () => {
+    if (!lastPreset) return;
+    const savedGroup = groups.find((group) => group.id === lastPreset.groupId);
+    const availableFriendIds = new Set(friends.map((friend) => friend.id));
+    const nextFriends = lastPreset.participantIds.filter((id) => id !== CURRENT_USER.id && availableFriendIds.has(id));
+    const nextParticipants = [CURRENT_USER.id, ...nextFriends];
+
+    setSelectedGroupId(savedGroup?.id ?? null);
+    setSelectedFriends(nextFriends);
+    setPaidBy(nextParticipants.includes(lastPreset.paidBy) ? lastPreset.paidBy : CURRENT_USER.id);
+    setValidation(null);
+  };
+
   const toggleFriend = (friendId: string) => {
     setSelectedFriends((current) => {
       const next = current.includes(friendId)
@@ -162,7 +198,12 @@ export default function NewExpenseScreen() {
       ...(selectedGroupId ? { groupId: selectedGroupId } : {}),
     });
 
-    if (expense) router.replace(selectedGroupId ? `/groups/${selectedGroupId}` : "/(tabs)");
+    if (expense) {
+      if (isSplitIntent) {
+        await saveLastPreset({ groupId: selectedGroupId, participantIds, paidBy });
+      }
+      router.replace(selectedGroupId ? `/groups/${selectedGroupId}` : "/(tabs)");
+    }
   };
 
   const styles = StyleSheet.create({
@@ -181,6 +222,11 @@ export default function NewExpenseScreen() {
     shareInput: { width: 100, minHeight: 44, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingHorizontal: spacing.md, color: colors.text, textAlign: "right" },
     summary: { backgroundColor: colors.surfaceMuted, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs },
     footer: { marginTop: spacing.sm },
+    repeatCard: { flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+    repeatIcon: { width: 42, height: 42, borderRadius: 15, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center" },
+    repeatCopy: { flex: 1, gap: 2 },
+    quickPayer: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 54, backgroundColor: colors.surface, paddingHorizontal: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border },
+    advancedToggle: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: spacing.sm },
   });
 
   return <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
@@ -190,7 +236,7 @@ export default function NewExpenseScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}>
             <Ionicons name="arrow-back" size={21} color={colors.text} />
           </Pressable>
-          <View><AppText variant="h2">{isSplitIntent ? "Split a bill" : "Add expense"}</AppText><AppText variant="caption" style={{ color: colors.textMuted }}>{isSplitIntent ? "Choose who shares this expense" : "Track what you spent"}</AppText></View>
+          <View><AppText variant="h2">{isSplitIntent ? "Quick split" : "Add expense"}</AppText><AppText variant="caption" style={{ color: colors.textMuted }}>{isSplitIntent ? "Split a bill with friends in seconds" : "Track what you spent"}</AppText></View>
         </View>
 
         <View style={styles.section}>
@@ -200,21 +246,33 @@ export default function NewExpenseScreen() {
 
         <View style={styles.section}>
           <AppText variant="bodyMedium">Description</AppText>
-          <TextInput value={description} onChangeText={setDescription} placeholder="e.g. Dinner with friends" placeholderTextColor={colors.textMuted} style={styles.input} maxLength={80} accessibilityLabel="Expense description" returnKeyType="done" />
+          <TextInput value={description} onChangeText={setDescription} placeholder={isSplitIntent ? "e.g. Pizza, cab or groceries" : "e.g. Dinner with friends"} placeholderTextColor={colors.textMuted} style={styles.input} maxLength={80} accessibilityLabel="Expense description" returnKeyType="done" />
         </View>
 
+        {isSplitIntent && lastPreset && !groupId && !groupsLoading && !friendsLoading ? (
+          <Pressable accessibilityRole="button" onPress={applyLastPreset} style={styles.repeatCard}>
+            <View style={styles.repeatIcon}><Ionicons name="repeat" size={21} color={colors.primary} /></View>
+            <View style={styles.repeatCopy}>
+              <AppText variant="bodyMedium">Repeat last split</AppText>
+              <AppText variant="caption" style={{ color: colors.textMuted }}>{lastPreset.participantIds.length} people · Reuse your last group and payer</AppText>
+            </View>
+            <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
+          </Pressable>
+        ) : null}
+
         <View style={styles.section}>
-          <AppText variant="bodyMedium">Group (optional)</AppText>
+          <AppText variant="bodyMedium">{isSplitIntent ? "Choose a group" : "Group (optional)"}</AppText>
+          {isSplitIntent ? <AppText variant="caption" style={{ color: colors.textMuted }}>Pick a group to add its members automatically, or choose people below.</AppText> : null}
           {groupsLoading ? <LoadingState message="Loading groups…" /> : groups.length === 0 ? (
             <AppText variant="caption" style={{ color: colors.textMuted }}>Create a group first to link this expense to a group.</AppText>
           ) : (
             <View style={styles.chips}>
-              <Pressable onPress={() => setSelectedGroupId(null)} accessibilityRole="radio" accessibilityState={{ selected: selectedGroupId === null }} style={[styles.chip, selectedGroupId === null && styles.chipSelected]}>
+              <Pressable onPress={() => selectGroup(null)} accessibilityRole="radio" accessibilityState={{ selected: selectedGroupId === null }} style={[styles.chip, selectedGroupId === null && styles.chipSelected]}>
                 <AppText variant="caption" style={selectedGroupId === null ? { color: colors.primary } : undefined}>No group</AppText>
               </Pressable>
               {groups.map((group) => {
                 const selected = selectedGroupId === group.id;
-                return <Pressable key={group.id} onPress={() => setSelectedGroupId(group.id)} accessibilityRole="radio" accessibilityState={{ selected }} style={[styles.chip, selected && styles.chipSelected]}>
+                return <Pressable key={group.id} onPress={() => selectGroup(group.id)} accessibilityRole="radio" accessibilityState={{ selected }} style={[styles.chip, selected && styles.chipSelected]}>
                   <AppText variant="caption" style={selected ? { color: colors.primary } : undefined}>{group.name}</AppText>
                 </Pressable>;
               })}
@@ -223,7 +281,7 @@ export default function NewExpenseScreen() {
         </View>
 
         <View style={styles.section}>
-          <AppText variant="bodyMedium">Who was involved?</AppText>
+          <AppText variant="bodyMedium">{isSplitIntent ? "Who joins the split?" : "Who was involved?"}</AppText>
           <View style={styles.chips}>
             <View style={[styles.chip, styles.chipSelected]}><AppText variant="caption" style={{ color: colors.primary }}>You</AppText></View>
             {friendsLoading ? null : friends.map((friend) => {
@@ -236,7 +294,26 @@ export default function NewExpenseScreen() {
           {friendsLoading ? <LoadingState message="Loading friends…" /> : null}
         </View>
 
-        <View style={styles.section}>
+        {isSplitIntent ? (
+          <View style={styles.section}>
+            <AppText variant="bodyMedium">Who paid?</AppText>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Paid by ${participantNames[paidBy] ?? paidBy}. Change payer.`} onPress={() => setShowPayerPicker((current) => !current)} style={styles.quickPayer}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+                <Ionicons name="wallet-outline" size={20} color={colors.primary} />
+                <AppText variant="bodyMedium">{participantNames[paidBy] ?? paidBy}</AppText>
+              </View>
+              <AppText variant="caption" style={{ color: colors.primary }}>{showPayerPicker ? "Done" : "Change"}</AppText>
+            </Pressable>
+            {showPayerPicker ? <View style={styles.chips}>
+              {participantIds.map((id) => {
+                const selected = paidBy === id;
+                return <Pressable key={id} onPress={() => { setPaidBy(id); setShowPayerPicker(false); }} accessibilityRole="radio" accessibilityState={{ selected }} style={[styles.chip, selected && styles.chipSelected]}>
+                  <AppText variant="caption" style={selected ? { color: colors.primary } : undefined}>{participantNames[id] ?? id}</AppText>
+                </Pressable>;
+              })}
+            </View> : null}
+          </View>
+        ) : <View style={styles.section}>
           <AppText variant="bodyMedium">Paid by</AppText>
           <AppText variant="caption" style={{ color: colors.textMuted }}>
             Select who actually paid this expense.
@@ -260,9 +337,16 @@ export default function NewExpenseScreen() {
               </Pressable>;
             })}
           </View>
-        </View>
+        </View>}
 
-        <View style={styles.section}>
+        {isSplitIntent ? (
+          <Pressable accessibilityRole="button" onPress={() => setShowAdvanced((current) => { if (current) setSplitMethod("equal"); return !current; })} style={styles.advancedToggle}>
+            <AppText variant="caption" style={{ color: colors.primary, fontWeight: "800" }}>{showAdvanced ? "Hide split options" : "Customize split (optional)"}</AppText>
+            <Ionicons name={showAdvanced ? "chevron-up" : "options-outline"} size={18} color={colors.primary} />
+          </Pressable>
+        ) : null}
+
+        {(!isSplitIntent || showAdvanced) ? <View style={styles.section}>
           <AppText variant="bodyMedium">Split method</AppText>
           <View style={styles.chips}>
             {(["equal", "custom", "percentage"] as ExpenseSplitMethod[]).map((item) => (
@@ -271,10 +355,11 @@ export default function NewExpenseScreen() {
               </Pressable>
             ))}
           </View>
-        </View>
+        </View> : null}
 
         {participantIds.length > 0 ? <View style={styles.participantCard}>
-          <AppText variant="bodyMedium">Split details</AppText>
+          <AppText variant="bodyMedium">{isSplitIntent && splitMethod === "equal" ? "Everyone pays the same" : "Split details"}</AppText>
+          {isSplitIntent && splitMethod === "equal" ? <AppText variant="caption" style={{ color: colors.textMuted }}>{formatMoney(numericAmount)} across {participantIds.length} {participantIds.length === 1 ? "person" : "people"}</AppText> : null}
           {participantIds.map((id) => (
             <View key={id} style={styles.participantRow}>
               <AppText variant="body">{participantNames[id] ?? id}</AppText>
@@ -297,14 +382,14 @@ export default function NewExpenseScreen() {
           </View>
         </View> : null}
 
-        <View style={styles.section}>
+        {(!isSplitIntent || showAdvanced) ? <View style={styles.section}>
           <AppText variant="bodyMedium">Category</AppText>
           <View style={styles.chips}>{categories.map((item) => <Pressable key={item} onPress={() => setCategory(item)} accessibilityRole="radio" accessibilityState={{ selected: category === item }} style={[styles.chip, category === item && styles.chipSelected]}><AppText variant="caption" style={category === item ? { color: colors.primary } : undefined}>{item}</AppText></Pressable>)}</View>
-        </View>
+        </View> : null}
 
         {validation ? <AppText variant="caption" style={{ color: colors.danger }}>{validation}</AppText> : null}
         {error ? <ErrorState message={error} /> : null}
-        <View style={styles.footer}><PrimaryButton title={saving ? "Saving…" : "Save expense"} onPress={submit} disabled={!canSave} /></View>
+        <View style={styles.footer}><PrimaryButton title={saving ? (isSplitIntent ? "Splitting…" : "Saving…") : (isSplitIntent ? "Split bill" : "Save expense")} onPress={submit} disabled={!canSave} /></View>
       </ScrollView>
     </KeyboardAvoidingView>
   </SafeAreaView>;
