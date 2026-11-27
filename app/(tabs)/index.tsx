@@ -182,7 +182,7 @@ export default function HomeScreen() {
                     style={styles.groupCard}
                   >
                     <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.groupIcon}>
-                      <Ionicons name="people" size={21} color="#FFFFFF" />
+                      <Ionicons name="people" size={21} color={colors.onAccent} />
                     </LinearGradient>
                     <View style={styles.groupText}>
                       <AppText variant="bodyMedium" numberOfLines={1}>{group.name}</AppText>
