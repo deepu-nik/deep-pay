@@ -79,8 +79,8 @@ export default function ProfileScreen() {
             <View style={styles.accountAvatar}><AppText variant="h2" style={{ color: colors.primary }}>{initials}</AppText></View>
             <View style={styles.accountCopy}>
               <AppText variant="bodyMedium" numberOfLines={1}>{user?.fullName ?? "DeepPay user"}</AppText>
-              <AppText variant="caption" style={{ color: colors.textMuted }} numberOfLines={1}>{user?.email ?? "No local profile"}</AppText>
-              <AppText variant="caption" style={{ color: colors.textMuted }}>Local demo profile</AppText>
+              <AppText variant="caption" style={{ color: colors.textMuted }} numberOfLines={1}>{user?.email ?? "No account email"}</AppText>
+              <AppText variant="caption" style={{ color: colors.textMuted }}>Firebase account</AppText>
             </View>
             <Pressable accessibilityRole="button" accessibilityLabel="Edit profile" onPress={() => router.push("/profile/edit" as Href)} style={styles.accountAction}>
               <AppText variant="caption" style={{ color: colors.primary }}>Edit</AppText>
