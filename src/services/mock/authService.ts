@@ -113,10 +113,11 @@ export const mockAuthService: AuthService = {
 
     const users = await readUsers();
     const index = users.findIndex((user) => user.id === session.id);
-    if (index < 0) throw new Error("We couldn't find your local demo profile.");
+    const existingUser = users[index];
+    if (!existingUser) throw new Error("We couldn't find your local demo profile.");
 
     const updated: AuthUser = {
-      ...users[index],
+      ...existingUser,
       fullName,
       updatedAt: new Date().toISOString(),
     };
