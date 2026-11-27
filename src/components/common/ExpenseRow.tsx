@@ -22,6 +22,10 @@ const categoryIcons: Record<ExpenseCategory, keyof typeof Ionicons.glyphMap> = {
 export function ExpenseRow({ expense }: { expense: Expense }) {
   const { colors } = useTheme();
   const icon = categoryIcons[expense.category] ?? "receipt";
+  const usesAccentGradient = expense.category !== "Other"
+    && expense.category !== "Rent"
+    && expense.category !== "Education"
+    && expense.category !== "Shopping";
   const gradient = expense.category === "Food" || expense.category === "Entertainment"
     ? colors.gradientSunset
     : expense.category === "Transport" || expense.category === "Travel" || expense.category === "Technology"
@@ -40,7 +44,7 @@ export function ExpenseRow({ expense }: { expense: Expense }) {
   return (
     <View style={styles.row}>
       <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.icon}>
-        <Ionicons name={icon} size={20} color="#FFFFFF" />
+        <Ionicons name={icon} size={20} color={usesAccentGradient ? colors.onAccent : colors.white} />
       </LinearGradient>
       <View style={styles.info}>
         <AppText variant="bodyMedium" numberOfLines={1}>{expense.description}</AppText>
