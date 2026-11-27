@@ -75,7 +75,7 @@ export default function WelcomeScreen() {
             Already set up on this device? <AppText variant="bodyMedium" style={{ color: colors.primary }} onPress={() => router.push("/auth/sign-in" as Href)}>Sign in</AppText>
           </AppText>
           <AppText variant="caption" style={{ color: colors.textMuted, textAlign: "center" }}>
-            Demo mode · Your profile stays on this device for now
+            Your DeepPay account syncs across devices
           </AppText>
         </View>
       </View>
