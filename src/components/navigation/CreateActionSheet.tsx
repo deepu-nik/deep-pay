@@ -77,6 +77,7 @@ export function CreateActionSheet({
 
           {actions.map((action, index) => {
             const gradient = index === 0 ? colors.gradientSky : index === 1 ? colors.gradientSunset : colors.gradientPrimary;
+            const iconColor = index === 2 ? colors.white : colors.onAccent;
             return (
               <Pressable
                 accessibilityRole="button"
@@ -85,7 +86,7 @@ export function CreateActionSheet({
                 style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}
               >
                 <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.icon}>
-                  <Ionicons name={action.icon} size={23} color="#FFFFFF" />
+                  <Ionicons name={action.icon} size={23} color={iconColor} />
                 </LinearGradient>
                 <View style={styles.copy}>
                   <AppText variant="bodyMedium">{action.label}</AppText>
