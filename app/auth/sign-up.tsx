@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
@@ -114,7 +114,7 @@ export default function SignUpScreen() {
           <PrimaryButton title={saving ? "Creating profile…" : "Create profile"} onPress={submit} disabled={saving} />
 
           <AppText variant="body" style={{ color: colors.textMuted, textAlign: "center" }}>
-            Already have a profile? <AppText variant="bodyMedium" style={{ color: colors.primary }} onPress={() => router.replace("/auth/sign-in")}>Sign in</AppText>
+            Already have a profile? <AppText variant="bodyMedium" style={{ color: colors.primary }} onPress={() => router.replace("/auth/sign-in" as Href)}>Sign in</AppText>
           </AppText>
         </ScrollView>
       </KeyboardAvoidingView>
