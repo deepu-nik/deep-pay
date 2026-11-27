@@ -340,7 +340,7 @@ export default function NewExpenseScreen() {
         </View>}
 
         {isSplitIntent ? (
-          <Pressable accessibilityRole="button" onPress={() => setShowAdvanced((current) => !current)} style={styles.advancedToggle}>
+          <Pressable accessibilityRole="button" onPress={() => setShowAdvanced((current) => { if (current) setSplitMethod("equal"); return !current; })} style={styles.advancedToggle}>
             <AppText variant="caption" style={{ color: colors.primary, fontWeight: "800" }}>{showAdvanced ? "Hide split options" : "Customize split (optional)"}</AppText>
             <Ionicons name={showAdvanced ? "chevron-up" : "options-outline"} size={18} color={colors.primary} />
           </Pressable>
@@ -359,6 +359,7 @@ export default function NewExpenseScreen() {
 
         {participantIds.length > 0 ? <View style={styles.participantCard}>
           <AppText variant="bodyMedium">{isSplitIntent && splitMethod === "equal" ? "Everyone pays the same" : "Split details"}</AppText>
+          {isSplitIntent && splitMethod === "equal" ? <AppText variant="caption" style={{ color: colors.textMuted }}>{formatMoney(numericAmount)} across {participantIds.length} {participantIds.length === 1 ? "person" : "people"}</AppText> : null}
           {participantIds.map((id) => (
             <View key={id} style={styles.participantRow}>
               <AppText variant="body">{participantNames[id] ?? id}</AppText>
