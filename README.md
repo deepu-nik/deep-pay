@@ -4,15 +4,20 @@ Student payment and expense companion — Pay, Split, Track, Settle, Groups, and
 
 ## Development approach
 
-DeepPay is being built frontend-first. Each phase follows:
+DeepPay is built frontend-first. Each phase follows:
 
 **Plan → Design UX → Build frontend → Mock data → Test user flow → UI polish → Edge cases → Approve phase → Backend implementation → API integration → End-to-end testing.**
 
 ## Current phase
 
-**Phase 0 — Design system + app shell**
+**Phase 1 — Authentication + profile (frontend prototype)**
 
-Initial stack: Expo + React Native + TypeScript + Expo Router.
+- Welcome, create-profile and sign-in screens.
+- Local demo profiles and session persistence using AsyncStorage.
+- Profile editing and sign-out.
+- Route protection for signed-out users.
+- No passwords are collected or stored, and email ownership is not verified in this prototype.
+- Real authentication, cloud accounts and cross-device sync are reserved for the backend integration phase.
 
 ## Architecture principle
 
@@ -28,11 +33,12 @@ During frontend development, API interfaces are backed by mock services. Real ba
 - Phase 3 — Splitting
 - Phase 4 — Friends + groups
 - Phase 5 — Settlements
-- Phase 6 — UPI
+- Phase 6 — UPI handoff
 - Phase 7 — Analytics + budgets
 - Phase 8 — Notifications
 - Phase 9 — AI expense assistant
 - Phase 10 — Receipt scanner + smart split
+- Backend integration — replace approved mock services with authenticated cloud APIs
 
 ## Working brand
 
