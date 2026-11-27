@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
@@ -36,7 +36,7 @@ export default function ProfileScreen() {
 
   const handleSignOut = async () => {
     await signOut();
-    router.replace("/auth/welcome");
+    router.replace("/auth/welcome" as Href);
   };
 
   const styles = StyleSheet.create({
@@ -82,7 +82,7 @@ export default function ProfileScreen() {
               <AppText variant="caption" style={{ color: colors.textMuted }} numberOfLines={1}>{user?.email ?? "No local profile"}</AppText>
               <AppText variant="caption" style={{ color: colors.textMuted }}>Local demo profile</AppText>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="Edit profile" onPress={() => router.push("/profile/edit")} style={styles.accountAction}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Edit profile" onPress={() => router.push("/profile/edit" as Href)} style={styles.accountAction}>
               <AppText variant="caption" style={{ color: colors.primary }}>Edit</AppText>
             </Pressable>
           </View>
