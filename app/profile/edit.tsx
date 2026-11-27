@@ -72,7 +72,7 @@ export default function EditProfileScreen() {
           <View style={{ gap: spacing.xs }}>
             <AppText variant="bodyMedium">Email address</AppText>
             <View style={styles.readOnly}><AppText variant="body" style={{ color: colors.textMuted }}>{user?.email ?? "—"}</AppText></View>
-            <AppText variant="caption" style={{ color: colors.textMuted }}>Email editing will be available after verified backend authentication is connected.</AppText>
+            <AppText variant="caption" style={{ color: colors.textMuted }}>Your sign-in email is managed by Firebase Authentication and can't be edited here.</AppText>
           </View>
 
           {error ? <AppText variant="caption" style={{ color: colors.danger }}>{error}</AppText> : null}
