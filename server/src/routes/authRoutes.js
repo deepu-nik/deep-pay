@@ -49,7 +49,7 @@ const profileSchema = z.object({
 router.post("/register", authRateLimit, validateBody(registerSchema), register);
 router.post("/login", authRateLimit, validateBody(loginSchema), login);
 router.post("/refresh", authRateLimit, validateBody(refreshSchema), refresh);
-router.post("/logout", validateBody(refreshSchema), logout);
+router.post("/logout", authRateLimit, validateBody(refreshSchema), logout);
 router.get("/me", requireAuth, me);
 router.patch("/me", requireAuth, validateBody(profileSchema), patchMe);
 
