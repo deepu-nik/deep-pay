@@ -22,6 +22,7 @@ export const lightColors: ThemeColors = {
   gradientSunset: ["#FF9872", "#F65FA5"],
   gradientSky: ["#45C4E8", "#6478FF"],
   gradientMint: ["#25C99B", "#35A9D6"],
+  onAccent: "#FFFFFF",
   white: "#FFFFFF",
   black: "#000000",
 };
