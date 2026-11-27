@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { RefreshSession } from "../models/RefreshSession.js";
 import { unauthorized } from "../utils/appError.js";
 import { verifyAccessToken } from "../utils/token.js";
@@ -23,7 +24,7 @@ export async function requireAuth(req, _res, next) {
     sessionId: claims.sessionId,
     userId: claims.userId,
     revokedAt: null,
-    expiresAt: { $gt: new Date() },
+    expiresAt: mongoose.trusted({ $gt: new Date() }),
   });
 
   if (!activeSession) {
