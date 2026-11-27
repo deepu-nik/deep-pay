@@ -38,11 +38,12 @@ function equalSplits(total: number, participantIds: string[]) {
 
 export default function NewExpenseScreen() {
   const router = useRouter();
-  const { groupId } = useLocalSearchParams<{ groupId?: string }>();
+  const { groupId, intent } = useLocalSearchParams<{ groupId?: string; intent?: string }>();
   const { colors } = useTheme();
   const { createExpense, saving, error } = useExpenses();
   const { friends, loading: friendsLoading } = useFriends();
   const { groups, loading: groupsLoading } = useGroups();
+  const isSplitIntent = intent === "split";
 
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
@@ -189,7 +190,7 @@ export default function NewExpenseScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}>
             <Ionicons name="arrow-back" size={21} color={colors.text} />
           </Pressable>
-          <View><AppText variant="h2">Add expense</AppText><AppText variant="caption" style={{ color: colors.textMuted }}>Track what you spent</AppText></View>
+          <View><AppText variant="h2">{isSplitIntent ? "Split a bill" : "Add expense"}</AppText><AppText variant="caption" style={{ color: colors.textMuted }}>{isSplitIntent ? "Choose who shares this expense" : "Track what you spent"}</AppText></View>
         </View>
 
         <View style={styles.section}>

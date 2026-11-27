@@ -9,10 +9,17 @@ import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet
 import { useTheme, type ThemeMode } from "@/src/theme";
 import { radius, spacing } from "@/src/theme/tokens";
 
-const modes: { key: ThemeMode; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: "system", label: "System", icon: "phone-portrait-outline" },
-  { key: "light", label: "Light", icon: "sunny-outline" },
-  { key: "dark", label: "Dark", icon: "moon-outline" },
+const modes: {
+  key: ThemeMode;
+  label: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  preview: string;
+}[] = [
+  { key: "system", label: "System", description: "Follow your device appearance", icon: "phone-portrait-outline", preview: "#A8A2B5" },
+  { key: "light", label: "Light", description: "Clean, bright and minimal", icon: "sunny-outline", preview: "#FFFFFF" },
+  { key: "dark", label: "Dark", description: "Easy on the eyes at night", icon: "moon-outline", preview: "#211A33" },
+  { key: "snap", label: "Snap Yellow", description: "Bold yellow, black and white", icon: "flash", preview: "#FFFC00" },
 ];
 
 export default function ProfileScreen() {
@@ -23,32 +30,76 @@ export default function ProfileScreen() {
     if (tab === "profile") return;
     router.replace(tab === "home" ? "/(tabs)" : `/(tabs)/${tab}`);
   };
+
   const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.background },
-    content: { padding: spacing.lg, paddingBottom: 110 },
+    content: { padding: spacing.lg, paddingBottom: 140 },
     header: { marginBottom: spacing.xl },
-    avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
-    card: { backgroundColor: colors.surface, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.lg },
+    avatar: { width: 60, height: 60, borderRadius: 22, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
+    card: { backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, padding: spacing.lg },
     titleRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md },
-    option: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
-    optionLeft: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+    option: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
+    optionLeft: { flexDirection: "row", alignItems: "center", gap: spacing.md, flex: 1 },
+    optionIcon: { width: 42, height: 42, borderRadius: 15, backgroundColor: colors.surfaceMuted, alignItems: "center", justifyContent: "center" },
+    optionCopy: { flex: 1, gap: 2 },
     selected: { color: colors.primary },
-    radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
+    preview: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.border },
+    radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
     radioSelected: { borderColor: colors.primary },
-    dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
+    dot: { width: 11, height: 11, borderRadius: 6, backgroundColor: colors.primary },
+    snapNote: { marginTop: spacing.md, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceMuted, flexDirection: "row", alignItems: "center", gap: spacing.sm },
   });
-  return <SafeAreaView style={styles.safe} edges={["top"]}>
-    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}><View style={styles.avatar}><AppText variant="h2">DS</AppText></View><AppText variant="title">Profile</AppText><AppText variant="body" style={{ color: colors.textMuted }}>Account, preferences and app settings.</AppText></View>
-      <View style={styles.card}>
-        <View style={styles.titleRow}><Ionicons name="color-palette-outline" size={22} color={colors.primary} /><AppText variant="h2">Appearance</AppText></View>
-        {modes.map((item) => <Pressable key={item.key} accessibilityRole="radio" accessibilityState={{ selected: mode === item.key }} onPress={() => setMode(item.key)} style={styles.option}>
-          <View style={styles.optionLeft}><Ionicons name={item.icon} size={20} color={mode === item.key ? colors.primary : colors.textMuted} /><AppText variant="bodyMedium" style={mode === item.key ? styles.selected : undefined}>{item.label}</AppText></View>
-          <View style={[styles.radio, mode === item.key && styles.radioSelected]}>{mode === item.key && <View style={styles.dot} />}</View>
-        </Pressable>)}
-      </View>
-    </ScrollView>
-    <BottomTabBar activeTab="profile" onTabPress={goTo} onAddPress={() => setSheetVisible(true)} />
-    <CreateActionSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
-  </SafeAreaView>;
+
+  return (
+    <SafeAreaView style={styles.safe} edges={["top"]}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <View style={styles.avatar}><Ionicons name="person" size={27} color={colors.primary} /></View>
+          <AppText variant="title">Profile</AppText>
+          <AppText variant="body" style={{ color: colors.textMuted }}>Account, preferences and app settings.</AppText>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.titleRow}>
+            <Ionicons name="color-palette" size={23} color={colors.primary} />
+            <AppText variant="h2">Choose your vibe</AppText>
+          </View>
+          {modes.map((item) => {
+            const selected = mode === item.key;
+            return (
+              <Pressable
+                key={item.key}
+                accessibilityRole="radio"
+                accessibilityLabel={`${item.label} theme`}
+                accessibilityState={{ selected }}
+                onPress={() => setMode(item.key)}
+                style={styles.option}
+              >
+                <View style={styles.optionLeft}>
+                  <View style={[styles.optionIcon, selected && { backgroundColor: colors.iconBackground }]}>
+                    <Ionicons name={item.icon} size={21} color={selected ? colors.primary : colors.textMuted} />
+                  </View>
+                  <View style={styles.optionCopy}>
+                    <AppText variant="bodyMedium" style={selected ? styles.selected : undefined}>{item.label}</AppText>
+                    <AppText variant="caption" style={{ color: colors.textMuted }}>{item.description}</AppText>
+                  </View>
+                </View>
+                <View style={[styles.preview, { backgroundColor: item.preview }]} />
+                <View style={[styles.radio, selected && styles.radioSelected]}>{selected && <View style={styles.dot} />}</View>
+              </Pressable>
+            );
+          })}
+          <View style={styles.snapNote}>
+            <Ionicons name="flash" size={18} color={colors.primary} />
+            <AppText variant="caption" style={{ color: colors.textMuted, flex: 1 }}>
+              Snap Yellow is a DeepPay-inspired preset with a bold yellow accent, dark actions and bright surfaces.
+            </AppText>
+          </View>
+        </View>
+      </ScrollView>
+
+      <BottomTabBar activeTab="profile" onTabPress={goTo} onAddPress={() => setSheetVisible(true)} />
+      <CreateActionSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
+    </SafeAreaView>
+  );
 }

@@ -3,13 +3,15 @@ import { createContext, useContext, useEffect, useMemo, useState, type PropsWith
 import { Appearance, useColorScheme } from "react-native";
 import { darkColors } from "./dark";
 import { lightColors } from "./light";
+import { snapColors } from "./snap";
+import type { ThemeColors } from "./tokens";
 
-export type ThemeMode = "system" | "light" | "dark";
+export type ThemeMode = "system" | "light" | "dark" | "snap";
 
 type ThemeContextValue = {
   mode: ThemeMode;
   resolvedMode: "light" | "dark";
-  colors: typeof lightColors;
+  colors: ThemeColors;
   setMode: (mode: ThemeMode) => void;
 };
 
@@ -22,7 +24,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
-      if (stored === "system" || stored === "light" || stored === "dark") {
+      if (stored === "system" || stored === "light" || stored === "dark" || stored === "snap") {
         setModeState(stored);
       }
     }).catch(() => {});
@@ -33,14 +35,23 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     AsyncStorage.setItem(STORAGE_KEY, nextMode).catch(() => {});
   };
 
-  const resolvedMode = mode === "system"
-    ? (systemScheme ?? Appearance.getColorScheme() ?? "light")
-    : mode;
+  const systemMode = systemScheme ?? Appearance.getColorScheme() ?? "light";
+  const resolvedMode: "light" | "dark" = mode === "system"
+    ? systemMode
+    : mode === "dark"
+      ? "dark"
+      : "light";
+
+  const colors = mode === "snap"
+    ? snapColors
+    : resolvedMode === "dark"
+      ? darkColors
+      : lightColors;
 
   const value = useMemo(() => ({
     mode,
-    resolvedMode: resolvedMode as "light" | "dark",
-    colors: resolvedMode === "dark" ? darkColors : lightColors,
+    resolvedMode,
+    colors,
     setMode,
   }), [mode, resolvedMode]);
 

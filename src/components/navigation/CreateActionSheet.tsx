@@ -1,3 +1,4 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,45 +29,25 @@ export function CreateActionSheet({
   const insets = useSafeAreaInsets();
 
   const styles = StyleSheet.create({
-    backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" },
+    backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(12,7,28,0.48)" },
     sheet: {
       backgroundColor: colors.surface,
-      borderTopLeftRadius: radius.xl,
-      borderTopRightRadius: radius.xl,
+      borderTopLeftRadius: 32,
+      borderTopRightRadius: 32,
       padding: spacing.lg,
+      paddingTop: spacing.xl,
       paddingBottom: Math.max(spacing.lg, insets.bottom + spacing.md),
+      borderWidth: 1,
+      borderColor: colors.border,
+      gap: spacing.xs,
     },
-    handle: {
-      width: 42,
-      height: 5,
-      borderRadius: 3,
-      backgroundColor: colors.border,
-      alignSelf: "center",
-      marginBottom: spacing.xl,
-    },
-    header: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-      marginBottom: spacing.lg,
-    },
-    action: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacing.md,
-      paddingVertical: spacing.md,
-      minHeight: 68,
-    },
-    actionPressed: { opacity: 0.6 },
-    icon: {
-      width: 46,
-      height: 46,
-      borderRadius: 13,
-      backgroundColor: colors.iconBackground,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    copy: { flex: 1, gap: 2 },
+    handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: colors.border, alignSelf: "center", marginBottom: spacing.lg },
+    header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: spacing.md },
+    action: { flexDirection: "row", alignItems: "center", gap: spacing.md, paddingVertical: spacing.sm, minHeight: 76 },
+    actionPressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
+    icon: { width: 52, height: 52, borderRadius: 19, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+    copy: { flex: 1, gap: 3 },
+    close: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: colors.surfaceMuted },
   });
 
   const handleAction = (label: string) => {
@@ -82,41 +63,39 @@ export function CreateActionSheet({
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
           <View style={styles.handle} />
-
           <View style={styles.header}>
             <View>
-              <AppText variant="h2">Create something</AppText>
+              <AppText variant="h2">Make a move ✨</AppText>
               <AppText variant="caption" style={{ color: colors.textMuted }}>
-                Start a new expense, group, or connection.
+                What are we doing today?
               </AppText>
             </View>
-
-            <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose}>
-              <Ionicons name="close" size={24} color={colors.textMuted} />
+            <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={onClose} style={styles.close}>
+              <Ionicons name="close" size={21} color={colors.text} />
             </Pressable>
           </View>
 
-          {actions.map((action) => (
-            <Pressable
-              accessibilityRole="button"
-              key={action.label}
-              onPress={() => handleAction(action.label)}
-              style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}
-            >
-              <View style={styles.icon}>
-                <Ionicons name={action.icon} size={21} color={colors.primary} />
-              </View>
-
-              <View style={styles.copy}>
-                <AppText variant="bodyMedium">{action.label}</AppText>
-                <AppText variant="caption" style={{ color: colors.textMuted }}>
-                  {action.description}
-                </AppText>
-              </View>
-
-              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </Pressable>
-          ))}
+          {actions.map((action, index) => {
+            const gradient = index === 0 ? colors.gradientSky : index === 1 ? colors.gradientSunset : colors.gradientPrimary;
+            const iconColor = index === 2 ? colors.white : colors.onAccent;
+            return (
+              <Pressable
+                accessibilityRole="button"
+                key={action.label}
+                onPress={() => handleAction(action.label)}
+                style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}
+              >
+                <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.icon}>
+                  <Ionicons name={action.icon} size={23} color={iconColor} />
+                </LinearGradient>
+                <View style={styles.copy}>
+                  <AppText variant="bodyMedium">{action.label}</AppText>
+                  <AppText variant="caption" style={{ color: colors.textMuted }}>{action.description}</AppText>
+                </View>
+                <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
+              </Pressable>
+            );
+          })}
         </Pressable>
       </Pressable>
     </Modal>
