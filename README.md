@@ -64,7 +64,7 @@ Fields:
 - `createdAt` (server timestamp)
 - `updatedAt` (server timestamp)
 
-The rules permit an authenticated user to read their own profile, create it with their verified Auth email, and update only their name and update timestamp. Client-side deletion is denied.
+The rules permit an authenticated user to read their own profile, create it with an email matching their Firebase Authentication account, and update only their name and update timestamp. Client-side deletion is denied.
 
 ## Security and next steps
 
