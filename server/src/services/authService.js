@@ -1,4 +1,4 @@
-import { AppError, conflict, unauthorized } from "../utils/appError.js";
+import { AppError, unauthorized } from "../utils/appError.js";
 import { User } from "../models/User.js";
 import { RefreshSession } from "../models/RefreshSession.js";
 import { env } from "../config/env.js";
@@ -58,8 +58,7 @@ export async function registerAccount(input, metadata) {
     emailVerified: false,
   });
 
-  const session = await createSession(user, metadata);
-  return session;
+  return createSession(user, metadata);
 }
 
 export async function loginAccount(input, metadata) {
@@ -126,7 +125,7 @@ export async function rotateRefreshToken(rawRefreshToken, metadata) {
       userAgent: metadata.userAgent?.slice(0, 256) ?? null,
       ipAddress: metadata.ipAddress?.slice(0, 64) ?? null,
     });
-  } catch (error) {
+  } catch {
     // The old token is already consumed; require a fresh login if rotation
     // cannot be completed rather than accepting the old token again.
     throw new AppError(503, "SESSION_ROTATION_FAILED", "Unable to renew the session. Please sign in again.");
