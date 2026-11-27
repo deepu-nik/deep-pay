@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
@@ -92,7 +92,7 @@ export default function SignInScreen() {
           <PrimaryButton title={saving ? "Signing in…" : "Continue"} onPress={submit} disabled={saving} />
 
           <AppText variant="body" style={{ color: colors.textMuted, textAlign: "center" }}>
-            New to DeepPay? <AppText variant="bodyMedium" style={{ color: colors.primary }} onPress={() => router.replace("/auth/sign-up")}>Create a profile</AppText>
+            New to DeepPay? <AppText variant="bodyMedium" style={{ color: colors.primary }} onPress={() => router.replace("/auth/sign-up" as Href)}>Create a profile</AppText>
           </AppText>
         </ScrollView>
       </KeyboardAvoidingView>
