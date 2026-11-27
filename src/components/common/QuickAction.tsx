@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
 import { useTheme } from "@/src/theme";
@@ -16,6 +16,7 @@ export function QuickAction({ label, icon, onPress }: Props) {
       : label === "Split"
         ? colors.gradientMint
         : colors.gradientPrimary;
+  const iconColor = label === "Expense" ? colors.white : colors.onAccent;
 
   const styles = StyleSheet.create({
     container: { alignItems: "center", gap: spacing.sm, minWidth: 70, paddingVertical: spacing.xs },
@@ -39,7 +40,7 @@ export function QuickAction({ label, icon, onPress }: Props) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [styles.container, pressed && styles.pressed]}>
       <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.icon}>
-        <Ionicons name={icon} size={25} color="#FFFFFF" />
+        <Ionicons name={icon} size={25} color={iconColor} />
       </LinearGradient>
       <AppText variant="caption" style={styles.label}>{label}</AppText>
     </Pressable>
