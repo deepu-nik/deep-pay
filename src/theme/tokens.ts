@@ -20,6 +20,7 @@ export type ThemeColors = {
   gradientSunset: [string, string];
   gradientSky: [string, string];
   gradientMint: [string, string];
+  onAccent: string;
   white: string;
   black: string;
 };
