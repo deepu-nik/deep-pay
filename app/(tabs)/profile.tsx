@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
 import { BottomTabBar, type TabKey } from "@/src/components/navigation/BottomTabBar";
 import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet";
+import { useAuth } from "@/src/context/AuthContext";
 import { useTheme, type ThemeMode } from "@/src/theme";
 import { radius, spacing } from "@/src/theme/tokens";
 
@@ -25,10 +26,17 @@ const modes: {
 export default function ProfileScreen() {
   const router = useRouter();
   const { colors, mode, setMode } = useTheme();
+  const { user, signOut } = useAuth();
   const [sheetVisible, setSheetVisible] = useState(false);
+
   const goTo = (tab: TabKey) => {
     if (tab === "profile") return;
     router.replace(tab === "home" ? "/(tabs)" : `/(tabs)/${tab}`);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace("/auth/welcome");
   };
 
   const styles = StyleSheet.create({
@@ -36,7 +44,7 @@ export default function ProfileScreen() {
     content: { padding: spacing.lg, paddingBottom: 140 },
     header: { marginBottom: spacing.xl },
     avatar: { width: 60, height: 60, borderRadius: 22, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center", marginBottom: spacing.md },
-    card: { backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, padding: spacing.lg },
+    card: { backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, marginBottom: spacing.lg },
     titleRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.md },
     option: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
     optionLeft: { flexDirection: "row", alignItems: "center", gap: spacing.md, flex: 1 },
@@ -48,7 +56,14 @@ export default function ProfileScreen() {
     radioSelected: { borderColor: colors.primary },
     dot: { width: 11, height: 11, borderRadius: 6, backgroundColor: colors.primary },
     snapNote: { marginTop: spacing.md, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceMuted, flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    accountRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+    accountAvatar: { width: 56, height: 56, borderRadius: 20, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center" },
+    accountCopy: { flex: 1, gap: 3 },
+    accountAction: { minHeight: 44, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md, alignItems: "center", justifyContent: "center" },
+    signOut: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm, marginTop: spacing.md, paddingVertical: spacing.md },
   });
+
+  const initials = (user?.fullName ?? "D").trim().slice(0, 1).toUpperCase();
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -56,7 +71,25 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <View style={styles.avatar}><Ionicons name="person" size={27} color={colors.primary} /></View>
           <AppText variant="title">Profile</AppText>
-          <AppText variant="body" style={{ color: colors.textMuted }}>Account, preferences and app settings.</AppText>
+          <AppText variant="body" style={{ color: colors.textMuted }}>Your account, preferences and app settings.</AppText>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.accountRow}>
+            <View style={styles.accountAvatar}><AppText variant="h2" style={{ color: colors.primary }}>{initials}</AppText></View>
+            <View style={styles.accountCopy}>
+              <AppText variant="bodyMedium" numberOfLines={1}>{user?.fullName ?? "DeepPay user"}</AppText>
+              <AppText variant="caption" style={{ color: colors.textMuted }} numberOfLines={1}>{user?.email ?? "No local profile"}</AppText>
+              <AppText variant="caption" style={{ color: colors.textMuted }}>Local demo profile</AppText>
+            </View>
+            <Pressable accessibilityRole="button" accessibilityLabel="Edit profile" onPress={() => router.push("/profile/edit")} style={styles.accountAction}>
+              <AppText variant="caption" style={{ color: colors.primary }}>Edit</AppText>
+            </Pressable>
+          </View>
+          <Pressable accessibilityRole="button" onPress={() => void handleSignOut()} style={styles.signOut}>
+            <Ionicons name="log-out-outline" size={19} color={colors.danger} />
+            <AppText variant="bodyMedium" style={{ color: colors.danger }}>Sign out</AppText>
+          </Pressable>
         </View>
 
         <View style={styles.card}>
