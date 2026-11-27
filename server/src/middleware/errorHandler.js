@@ -29,6 +29,10 @@ export function errorHandler(error, req, res, _next) {
     statusCode = 413;
     code = "PAYLOAD_TOO_LARGE";
     message = "Request body is too large.";
+  } else if (error?.type === "entity.parse.failed" || (error instanceof SyntaxError && error?.status === 400)) {
+    statusCode = 400;
+    code = "INVALID_JSON";
+    message = "Request body must contain valid JSON.";
   } else if (error?.statusCode === 403) {
     statusCode = 403;
     code = "CORS_ORIGIN_DENIED";
