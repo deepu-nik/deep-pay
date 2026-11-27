@@ -1,5 +1,5 @@
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, View } from "react-native";
@@ -70,9 +70,9 @@ export default function WelcomeScreen() {
         </View>
 
         <View style={styles.footer}>
-          <PrimaryButton title="Create your profile" onPress={() => router.push("/auth/sign-up")} />
+          <PrimaryButton title="Create your profile" onPress={() => router.push("/auth/sign-up" as Href)} />
           <AppText variant="body" style={{ color: colors.textMuted, textAlign: "center" }}>
-            Already set up on this device? <AppText variant="bodyMedium" style={{ color: colors.primary }} onPress={() => router.push("/auth/sign-in")}>Sign in</AppText>
+            Already set up on this device? <AppText variant="bodyMedium" style={{ color: colors.primary }} onPress={() => router.push("/auth/sign-in" as Href)}>Sign in</AppText>
           </AppText>
           <AppText variant="caption" style={{ color: colors.textMuted, textAlign: "center" }}>
             Demo mode · Your profile stays on this device for now
