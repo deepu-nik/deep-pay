@@ -1,4 +1,5 @@
-import { ActivityIndicator, View, type PropsWithChildren } from "react";
+import type { PropsWithChildren } from "react";
+import { ActivityIndicator, View } from "react-native";
 import { Redirect } from "expo-router";
 import { useAuth } from "@/src/context/AuthContext";
 import { useTheme } from "@/src/theme";
