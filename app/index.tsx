@@ -1,4 +1,4 @@
-import { Redirect } from "expo-router";
+import { Redirect, type Href } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useAuth } from "@/src/context/AuthContext";
 import { useTheme } from "@/src/theme";
@@ -15,5 +15,5 @@ export default function Index() {
     );
   }
 
-  return <Redirect href={user ? "/(tabs)" : "/auth/welcome"} />;
+  return <Redirect href={(user ? "/(tabs)" : "/auth/welcome") as Href} />;
 }
