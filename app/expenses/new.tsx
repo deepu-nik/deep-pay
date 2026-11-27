@@ -249,7 +249,7 @@ export default function NewExpenseScreen() {
           <TextInput value={description} onChangeText={setDescription} placeholder={isSplitIntent ? "e.g. Pizza, cab or groceries" : "e.g. Dinner with friends"} placeholderTextColor={colors.textMuted} style={styles.input} maxLength={80} accessibilityLabel="Expense description" returnKeyType="done" />
         </View>
 
-        {isSplitIntent && lastPreset && !groupId ? (
+        {isSplitIntent && lastPreset && !groupId && !groupsLoading && !friendsLoading ? (
           <Pressable accessibilityRole="button" onPress={applyLastPreset} style={styles.repeatCard}>
             <View style={styles.repeatIcon}><Ionicons name="repeat" size={21} color={colors.primary} /></View>
             <View style={styles.repeatCopy}>
