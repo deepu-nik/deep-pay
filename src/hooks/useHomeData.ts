@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { firebaseExpenseService } from "@/src/services/firebase/expenseService";
 import { firebaseGroupService } from "@/src/services/firebase/groupService";
 import type { Expense, Group, HomeSummary } from "@/src/types/domain";
@@ -9,19 +9,19 @@ export function useHomeData() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasLoaded = useRef(false);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
+    if (!hasLoaded.current) setLoading(true);
     setError(null);
     try {
-      const [nextSummary, nextExpenses, nextGroups] = await Promise.all([
-        firebaseExpenseService.getHomeSummary(),
-        firebaseExpenseService.listRecent(),
-        firebaseGroupService.listGroups(),
-      ]);
+      const nextGroups = await firebaseGroupService.listGroups();
+      const nextExpenses = await firebaseExpenseService.listRecent(nextGroups);
+      const nextSummary = await firebaseExpenseService.getHomeSummary(nextExpenses, nextGroups);
       setSummary(nextSummary);
       setExpenses(nextExpenses);
       setGroups(nextGroups);
+      hasLoaded.current = true;
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "We couldn't load your dashboard. Check your connection and try again.");
     } finally {
