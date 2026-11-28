@@ -72,7 +72,7 @@ function ActivityRow({
         end={{ x: 1, y: 1 }}
         style={styles.activityIcon}
       >
-        <Ionicons name={icon} size={20} color={colors.onAccent} />
+        <Ionicons name={icon} size={20} color={isExpense ? colors.onPrimaryGradient : colors.onAccent} />
       </LinearGradient>
       <View style={styles.activityCopy}>
         <AppText variant="bodyMedium" numberOfLines={1}>{item.title}</AppText>
@@ -164,7 +164,7 @@ export default function ActivityScreen() {
     activityCopy: { flex: 1, gap: 3 },
     activityAmount: { alignItems: "flex-end", gap: 3 },
     separator: { height: 1, backgroundColor: colors.glassBorder, marginLeft: 60 },
-    emptyCard: { alignItems: "center", gap: spacing.md },
+    emptyCard: { width: "100%", alignItems: "stretch", gap: spacing.md },
     errorAction: { alignItems: "center", paddingTop: spacing.md },
     note: { color: colors.textMuted, lineHeight: 19 },
   });
