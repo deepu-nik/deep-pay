@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/src/components/common/AppText";
 import { useTheme } from "@/src/theme";
-import { radius, spacing } from "@/src/theme/tokens";
+import { spacing } from "@/src/theme/tokens";
 
 export type TabKey = "home" | "groups" | "activity" | "profile";
 type Props = { activeTab: TabKey; onTabPress: (tab: TabKey) => void; onPayPress: () => void };
