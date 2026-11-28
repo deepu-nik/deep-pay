@@ -233,7 +233,8 @@ service cloud.firestore {
           && request.resource.data.createdByUid == request.auth.uid
           && request.resource.data.createdAt == request.time
           && request.resource.data.updatedAt == request.time;
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if isGroupOwner(groupId);
       }
 
       match /expenses/{expenseId} {
@@ -306,7 +307,9 @@ service cloud.firestore {
           && existsAfter(groupPath(groupId))
           && getAfter(groupPath(groupId)).data.memberUids.hasAny([userId])
           && existsAfter(groupMemberPath(groupId, userId));
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if isOwner(userId)
+          || (isGroupOwner(groupId) && userId in get(groupPath(groupId)).data.memberUids);
       }
     }
 
@@ -426,7 +429,9 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
         && request.resource.data.status in ['accepted', 'rejected']
         && request.resource.data.respondedAt == request.time;
-      allow delete: if false;
+      allow delete: if signedIn()
+        && resource.data.status in ['accepted', 'rejected']
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
     }
 
     match /friendships/{friendshipId} {
@@ -467,7 +472,8 @@ service cloud.firestore {
         && request.resource.data.memberUids.hasAny([
           getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
         ]);
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if isFriendshipMember();
     }
 
     match /groups/{groupId} {
@@ -500,7 +506,7 @@ service cloud.firestore {
 
       allow update: if (isGroupOwner(groupId) && validGroupOwnerUpdate())
         || validInviteJoin(groupId);
-      allow delete: if false;
+      allow delete: if isGroupOwner(groupId);
 
       match /members/{memberUid} {
         allow get: if isGroupMember(groupId) || isOwner(memberUid);
@@ -527,7 +533,8 @@ service cloud.firestore {
         allow create: if isGroupMember(groupId)
           && validExpense(request.resource.data, get(groupPath(groupId)).data.memberUids)
           && request.resource.data.groupId == groupId;
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if isGroupOwner(groupId);
       }
 
       match /settlements/{settlementId} {
@@ -565,7 +572,7 @@ service cloud.firestore {
           && request.resource.data.status in ['confirmed', 'rejected']
           && request.resource.data.recipientConfirmedAt == request.time
           && request.resource.data.updatedAt == request.time;
-        allow delete: if false;
+        allow delete: if isGroupOwner(groupId);
       }
     }
 
@@ -574,7 +581,7 @@ service cloud.firestore {
         && resource.data.status == 'active'
         && resource.data.expiresAt is timestamp
         && resource.data.expiresAt > request.time;
-      allow list: if false;
+      allow list: if signedIn() && resource.data.createdByUid == request.auth.uid;
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly([
           'groupId',
