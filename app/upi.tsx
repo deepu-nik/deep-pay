@@ -130,7 +130,11 @@ export default function UpiScreen() {
   }, []);
 
   useEffect(() => {
-    if (routeTab === "pay" || routeTab === "scan" || routeTab === "my-qr" || routeTab === "history") {
+    if (routeTab === "scan") {
+      router.replace("/upi/scan" as Href);
+      return;
+    }
+    if (routeTab === "pay" || routeTab === "my-qr" || routeTab === "history") {
       setActiveTab(routeTab);
     }
     if (routeTab === "pay" && routePayeeVpa) {
@@ -144,7 +148,7 @@ export default function UpiScreen() {
       setScannedQr(true);
       setMessage("QR scanned. Review the recipient and amount carefully before opening a UPI app.");
     }
-  }, [routeTab, routePayeeVpa, routePayeeName, routeAmount, routeNote, routeReference, routeTransactionId]);
+  }, [routeTab, routePayeeVpa, routePayeeName, routeAmount, routeNote, routeReference, routeTransactionId, router]);
 
   useEffect(() => {
     if (activeTab === "my-qr") void loadProfile();
