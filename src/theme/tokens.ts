@@ -24,6 +24,7 @@ export type ThemeColors = {
   glassBorder: string;
   glassHighlight: string;
   onAccent: string;
+  onPrimaryGradient: string;
   white: string;
   black: string;
 };
