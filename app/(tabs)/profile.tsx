@@ -7,7 +7,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
 import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { BottomTabBar, type TabKey } from "@/src/components/navigation/BottomTabBar";
-import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet";
 import { useAuth } from "@/src/context/AuthContext";
 import { useHomeData } from "@/src/hooks/useHomeData";
 import { useTheme, type ThemeMode } from "@/src/theme";
@@ -89,7 +88,6 @@ export default function ProfileScreen() {
   const { colors, mode, setMode } = useTheme();
   const { user, signOut, resetPassword } = useAuth();
   const { expenses, groups, refresh } = useHomeData();
-  const [sheetVisible, setSheetVisible] = useState(false);
   const [themeVisible, setThemeVisible] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
 
@@ -320,8 +318,7 @@ export default function ProfileScreen() {
         <AppText variant="caption" style={stylesLocal.footer}>Made to make shared money feel simple.</AppText>
       </ScrollView>
 
-      <BottomTabBar activeTab="profile" onTabPress={goTo} onAddPress={() => setSheetVisible(true)} />
-      <CreateActionSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
+      <BottomTabBar activeTab="profile" onTabPress={goTo} onPayPress={() => router.push("/upi" as Href)} />
 
       <Modal visible={themeVisible} transparent animationType="slide" onRequestClose={() => setThemeVisible(false)}>
         <View style={stylesLocal.modalRoot}>
