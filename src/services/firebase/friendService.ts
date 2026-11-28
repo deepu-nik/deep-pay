@@ -3,6 +3,7 @@ import {
   Timestamp,
   collection,
   doc,
+  deleteDoc,
   getDoc,
   getDocFromServer,
   getDocs,
@@ -24,6 +25,7 @@ export type FriendHandle = {
 
 export type Friend = {
   id: string;
+  friendshipId: string;
   name: string;
   username: string;
 };
@@ -286,10 +288,53 @@ export const firebaseFriendService = {
         if (!friendData || typeof friendData !== "object") return null;
         const data = friendData as Record<string, unknown>;
         if (typeof data.uid !== "string" || typeof data.username !== "string" || typeof data.displayName !== "string") return null;
-        return { id: data.uid, name: data.displayName, username: data.username };
+        return { id: data.uid, friendshipId: item.id, name: data.displayName, username: data.username };
       })
       .filter((friend): friend is Friend => friend !== null)
       .sort((a, b) => a.name.localeCompare(b.name));
+  },
+
+  async removeFriend(friendshipDocumentId: string): Promise<void> {
+    const uid = requireUid();
+    const friendshipRef = doc(firestore, "friendships", friendshipDocumentId);
+    const friendshipSnapshot = await withFirestoreTimeout(
+      getDoc(friendshipRef),
+      "Opening this friendship took too long. Check your connection and retry.",
+    );
+    if (!friendshipSnapshot.exists()) return;
+
+    const friendship = friendshipSnapshot.data();
+    if (!Array.isArray(friendship.memberUids) || !friendship.memberUids.includes(uid)) {
+      throw new Error("You are not allowed to remove this friendship.");
+    }
+
+    const batch = writeBatch(firestore);
+    batch.delete(friendshipRef);
+
+    if (typeof friendship.requestId === "string") {
+      const requestRef = doc(firestore, "friendRequests", friendship.requestId);
+      const requestSnapshot = await withFirestoreTimeout(
+        getDoc(requestRef),
+        "Opening the original friend request took too long. Check your connection and retry.",
+      );
+      if (
+        requestSnapshot.exists()
+        && requestSnapshot.data().status === "accepted"
+        && (requestSnapshot.data().fromUid === uid || requestSnapshot.data().toUid === uid)
+      ) {
+        batch.delete(requestRef);
+      }
+    }
+
+    try {
+      await withFirestoreTimeout(
+        batch.commit(),
+        "Removing this friend took too long. Check your connection and retry.",
+        FIRESTORE_REQUEST_TIMEOUT_MS,
+      );
+    } catch (cause) {
+      throw mapFriendServiceError(cause, "removing this friend");
+    }
   },
 
   async listRequests(): Promise<{ incoming: FriendRequest[]; outgoing: FriendRequest[] }> {
