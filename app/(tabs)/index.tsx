@@ -116,14 +116,24 @@ export default function HomeScreen() {
             <AppText variant="caption" style={{ color: colors.textMuted }}>{getGreeting()} 👋</AppText>
             <AppText variant="title">{brand.name}</AppText>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open profile"
-            onPress={() => router.push("/(tabs)/profile" as any)}
-            style={styles.avatar}
-          >
-            <Ionicons name="person" size={21} color={colors.primary} />
-          </Pressable>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Find and add friends"
+              onPress={() => router.push("/friends" as Href)}
+              style={styles.avatar}
+            >
+              <Ionicons name="person-add-outline" size={21} color={colors.primary} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open profile"
+              onPress={() => router.push("/(tabs)/profile" as any)}
+              style={styles.avatar}
+            >
+              <Ionicons name="person" size={21} color={colors.primary} />
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.hero}>
