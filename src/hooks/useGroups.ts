@@ -51,9 +51,15 @@ export function useGroups() {
   }, []);
 
   const createGroup = useCallback(async (input: CreateGroupInput) => {
-    const group = await firebaseGroupService.createGroup(input);
-    setGroups((current) => [group, ...current]);
-    return group;
+    try {
+      const group = await firebaseGroupService.createGroup(input);
+      setGroups((current) => [group, ...current.filter((item) => item.id !== group.id)]);
+      setError(null);
+      return group;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "We couldn't create this group. Please retry.");
+      throw cause;
+    }
   }, []);
 
   const updateGroup = useCallback(async (id: string, input: CreateGroupInput) => {
