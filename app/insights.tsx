@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -431,7 +431,8 @@ export default function InsightsScreen() {
       </ScrollView>
 
       <Modal visible={editorVisible} transparent animationType="slide" onRequestClose={() => setEditorVisible(false)}>
-        <View style={styles.modalRoot}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+<View style={styles.modalRoot}>
           <Pressable accessibilityRole="button" accessibilityLabel="Close budget editor" onPress={() => setEditorVisible(false)} style={styles.modalScrim} />
           <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
@@ -485,6 +486,7 @@ export default function InsightsScreen() {
             ) : null}
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
