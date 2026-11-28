@@ -3,7 +3,7 @@ import { Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
 import { useTheme } from "@/src/theme";
-import { radius, spacing } from "@/src/theme/tokens";
+import { spacing } from "@/src/theme/tokens";
 
 type Props = { label: string; icon: keyof typeof Ionicons.glyphMap; onPress?: () => void };
 
