@@ -273,24 +273,49 @@ export const firebaseFriendService = {
 
   async listFriends(): Promise<Friend[]> {
     const uid = requireUid();
-    const snapshot = await withFirestoreTimeout(
-      getDocs(query(collection(firestore, "friendships"), where("memberUids", "array-contains", uid))),
-      "Loading your friends took too long. Check your connection and retry.",
+    // Read accepted requests through the sender/recipient indexes instead of
+    // querying friendships directly. This avoids a rules-proof mismatch on
+    // the memberUids array while keeping each query scoped to the caller.
+    const incomingQuery = query(
+      collection(firestore, "friendRequests"),
+      where("toUid", "==", uid),
     );
-    return snapshot.docs
-      .map((item) => {
-        const members = item.data().members;
-        if (!Array.isArray(members)) return null;
-        const friendData = members.find((member) => (
-          member && typeof member === "object" && "uid" in member && member.uid !== uid
-        ));
-        if (!friendData || typeof friendData !== "object") return null;
-        const data = friendData as Record<string, unknown>;
-        if (typeof data.uid !== "string" || typeof data.username !== "string" || typeof data.displayName !== "string") return null;
-        return { id: data.uid, friendshipId: item.id, name: data.displayName, username: data.username };
-      })
-      .filter((friend): friend is Friend => friend !== null)
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const outgoingQuery = query(
+      collection(firestore, "friendRequests"),
+      where("fromUid", "==", uid),
+    );
+    const [incomingSnapshot, outgoingSnapshot] = await withFirestoreTimeout(
+      Promise.all([getDocs(incomingQuery), getDocs(outgoingQuery)]),
+      "Loading accepted friendships took too long. Check your connection and retry.",
+      FIRESTORE_REQUEST_TIMEOUT_MS,
+    );
+
+    const friendsByUid = new Map<string, Friend>();
+    for (const item of [...incomingSnapshot.docs, ...outgoingSnapshot.docs]) {
+      const data = item.data();
+      if (data.status !== "accepted") continue;
+
+      const isIncoming = data.toUid === uid;
+      const friendUid = isIncoming ? data.fromUid : data.toUid;
+      const friendUsername = isIncoming ? data.fromUsername : data.toUsername;
+      const friendDisplayName = isIncoming ? data.fromDisplayName : data.toDisplayName;
+
+      if (
+        typeof friendUid !== "string"
+        || friendUid === uid
+        || typeof friendUsername !== "string"
+        || typeof friendDisplayName !== "string"
+      ) continue;
+
+      friendsByUid.set(friendUid, {
+        id: friendUid,
+        friendshipId: friendshipId(uid, friendUid),
+        name: friendDisplayName,
+        username: friendUsername,
+      });
+    }
+
+    return [...friendsByUid.values()].sort((a, b) => a.name.localeCompare(b.name));
   },
 
   async removeFriend(friendshipDocumentId: string): Promise<void> {
