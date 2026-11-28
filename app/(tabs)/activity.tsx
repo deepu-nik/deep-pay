@@ -12,7 +12,7 @@ import { LoadingState } from "@/src/components/common/LoadingState";
 import { PrimaryButton } from "@/src/components/common/PrimaryButton";
 import { BottomTabBar, type TabKey } from "@/src/components/navigation/BottomTabBar";
 import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet";
-import { mockActivityService, type ActivityEntry } from "@/src/services/mock/activityService";
+import { firebaseActivityService, type ActivityEntry } from "@/src/services/firebase/activityService";
 import { useTheme } from "@/src/theme";
 import { spacing } from "@/src/theme/tokens";
 
@@ -104,7 +104,7 @@ export default function ActivityScreen() {
     setLoading(true);
     setError(null);
     try {
-      const nextItems = await mockActivityService.listRecent();
+      const nextItems = await firebaseActivityService.listRecent();
       setItems(nextItems);
     } catch {
       setError("We couldn't load your activity. Please try again.");
@@ -238,7 +238,7 @@ export default function ActivityScreen() {
         )}
 
         <AppText variant="caption" style={localStyles.note}>
-          Activity is built from the expenses and settlements currently saved on this device. Cloud syncing will be added as those features move to Firestore.
+          Activity is synced from your DeepPay groups, expenses and confirmed or pending settlements.
         </AppText>
       </ScrollView>
 

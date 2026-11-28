@@ -2,8 +2,36 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
     function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function groupPath(groupId) {
+      return /databases/$(database)/documents/groups/$(groupId);
+    }
+
+    function groupMemberPath(groupId, userId) {
+      return /databases/$(database)/documents/groups/$(groupId)/members/$(userId);
+    }
+
+    function invitePath(inviteId) {
+      return /databases/$(database)/documents/groupInvites/$(inviteId);
+    }
+
+    function isGroupMember(groupId) {
+      return signedIn()
+        && exists(groupPath(groupId))
+        && get(groupPath(groupId)).data.memberUids is list
+        && get(groupPath(groupId)).data.memberUids.hasAny([request.auth.uid]);
+    }
+
+    function isGroupOwner(groupId) {
+      return isGroupMember(groupId)
+        && get(groupPath(groupId)).data.createdByUid == request.auth.uid;
     }
 
     function hasValidProfileFields() {
@@ -26,6 +54,96 @@ service cloud.firestore {
         && request.resource.data.email == request.auth.token.email;
     }
 
+    function validGroupOwnerUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['name', 'status', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.memberUids == resource.data.memberUids
+        && request.resource.data.createdByUid == resource.data.createdByUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.status in ['active', 'archived']
+        && !(resource.data.status == 'archived' && request.resource.data.status == 'active')
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function validInviteJoin(groupId) {
+      let inviteId = request.resource.data.lastJoinInviteId;
+      return signedIn()
+        && resource.data.status == 'active'
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['memberUids', 'lastJoinInviteId', 'updatedAt'])
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.hasAll(resource.data.memberUids)
+        && request.resource.data.memberUids.size() == resource.data.memberUids.size() + 1
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && !resource.data.memberUids.hasAny([request.auth.uid])
+        && inviteId is string
+        && exists(invitePath(inviteId))
+        && get(invitePath(inviteId)).data.groupId == groupId
+        && get(invitePath(inviteId)).data.status == 'active'
+        && get(invitePath(inviteId)).data.expiresAt is timestamp
+        && get(invitePath(inviteId)).data.expiresAt > request.time
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    function validExpense(data, validMemberUids) {
+      return data.keys().hasAll([
+          'description',
+          'amountMinor',
+          'category',
+          'date',
+          'paidByUid',
+          'participantUids',
+          'splits',
+          'splitMethod',
+          'notes',
+          'paymentMethod',
+          'createdByUid',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'description',
+          'amountMinor',
+          'category',
+          'date',
+          'paidByUid',
+          'participantUids',
+          'splits',
+          'splitMethod',
+          'notes',
+          'paymentMethod',
+          'createdByUid',
+          'createdAt',
+          'updatedAt',
+          'groupId'
+        ])
+        && data.description is string
+        && data.description.size() >= 2
+        && data.description.size() <= 80
+        && data.amountMinor is int
+        && data.amountMinor > 0
+        && data.amountMinor <= 100000000000
+        && data.category in ['Food', 'Transport', 'Rent', 'Education', 'Entertainment', 'Shopping', 'Technology', 'Travel', 'Health', 'Other']
+        && data.date is string
+        && data.paidByUid is string
+        && data.paidByUid in validMemberUids
+        && data.participantUids is list
+        && data.participantUids.size() > 0
+        && data.participantUids.hasOnly(validMemberUids)
+        && data.participantUids.hasAny([data.paidByUid])
+        && data.splits is list
+        && data.splits.size() == data.participantUids.size()
+        && data.splitMethod in ['equal', 'custom', 'percentage']
+        && data.notes is string
+        && data.paymentMethod in ['cash', 'upi', 'card', 'bank_transfer', 'unknown']
+        && data.createdByUid == request.auth.uid
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
 
@@ -42,13 +160,159 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['fullName', 'updatedAt']);
 
-      // Account deletion is handled through Firebase Authentication and a
-      // future trusted cleanup workflow, not direct client document deletion.
+      allow delete: if false;
+
+      match /expenses/{expenseId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && validExpense(request.resource.data, [request.auth.uid])
+          && request.resource.data.paidByUid == request.auth.uid
+          && request.resource.data.participantUids.size() == 1
+          && request.resource.data.participantUids.hasAny([request.auth.uid]);
+        allow update, delete: if false;
+      }
+
+      match /groupMemberships/{groupId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && request.resource.data.keys().hasOnly(['groupId', 'groupName', 'role', 'joinedAt'])
+          && request.resource.data.groupId == groupId
+          && request.resource.data.groupName is string
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(groupPath(groupId))
+          && getAfter(groupPath(groupId)).data.memberUids.hasAny([userId])
+          && existsAfter(groupMemberPath(groupId, userId));
+        allow update, delete: if false;
+      }
+    }
+
+    match /groups/{groupId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'createdByUid',
+          'memberUids',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 1
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if (isGroupOwner(groupId) && validGroupOwnerUpdate())
+        || validInviteJoin(groupId);
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if isGroupMember(groupId) || isOwner(memberUid);
+        allow list: if isGroupMember(groupId);
+        allow create: if isOwner(memberUid)
+          && request.resource.data.keys().hasOnly(['uid', 'displayName', 'role', 'status', 'joinedAt'])
+          && request.resource.data.uid == memberUid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status == 'active'
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(groupPath(groupId))
+          && getAfter(groupPath(groupId)).data.memberUids.hasAny([memberUid])
+          && request.resource.data.role == (
+            getAfter(groupPath(groupId)).data.createdByUid == memberUid ? 'owner' : 'member'
+          );
+        allow update, delete: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && validExpense(request.resource.data, get(groupPath(groupId)).data.memberUids)
+          && request.resource.data.groupId == groupId;
+        allow update, delete: if false;
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.keys().hasOnly([
+            'fromUid',
+            'toUid',
+            'amountMinor',
+            'date',
+            'paymentMethod',
+            'status',
+            'createdByUid',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid in get(groupPath(groupId)).data.memberUids
+          && request.resource.data.toUid != request.auth.uid
+          && request.resource.data.amountMinor is int
+          && request.resource.data.amountMinor > 0
+          && request.resource.data.date is string
+          && request.resource.data.paymentMethod in ['cash', 'upi']
+          && request.resource.data.status == 'payer_marked_paid'
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isGroupMember(groupId)
+          && resource.data.toUid == request.auth.uid
+          && resource.data.status == 'payer_marked_paid'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'recipientConfirmedAt', 'updatedAt'])
+          && request.resource.data.status in ['confirmed', 'rejected']
+          && request.resource.data.recipientConfirmedAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+    }
+
+    match /groupInvites/{inviteId} {
+      allow get: if signedIn()
+        && resource.data.status == 'active'
+        && resource.data.expiresAt is timestamp
+        && resource.data.expiresAt > request.time;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'groupId',
+          'groupName',
+          'createdByUid',
+          'status',
+          'expiresAt',
+          'createdAt'
+        ])
+        && request.resource.data.groupId is string
+        && isGroupMember(request.resource.data.groupId)
+        && request.resource.data.groupName is string
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.createdByUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'revoked';
       allow delete: if false;
     }
 
-    // New collections remain closed until their ownership and membership
-    // rules are designed and tested.
     match /{document=**} {
       allow read, write: if false;
     }
