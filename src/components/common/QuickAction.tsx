@@ -16,7 +16,11 @@ export function QuickAction({ label, icon, onPress }: Props) {
       : label === "Split"
         ? colors.gradientMint
         : colors.gradientPrimary;
-  const iconColor = label === "Expense" ? colors.white : colors.onAccent;
+  // Primary-gradient actions use the foreground designed for that gradient.
+  // Accent gradients (sky, mint, sunset) keep their own onAccent foreground.
+  const iconColor = gradient === colors.gradientPrimary
+    ? colors.onPrimaryGradient
+    : colors.onAccent;
 
   const styles = StyleSheet.create({
     container: { width: "31%", minWidth: 0, alignItems: "center", gap: spacing.sm, paddingVertical: spacing.xs },
