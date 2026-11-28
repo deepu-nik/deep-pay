@@ -130,12 +130,12 @@ export default function GroupsScreen() {
             accessibilityState={{ selected: true }}
             style={[styles.tab, styles.tabActive]}
           >
-            <Ionicons name="people-outline" size={19} color={activeSection === "groups" ? colors.white : colors.textMuted} />
+<Ionicons name="people-outline" size={19} color={colors.white} />
             <AppText variant="caption" style={styles.tabTextActive}>Groups</AppText>
           </Pressable>
           <Pressable
             accessibilityRole="tab"
-            accessibilityState={{ selected: activeSection === "friends" }}
+            accessibilityState={{ selected: false }}
             onPress={() => router.push("/friends" as any)}
             style={styles.tab}
           >
