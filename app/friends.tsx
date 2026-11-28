@@ -45,6 +45,7 @@ export default function FriendsScreen() {
     friendsError,
     requestsError,
     refresh,
+    checkFirestoreConnection,
     claimUsername,
     findUserByUsername,
     sendFriendRequest,
@@ -56,6 +57,8 @@ export default function FriendsScreen() {
   const [foundUser, setFoundUser] = useState<{ uid: string; username: string; displayName: string } | null>(null);
   const [searchingUser, setSearchingUser] = useState(false);
   const [savingHandle, setSavingHandle] = useState(false);
+  const [checkingConnection, setCheckingConnection] = useState(false);
+  const [connectionResult, setConnectionResult] = useState<string | null>(null);
   const [sendingRequest, setSendingRequest] = useState(false);
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -72,7 +75,7 @@ export default function FriendsScreen() {
       setUsernameDraft("");
       setNotice("Your DeepPay username is @" + saved.username + ". People can now find you.");
     } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : "We couldn't save your username. Please try again.");
+      setActionError(cause instanceof Error ? cause.message : "We couldn't save your username. Run the Firebase connection test below.");
     } finally {
       setSavingHandle(false);
     }
@@ -91,6 +94,24 @@ export default function FriendsScreen() {
       setActionError(cause instanceof Error ? cause.message : "We couldn't find that DeepPay user.");
     } finally {
       setSearchingUser(false);
+    }
+  };
+
+  const testFirebaseConnection = async () => {
+    if (checkingConnection) return;
+    setCheckingConnection(true);
+    setConnectionResult(null);
+    setActionError(null);
+    try {
+      const result = await checkFirestoreConnection();
+      setConnectionResult(
+        "Connected to Firebase project " + result.projectId
+        + " · Server replied in " + result.elapsedMs + " ms · Account profile found.",
+      );
+    } catch (cause) {
+      setConnectionResult(cause instanceof Error ? cause.message : "Firestore connection test failed.");
+    } finally {
+      setCheckingConnection(false);
     }
   };
 
@@ -298,6 +319,22 @@ export default function FriendsScreen() {
                   onPress={() => { void saveHandle(); }}
                   disabled={handleLoading || savingHandle || usernameDraft.trim().length < 3}
                 />
+
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => { void testFirebaseConnection(); }}
+                  disabled={checkingConnection}
+                  style={{ alignSelf: "center", paddingVertical: spacing.xs }}
+                >
+                  <AppText variant="caption" style={{ color: colors.primary }}>
+                    {checkingConnection ? "Checking Firebase server…" : "Test Firebase connection"}
+                  </AppText>
+                </Pressable>
+                {connectionResult ? (
+                  <AppText variant="caption" style={{ color: connectionResult.startsWith("Connected") ? colors.success : colors.warning }}>
+                    {connectionResult}
+                  </AppText>
+                ) : null}
               </>
             )}
           </GlassPanel>
