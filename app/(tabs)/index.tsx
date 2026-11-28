@@ -10,7 +10,6 @@ import { ExpenseRow } from "@/src/components/common/ExpenseRow";
 import { QuickAction } from "@/src/components/common/QuickAction";
 import { SectionHeader } from "@/src/components/common/SectionHeader";
 import { EmptyState } from "@/src/components/common/EmptyState";
-import { ErrorState } from "@/src/components/common/ErrorState";
 import { LoadingState } from "@/src/components/common/LoadingState";
 import { BottomTabBar } from "@/src/components/navigation/BottomTabBar";
 import { useHomeData } from "@/src/hooks/useHomeData";
@@ -112,6 +111,7 @@ export default function HomeScreen() {
     groupEmpty: { minHeight: 88, width: "100%", flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.lg },
     list: { borderRadius: radius.lg, overflow: "hidden" },
     retry: { alignItems: "center", paddingBottom: spacing.md },
+    inlineIssue: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.sm, paddingVertical: spacing.sm },
   });
 
   const visibleExpenses = expenses.slice(0, 4);
@@ -182,10 +182,12 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <SectionHeader title="Your groups" action={groups.length ? "See all" : undefined} onAction={goToGroups} />
           {groupsLoading && !groups.length ? <LoadingState message="Loading your groups…" /> : groupsError && !groups.length ? (
-            <Pressable accessibilityRole="button" onPress={() => void refresh()}>
-              <ErrorState message={groupsError} />
-              <View style={styles.retry}><AppText variant="caption" style={{ color: colors.primary }}>Tap to retry</AppText></View>
-            </Pressable>
+            <View style={styles.inlineIssue}>
+              <AppText variant="caption" style={{ color: colors.textMuted }}>{groupsError}</AppText>
+              <Pressable accessibilityRole="button" onPress={() => void refresh()} hitSlop={10}>
+                <AppText variant="caption" style={{ color: colors.primary }}>Retry</AppText>
+              </Pressable>
+            </View>
           ) : visibleGroups.length ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.groupList}>
               {visibleGroups.map((group, index) => {
@@ -229,10 +231,12 @@ export default function HomeScreen() {
           <SectionHeader title="Recent expenses" />
           <GlassPanel padding={spacing.lg} style={styles.list}>
             {loading ? <LoadingState message="Loading your expenses…" /> : error ? (
-              <Pressable accessibilityRole="button" onPress={() => void refresh()}>
-                <ErrorState message={error} />
-                <View style={styles.retry}><AppText variant="caption" style={{ color: colors.primary }}>Tap to try again</AppText></View>
-              </Pressable>
+              <View style={styles.inlineIssue}>
+                <AppText variant="caption" style={{ color: colors.textMuted }}>{error}</AppText>
+                <Pressable accessibilityRole="button" onPress={() => void refresh()} hitSlop={10}>
+                  <AppText variant="caption" style={{ color: colors.primary }}>Retry</AppText>
+                </Pressable>
+              </View>
             ) : expenses.length ? visibleExpenses.map((expense) => <ExpenseRow key={expense.id} expense={expense} />) : (
               <EmptyState icon="receipt" title="Nothing spent yet" message="Add your first expense and let DeepPay keep everything in the loop." />
             )}
@@ -240,7 +244,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <BottomTabBar activeTab="home" onTabPress={goTo} onPayPress={() => router.push({ pathname: "/upi", params: { tab: "my-qr" } } as Href)} />
+      <BottomTabBar activeTab="home" onTabPress={goTo} onPayPress={() => router.push("/upi" as Href)} />
     </SafeAreaView>
   );
 }
