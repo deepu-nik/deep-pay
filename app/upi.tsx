@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as Linking from "expo-linking";
 import QRCode from "react-native-qrcode-svg";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { AppText } from "@/src/components/common/AppText";
 import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { LoadingState } from "@/src/components/common/LoadingState";
@@ -59,6 +59,7 @@ function formatDate(value: string) {
 
 export default function UpiScreen() {
   const router = useRouter();
+  const { tab: routeTab } = useLocalSearchParams<{ tab?: string }>();
   const { colors } = useTheme();
   const { user } = useAuth();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
@@ -83,6 +84,8 @@ export default function UpiScreen() {
 
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
   const pendingPaymentRef = useRef(false);
+  const profileLoadedRef = useRef(false);
+  const historyLoadedRef = useRef(false);
   const previousAppState = useRef<string>(AppState.currentState ?? "active");
   const [waitingForReturn, setWaitingForReturn] = useState(false);
   const [returnedToDeepPay, setReturnedToDeepPay] = useState(false);
@@ -92,29 +95,46 @@ export default function UpiScreen() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const loadData = useCallback(async () => {
+  const loadProfile = useCallback(async (force = false) => {
+    if (profileLoadedRef.current && !force) return;
     setProfileLoading(true);
-    setHistoryLoading(true);
     try {
-      const [nextProfile, nextTransactions] = await Promise.all([
-        firebaseUpiService.getMyProfile(),
-        firebaseUpiService.listRecentTransactions(),
-      ]);
+      const nextProfile = await firebaseUpiService.getMyProfile();
       setProfile(nextProfile);
       setVpa(nextProfile?.vpa ?? "");
       setDisplayName(nextProfile?.displayName ?? user?.fullName ?? "");
-      setTransactions(nextTransactions);
+      profileLoadedRef.current = true;
     } catch (cause) {
-      setMessage(cause instanceof Error ? cause.message : "Couldn't load UPI details.");
+      setMessage(cause instanceof Error ? cause.message : "Couldn't load your UPI details.");
     } finally {
       setProfileLoading(false);
-      setHistoryLoading(false);
     }
   }, [user?.fullName]);
 
-  useFocusEffect(useCallback(() => {
-    void loadData();
-  }, [loadData]));
+  const loadTransactions = useCallback(async (force = false) => {
+    if (historyLoadedRef.current && !force) return;
+    setHistoryLoading(true);
+    try {
+      const nextTransactions = await firebaseUpiService.listRecentTransactions();
+      setTransactions(nextTransactions);
+      historyLoadedRef.current = true;
+    } catch (cause) {
+      setMessage(cause instanceof Error ? cause.message : "Couldn't load payment records.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (routeTab === "pay" || routeTab === "scan" || routeTab === "my-qr" || routeTab === "history") {
+      setActiveTab(routeTab);
+    }
+  }, [routeTab]);
+
+  useEffect(() => {
+    if (activeTab === "my-qr") void loadProfile();
+    if (activeTab === "history") void loadTransactions();
+  }, [activeTab, loadProfile, loadTransactions]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
@@ -144,9 +164,11 @@ export default function UpiScreen() {
     back: { width: 44, height: 44, borderRadius: radius.md, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0], alignItems: "center", justifyContent: "center" },
     headerCopy: { flex: 1, gap: 2 },
     subtitle: { color: colors.textMuted },
-    tabs: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-    tab: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0] },
-    tabActive: { borderColor: colors.primary, backgroundColor: colors.iconBackground },
+    actionGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: spacing.sm },
+    actionCard: { width: "48%", minHeight: 88, flexDirection: "row", alignItems: "center", gap: spacing.sm, padding: spacing.md, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0] },
+    actionCardActive: { borderColor: colors.primary, backgroundColor: colors.iconBackground },
+    actionIcon: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: colors.iconBackground },
+    actionCopy: { flex: 1, gap: 3 },
     section: { gap: spacing.sm },
     label: { marginBottom: 2 },
     input: { minHeight: 52, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: radius.md, paddingHorizontal: spacing.lg, color: colors.text, fontSize: 16, backgroundColor: colors.glassGradient[0] },
@@ -278,8 +300,8 @@ export default function UpiScreen() {
       setScannedQr(false);
       setActiveTab("history");
       setMessage("Saved as a payment reported by you. DeepPay has not verified the transfer with your bank.");
-      const next = await firebaseUpiService.listRecentTransactions();
-      setTransactions(next);
+      historyLoadedRef.current = false;
+      await loadTransactions(true);
     } catch (cause) {
       setMessage(cause instanceof Error ? cause.message : "Couldn't save this payment record.");
     } finally {
@@ -299,7 +321,8 @@ export default function UpiScreen() {
       setProfile(saved);
       setVpa(saved.vpa);
       setDisplayName(saved.displayName);
-      setMessage("Your UPI QR details are saved.");
+      profileLoadedRef.current = true;
+      setMessage("Your UPI QR details are saved to your DeepPay account.");
     } catch (cause) {
       setMessage(cause instanceof Error ? cause.message : "Couldn't save your UPI details.");
     } finally {
@@ -341,33 +364,44 @@ export default function UpiScreen() {
             <AppText variant="title">UPI & QR</AppText>
             <AppText variant="caption" style={styles.subtitle}>Pay, scan and share your payment QR.</AppText>
           </View>
-          <View style={styles.back}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open my receive QR code"
+            onPress={() => { void selectTab("my-qr"); }}
+            style={styles.back}
+          >
             <Ionicons name="qr-code-outline" size={21} color={colors.primary} />
-          </View>
+          </Pressable>
         </View>
 
-        <View style={styles.tabs}>
+        <View style={styles.actionGrid}>
           {([
-            ["pay", "Pay"],
-            ["scan", "Scan"],
-            ["my-qr", "My QR"],
-            ["history", "History"],
-          ] as const).map(([tab, label]) => (
+            { tab: "pay", title: "Pay someone", subtitle: "Enter UPI ID and amount", icon: "wallet-outline" },
+            { tab: "scan", title: "Scan to Pay", subtitle: "Scan any UPI QR", icon: "scan-outline" },
+            { tab: "my-qr", title: "My QR", subtitle: "Receive a payment", icon: "qr-code-outline" },
+            { tab: "history", title: "History", subtitle: "Your saved payment records", icon: "time-outline" },
+          ] as const).map((item) => (
             <Pressable
-              key={tab}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: activeTab === tab }}
-              onPress={() => { void selectTab(tab); }}
-              style={[styles.tab, activeTab === tab && styles.tabActive]}
+              key={item.tab}
+              accessibilityRole="button"
+              accessibilityState={{ selected: activeTab === item.tab }}
+              onPress={() => { void selectTab(item.tab); }}
+              style={[styles.actionCard, activeTab === item.tab && styles.actionCardActive]}
             >
-              <AppText variant="caption" style={activeTab === tab ? { color: colors.primary } : undefined}>{label}</AppText>
+              <View style={styles.actionIcon}>
+                <Ionicons name={item.icon} size={20} color={colors.primary} />
+              </View>
+              <View style={styles.actionCopy}>
+                <AppText variant="bodyMedium">{item.title}</AppText>
+                <AppText variant="caption" style={styles.muted}>{item.subtitle}</AppText>
+              </View>
             </Pressable>
           ))}
         </View>
 
         {message ? (
           <GlassPanel padding={spacing.md}>
-            <AppText variant="caption" style={{ color: message.toLowerCase().includes("couldn't") || message.toLowerCase().includes("not verified") ? colors.warning : colors.text }}>
+            <AppText variant="caption" style={{ color: message.toLowerCase().includes("couldn't") || message.toLowerCase().includes("not verified") || message.toLowerCase().includes("denied") ? colors.warning : colors.text }}>
               {message}
             </AppText>
           </GlassPanel>
@@ -521,6 +555,11 @@ export default function UpiScreen() {
                 Use a UPI ID that belongs to you. DeepPay builds a static receive QR from the details you enter; it doesn't verify ownership with your bank.
               </AppText>
               {profileLoading ? <LoadingState message="Loading your UPI profile…" /> : null}
+              {!profileLoading && !profileLoadedRef.current ? (
+                <Pressable onPress={() => { void loadProfile(true); }} style={{ paddingVertical: spacing.xs }}>
+                  <AppText variant="caption" style={{ color: colors.primary }}>Tap to retry loading your saved UPI details</AppText>
+                </Pressable>
+              ) : null}
               <View style={styles.section}>
                 <AppText variant="bodyMedium">Your UPI ID</AppText>
                 <TextInput
@@ -532,6 +571,7 @@ export default function UpiScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="email-address"
+                  editable={!profileLoading}
                 />
               </View>
               <View style={styles.section}>
@@ -543,9 +583,10 @@ export default function UpiScreen() {
                   placeholderTextColor={colors.textMuted}
                   style={styles.input}
                   maxLength={80}
+                  editable={!profileLoading}
                 />
               </View>
-              <PrimaryButton title={savingProfile ? "Saving…" : "Save UPI details"} onPress={() => { void saveProfile(); }} disabled={savingProfile || !isValidVpa(vpa) || displayName.trim().length < 2} />
+              <PrimaryButton title={savingProfile ? "Saving…" : "Save UPI details"} onPress={() => { void saveProfile(); }} disabled={profileLoading || savingProfile || !isValidVpa(vpa) || displayName.trim().length < 2} />
             </GlassPanel>
 
             {profile ? (
@@ -573,14 +614,18 @@ export default function UpiScreen() {
           <GlassPanel padding={spacing.lg} gap={spacing.md}>
             <View style={styles.header}>
               <AppText variant="h2" style={{ flex: 1 }}>Payment records</AppText>
-              <Pressable onPress={() => { void loadData(); }} accessibilityLabel="Refresh payment history">
+              <Pressable onPress={() => { void loadTransactions(true); }} accessibilityLabel="Refresh payment history">
                 <Ionicons name="refresh-outline" size={20} color={colors.primary} />
               </Pressable>
             </View>
             <AppText variant="caption" style={styles.muted}>
               Records you explicitly saved after returning from a UPI app. These are not bank-verified transactions.
             </AppText>
-            {historyLoading ? <LoadingState message="Loading payment records…" /> : transactions.length === 0 ? (
+            {historyLoading ? <LoadingState message="Loading payment records…" /> : !historyLoadedRef.current ? (
+              <Pressable onPress={() => { void loadTransactions(true); }} style={{ paddingVertical: spacing.xs }}>
+                <AppText variant="caption" style={{ color: colors.primary }}>Tap to retry loading payment records</AppText>
+              </Pressable>
+            ) : transactions.length === 0 ? (
               <AppText variant="body" style={styles.muted}>No UPI payment records yet.</AppText>
             ) : transactions.map((transaction, index) => (
               <View key={transaction.id}>
