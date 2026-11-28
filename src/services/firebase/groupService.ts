@@ -5,11 +5,9 @@ import {
   doc,
   getDoc,
   getDocs,
-  query,
   serverTimestamp,
   setDoc,
   updateDoc,
-  where,
   writeBatch,
 } from "firebase/firestore";
 import { firebaseAuth, firestore } from "@/src/lib/firebase";
@@ -58,17 +56,31 @@ function normalizeMemberIds(memberIds: string[], uid: string) {
 export const firebaseGroupService = {
   async listGroups(): Promise<Group[]> {
     const uid = requireUid();
-    const groupsQuery = query(
-      collection(firestore, "groups"),
-      where("memberUids", "array-contains", uid),
+
+    // Read the signed-in user's membership index first. This is an owner-scoped
+    // subcollection read and avoids a collection-wide groups query being
+    // rejected by Firestore query/rule proof.
+    const membershipsSnapshot = await withFirestoreTimeout(
+      getDocs(collection(firestore, "users", uid, "groupMemberships")),
+      "Loading your group memberships took too long. Check your connection and retry.",
     );
-    const snapshot = await withFirestoreTimeout(
-      getDocs(groupsQuery),
-      "Loading your groups took too long. Check your connection and tap to retry.",
+    const groupIds = [...new Set(membershipsSnapshot.docs.map((item) => item.id))];
+    if (groupIds.length === 0) return [];
+
+    const groupSnapshots = await withFirestoreTimeout(
+      Promise.all(groupIds.map((groupId) => getDoc(doc(firestore, "groups", groupId)))),
+      "Loading your groups took too long. Check your connection and retry.",
     );
-    return snapshot.docs
-      .filter((item) => item.data().status === "active")
-      .map((item) => mapGroup(item.id, item.data()))
+
+    return groupSnapshots
+      .filter((snapshot) => snapshot.exists())
+      .filter((snapshot) => {
+        const data = snapshot.data();
+        return data.status === "active"
+          && Array.isArray(data.memberUids)
+          && data.memberUids.includes(uid);
+      })
+      .map((snapshot) => mapGroup(snapshot.id, snapshot.data()))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
 
