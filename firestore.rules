@@ -234,7 +234,8 @@ service cloud.firestore {
           && request.resource.data.createdAt == request.time
           && request.resource.data.updatedAt == request.time;
         allow update: if false;
-        allow delete: if isGroupOwner(groupId);
+        // Personal UPI transactions are never deletable through client rules.
+        allow delete: if false;
       }
 
       match /expenses/{expenseId} {
@@ -388,8 +389,9 @@ service cloud.firestore {
           requestId.matches('^' + request.auth.uid + '__.*$')
           || requestId.matches('^.*__' + request.auth.uid + '$')
         );
-      allow list: if signedIn()
-        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+      // Separate recipient inbox and sender outbox queries for clear rule proof.
+      allow list: if signedIn() && resource.data.toUid == request.auth.uid;
+      allow list: if signedIn() && resource.data.fromUid == request.auth.uid;
       allow create: if signedIn()
         && request.resource.data.keys().hasAll([
           'fromUid',
@@ -442,10 +444,18 @@ service cloud.firestore {
       function isFriendshipMember() {
         return signedIn()
           && resource.data.memberUids is list
-          && request.auth.uid in resource.data.memberUids;
+          && resource.data.memberUids.hasAny([request.auth.uid]);
       }
 
-      allow get, list: if isFriendshipMember();
+      // The client checks this deterministic document before sending a request.
+      // Allow point reads only for friendship IDs containing the signed-in UID.
+      allow get: if signedIn()
+        && (
+          friendshipId.matches('^' + request.auth.uid + '__.*$')
+          || friendshipId.matches('^.*__' + request.auth.uid + '$')
+        );
+      // Collection queries are still limited to the caller's own friendships.
+      allow list: if isFriendshipMember();
       allow create: if signedIn()
         && request.resource.data.keys().hasAll(['requestId', 'memberUids', 'members', 'createdAt'])
         && request.resource.data.keys().hasOnly(['requestId', 'memberUids', 'members', 'createdAt'])
