@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
@@ -59,7 +59,7 @@ export default function HomeScreen() {
       return;
     }
 
-    router.push("/upi");
+    router.push("/upi" as Href);
   };
 
   const goTo = (tab: "home" | "groups" | "activity" | "profile") => {
