@@ -29,6 +29,7 @@ export default function GroupDetailScreen() {
     groups,
     loading,
     updateGroup,
+    archiveGroup,
     deleteGroup,
     createInvite,
     listMembers,
@@ -193,7 +194,7 @@ export default function GroupDetailScreen() {
         style: "destructive",
         onPress: async () => {
           try {
-            await deleteGroup(group.id);
+            await archiveGroup(group.id);
             router.replace("/(tabs)/groups" as any);
           } catch (cause) {
             Alert.alert("Couldn't archive group", cause instanceof Error ? cause.message : "Please try again.");
@@ -201,6 +202,28 @@ export default function GroupDetailScreen() {
         },
       },
     ]);
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      "Permanently delete group?",
+      "This permanently removes " + group.name + ", including its expenses, settlements, member records and outstanding invitations. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete permanently",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteGroup(group.id);
+              router.replace("/(tabs)/groups" as any);
+            } catch (cause) {
+              Alert.alert("Couldn't delete group", cause instanceof Error ? cause.message : "Please try again.");
+            }
+          },
+        },
+      ],
+    );
   };
 
   const openSettlement = () => {
@@ -276,7 +299,10 @@ export default function GroupDetailScreen() {
                   <Ionicons name="create-outline" size={20} color={colors.primary} />
                 </Pressable>
                 <Pressable onPress={confirmArchive} style={styles.iconButton} accessibilityLabel="Archive group">
-                  <Ionicons name="archive-outline" size={20} color={colors.danger} />
+                  <Ionicons name="archive-outline" size={20} color={colors.textMuted} />
+                </Pressable>
+                <Pressable onPress={confirmDelete} style={styles.iconButton} accessibilityLabel="Delete group permanently">
+                  <Ionicons name="trash-outline" size={20} color={colors.danger} />
                 </Pressable>
               </>
             ) : null}
