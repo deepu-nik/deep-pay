@@ -6,7 +6,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
 import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { BottomTabBar } from "@/src/components/navigation/BottomTabBar";
-import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet";
 import { EmptyState } from "@/src/components/common/EmptyState";
 import { LoadingState } from "@/src/components/common/LoadingState";
 import { PrimaryButton } from "@/src/components/common/PrimaryButton";
@@ -21,7 +20,6 @@ export default function GroupsScreen() {
   const { user } = useAuth();
   const { groups, loading, error, refresh, createGroup } = useGroups();
   const [editorVisible, setEditorVisible] = useState(false);
-  const [sheetVisible, setSheetVisible] = useState(false);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -120,8 +118,7 @@ export default function GroupsScreen() {
         )}
       </ScrollView>
 
-      <BottomTabBar activeTab="groups" onTabPress={goTo} onAddPress={() => setSheetVisible(true)} />
-      <CreateActionSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
+      <BottomTabBar activeTab="groups" onTabPress={goTo} onPayPress={() => router.push("/upi" as any)} />
 
       <Modal visible={editorVisible} transparent animationType="slide" onRequestClose={() => setEditorVisible(false)}>
         <View style={styles.modal}>
