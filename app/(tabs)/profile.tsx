@@ -173,7 +173,7 @@ export default function ProfileScreen() {
     signOut: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm, minHeight: 54 },
     footer: { textAlign: "center", color: colors.textMuted, marginTop: spacing.xs },
     modalRoot: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(5, 4, 12, 0.48)" },
-    scrim: { ...StyleSheet.absoluteFillObject },
+    scrim: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0 },
     themeSheet: { backgroundColor: colors.surface, borderTopLeftRadius: 30, borderTopRightRadius: 30, borderWidth: 1, borderColor: colors.glassBorder, paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl, gap: spacing.lg },
     handle: { width: 42, height: 5, borderRadius: 4, alignSelf: "center", backgroundColor: colors.textMuted, opacity: 0.35 },
     modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
