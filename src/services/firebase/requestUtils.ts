@@ -1,7 +1,9 @@
+export const FIRESTORE_REQUEST_TIMEOUT_MS = 10_000;
+
 export async function withFirestoreTimeout<T>(
   promise: Promise<T>,
   message: string,
-  timeoutMs = 8000,
+  timeoutMs = FIRESTORE_REQUEST_TIMEOUT_MS,
 ): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
