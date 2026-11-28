@@ -14,7 +14,7 @@ import { BottomTabBar, type TabKey } from "@/src/components/navigation/BottomTab
 import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet";
 import { mockActivityService, type ActivityEntry } from "@/src/services/mock/activityService";
 import { useTheme } from "@/src/theme";
-import { radius, spacing } from "@/src/theme/tokens";
+import { spacing } from "@/src/theme/tokens";
 
 const sectionOrder = ["Today", "Yesterday", "This week", "Earlier"] as const;
 
@@ -118,7 +118,7 @@ export default function ActivityScreen() {
 
   const goTo = (tab: TabKey) => {
     if (tab === "activity") return;
-    router.replace(tab === "home" ? "/(tabs)" : "/(tabs)/" + tab);
+    router.replace((tab === "home" ? "/(tabs)" : "/(tabs)/" + tab) as any);
   };
 
   const buckets: Record<(typeof sectionOrder)[number], ActivityEntry[]> = {
@@ -219,7 +219,7 @@ export default function ActivityScreen() {
                       <ActivityRow
                         item={item}
                         onPress={() => {
-                          if (item.groupId) router.push("/groups/" + item.groupId);
+                          if (item.groupId) router.push(("/groups/" + item.groupId) as any);
                         }}
                       />
                       <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingBottom: spacing.xs }}>
