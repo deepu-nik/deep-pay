@@ -126,7 +126,22 @@ export const firebaseGroupService = {
       role: "owner",
       joinedAt: serverTimestamp(),
     });
-    await batch.commit();
+    try {
+      await withFirestoreTimeout(
+        batch.commit(),
+        "Creating this group took too long. Check your connection and try again.",
+      );
+    } catch (cause) {
+      const code = cause && typeof cause === "object" && "code" in cause
+        ? String((cause as { code?: unknown }).code ?? "")
+        : "";
+      if (code === "permission-denied" || code === "firestore/permission-denied") {
+        throw new Error(
+          "Firestore denied group creation. Publish the latest DeepPay rules with: firebase deploy --only firestore:rules --project deeppay-d3df2",
+        );
+      }
+      throw cause;
+    }
 
     return {
       id: groupRef.id,
