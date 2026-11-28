@@ -11,7 +11,6 @@ import {
 } from "firebase/firestore";
 import { firebaseAuth, firestore } from "@/src/lib/firebase";
 import { FIRESTORE_REQUEST_TIMEOUT_MS, withFirestoreTimeout } from "@/src/services/firebase/requestUtils";
-import { withFirestoreTimeout } from "@/src/services/firebase/requestUtils";
 import { isValidVpa, normalizeVpa } from "@/src/services/upi/upiUtils";
 
 export type UpiProfile = {
