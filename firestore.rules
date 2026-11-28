@@ -441,6 +441,9 @@ service cloud.firestore {
         && request.resource.data.memberUids.hasAny([request.auth.uid])
         && request.resource.data.members is list
         && request.resource.data.members.size() == 2
+        && existsAfter(friendRequestPath(request.resource.data.requestId))
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.status == 'accepted'
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.toUid == request.auth.uid
         && request.resource.data.members[0].uid == getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
         && request.resource.data.members[0].username == getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUsername
         && request.resource.data.members[0].displayName == getAfter(friendRequestPath(request.resource.data.requestId)).data.fromDisplayName
@@ -448,9 +451,6 @@ service cloud.firestore {
         && request.resource.data.members[1].username == getAfter(friendRequestPath(request.resource.data.requestId)).data.toUsername
         && request.resource.data.members[1].displayName == getAfter(friendRequestPath(request.resource.data.requestId)).data.toDisplayName
         && request.resource.data.createdAt == request.time
-        && existsAfter(friendRequestPath(request.resource.data.requestId))
-        && getAfter(friendRequestPath(request.resource.data.requestId)).data.status == 'accepted'
-        && getAfter(friendRequestPath(request.resource.data.requestId)).data.toUid == request.auth.uid
         && (
           friendshipId == getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid + '__' + request.auth.uid
           || friendshipId == request.auth.uid + '__' + getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
