@@ -12,6 +12,7 @@ import { firebaseGroupService } from "@/src/services/firebase/groupService";
 import type {
   CreateExpenseInput,
   Expense,
+  Group,
   GroupBalance,
   HomeSummary,
   PaymentMethod,
@@ -224,9 +225,9 @@ export const firebaseExpenseService = {
     return expenses.sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
   },
 
-  async listRecent(): Promise<Expense[]> {
+  async listRecent(groupsInput?: Group[]): Promise<Expense[]> {
     const uid = requireUid();
-    const groups = await firebaseGroupService.listGroups();
+    const groups = groupsInput ?? await firebaseGroupService.listGroups();
     const personalSnapshot = await getDocs(collection(firestore, "users", uid, "expenses"));
     const personal = personalSnapshot.docs.map((item) => mapExpense(item.id, item.data()));
     const groupExpenses = await Promise.all(groups.map((group) => listGroupExpenses(group.id)));
@@ -260,12 +261,14 @@ export const firebaseExpenseService = {
     return calculateBalances(expenses, settlements, group.memberUids);
   },
 
-  async getHomeSummary(): Promise<HomeSummary> {
+  async getHomeSummary(expensesInput?: Expense[], groupsInput?: Group[]): Promise<HomeSummary> {
     const uid = requireUid();
-    const [expenses, groups] = await Promise.all([
-      firebaseExpenseService.listRecent(),
-      firebaseGroupService.listGroups(),
-    ]);
+    const [expenses, groups] = expensesInput && groupsInput
+      ? [expensesInput, groupsInput]
+      : await Promise.all([
+          firebaseExpenseService.listRecent(),
+          firebaseGroupService.listGroups(),
+        ]);
     const now = new Date();
     const totalSpentMinor = expenses.reduce((sum, expense) => {
       const created = expense.createdAt ? new Date(expense.createdAt) : new Date(0);
