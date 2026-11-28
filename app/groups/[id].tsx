@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
+import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { LoadingState } from "@/src/components/common/LoadingState";
 import { PrimaryButton } from "@/src/components/common/PrimaryButton";
 import { useGroups } from "@/src/hooks/useGroups";
@@ -76,8 +77,8 @@ export default function GroupDetailScreen() {
     header: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginBottom: spacing.xl },
     headerActions: { marginLeft: "auto", flexDirection: "row", gap: spacing.sm },
     iconButton: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder, alignItems: "center", justifyContent: "center" },
-    hero: { backgroundColor: colors.glassGradient[0], borderRadius: radius.xl, borderWidth: 1, borderColor: colors.glassBorder, padding: spacing.xl, marginBottom: spacing.xl, shadowColor: colors.primary, shadowOpacity: 0.09, shadowRadius: 16, elevation: 3 },
-    balanceCard: { backgroundColor: colors.glassGradient[0], borderRadius: radius.lg, borderWidth: 1, borderColor: colors.glassBorder, padding: spacing.lg, marginBottom: spacing.xl },
+    hero: { marginBottom: spacing.xl },
+    balanceCard: { marginBottom: spacing.xl },
     balanceRow: { flexDirection: "row", alignItems: "center", paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
     balanceAvatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center", marginRight: spacing.md },
     balanceCopy: { flex: 1 },
@@ -86,7 +87,7 @@ export default function GroupDetailScreen() {
     avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center", marginRight: spacing.md },
     muted: { color: colors.textMuted },
     sectionHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: spacing.sm },
-    expenseCard: { backgroundColor: colors.glassGradient[0], borderRadius: radius.lg, borderWidth: 1, borderColor: colors.glassBorder, padding: spacing.md, marginBottom: spacing.sm },
+    expenseCard: { marginBottom: spacing.sm },
     expenseRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
     expenseIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.expenseIconBackground, alignItems: "center", justifyContent: "center" },
     expenseMeta: { flex: 1 },
@@ -94,7 +95,7 @@ export default function GroupDetailScreen() {
     sheet: { backgroundColor: colors.glassGradient[0], borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, borderWidth: 1, borderColor: colors.glassBorder, padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.lg },
     input: { minHeight: 52, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: radius.md, paddingHorizontal: spacing.lg, color: colors.text, fontSize: 16, backgroundColor: colors.glassGradient[0] },
     chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-    settlementSummary: { backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.lg },
+    settlementSummary: { marginBottom: spacing.lg },
     chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0] },
     selectedChip: { borderColor: colors.primary, backgroundColor: colors.iconBackground },
   });
@@ -175,14 +176,14 @@ export default function GroupDetailScreen() {
         </View>
       </View>
 
-      <View style={styles.hero}>
+      <GlassPanel padding={spacing.xl} style={styles.hero}>
         <View style={styles.icon}><Ionicons name="people-outline" size={27} color={colors.primary} /></View>
         <AppText variant="title">{group.name}</AppText>
         <AppText variant="body" style={styles.muted}>{names.length} members · {formatMoney(totalSpent)} spent</AppText>
-      </View>
+      </GlassPanel>
 
       <AppText variant="h2" style={{ marginBottom: spacing.sm }}>Balances</AppText>
-      <View style={styles.balanceCard}>
+      <GlassPanel padding={spacing.lg} style={styles.balanceCard}>
         {balancesLoading ? <LoadingState message="Calculating balances…" /> : balances.length === 0 ? (
           <AppText variant="body" style={styles.muted}>Add an expense to see who owes what.</AppText>
         ) : balances.map((balance, index) => {
@@ -200,31 +201,31 @@ export default function GroupDetailScreen() {
             </AppText>
           </View>;
         })}
-      </View>
+      </GlassPanel>
 
       {balances.length > 0 ? (() => {
         const current = balances.find((balance) => balance.userId === CURRENT_USER.id);
         const net = current?.net ?? 0;
-        return <View style={{ backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.xl }}>
+        return <GlassPanel padding={spacing.lg} style={{ marginBottom: spacing.xl }}>
           <AppText variant="bodyMedium">{Math.abs(net) < 0.005 ? "You're settled up" : net > 0 ? `You're owed ${formatMoney(net)}` : `You owe ${formatMoney(Math.abs(net))}`}</AppText>
           <AppText variant="caption" style={styles.muted}>Based on expenses and recorded settlements in this group.</AppText>
           {net < -0.005 ? <Pressable onPress={openSettlement} style={{ marginTop: spacing.md }}>
             <AppText variant="bodyMedium" style={{ color: colors.primary }}>Settle up</AppText>
           </Pressable> : null}
-        </View>;
+        </GlassPanel>;
       })() : null}
 
       <AppText variant="h2" style={{ marginBottom: spacing.sm }}>Settlement history</AppText>
       {settlementsLoading ? <LoadingState message="Loading settlements…" /> : settlements.length === 0 ? (
-        <View style={styles.settlementSummary}>
+        <GlassPanel padding={spacing.lg} style={styles.settlementSummary}>
           <AppText variant="bodyMedium">No settlements yet</AppText>
           <AppText variant="caption" style={styles.muted}>Recorded payments between group members will appear here.</AppText>
-        </View>
+        </GlassPanel>
       ) : settlements.map((settlement) => (
-        <View key={settlement.id} style={styles.settlementSummary}>
+        <GlassPanel key={settlement.id} padding={spacing.lg} style={styles.settlementSummary}>
           <AppText variant="bodyMedium">{friendNames[settlement.fromUserId] ?? settlement.fromUserId} paid {friendNames[settlement.toUserId] ?? settlement.toUserId}</AppText>
           <AppText variant="caption" style={styles.muted}>{settlement.date} · {formatMoney(settlement.amount)}</AppText>
-        </View>
+        </GlassPanel>
       ))}
 
             <View style={styles.sectionHeader}>
@@ -235,12 +236,12 @@ export default function GroupDetailScreen() {
       </View>
 
       {expensesLoading ? <LoadingState message="Loading expenses…" /> : expenses.length === 0 ? (
-        <View style={{ backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.xl }}>
+        <GlassPanel padding={spacing.lg} style={{ marginBottom: spacing.xl }}>
           <AppText variant="bodyMedium">No expenses yet</AppText>
           <AppText variant="caption" style={styles.muted}>Add an expense and select this group to start tracking shared spending.</AppText>
-        </View>
+        </GlassPanel>
       ) : expenses.map((expense) => (
-        <View key={expense.id} style={styles.expenseCard}>
+        <GlassPanel key={expense.id} padding={spacing.md} style={styles.expenseCard}>
           <View style={styles.expenseRow}>
             <View style={styles.expenseIcon}><Ionicons name="receipt-outline" size={20} color={colors.primary} /></View>
             <View style={styles.expenseMeta}>
@@ -252,7 +253,7 @@ export default function GroupDetailScreen() {
           {expense.splits?.length ? <AppText variant="caption" style={{ color: colors.textMuted, marginTop: spacing.sm }}>
             {expense.splits.map((split) => `${friendNames[split.userId] ?? split.userId}: ${formatMoney(split.amount)}`).join(" · ")}
           </AppText> : null}
-        </View>
+        </GlassPanel>
       ))}
 
       <AppText variant="h2" style={{ marginTop: spacing.xl, marginBottom: spacing.sm }}>Members</AppText>

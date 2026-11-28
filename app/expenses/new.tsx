@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
+import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { PrimaryButton } from "@/src/components/common/PrimaryButton";
 import { ErrorState } from "@/src/components/common/ErrorState";
 import { LoadingState } from "@/src/components/common/LoadingState";
@@ -217,12 +218,13 @@ export default function NewExpenseScreen() {
     chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
     chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder },
     chipSelected: { backgroundColor: colors.iconBackground, borderColor: colors.primary },
-    participantCard: { backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
+    participantCard: { borderRadius: radius.md, gap: spacing.sm },
     participantRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.md },
     shareInput: { width: 100, minHeight: 44, backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder, borderRadius: radius.sm, paddingHorizontal: spacing.md, color: colors.text, textAlign: "right" },
-    summary: { backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs },
+    summary: { borderRadius: radius.md, gap: spacing.xs },
     footer: { marginTop: spacing.sm },
-    repeatCard: { flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder },
+    repeatCard: { width: "100%", flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md },
+    repeatCardPanel: { borderRadius: radius.lg },
     repeatIcon: { width: 42, height: 42, borderRadius: 15, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center" },
     repeatCopy: { flex: 1, gap: 2 },
     quickPayer: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 54, backgroundColor: colors.glassGradient[0], paddingHorizontal: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.glassBorder },
@@ -250,6 +252,7 @@ export default function NewExpenseScreen() {
         </View>
 
         {isSplitIntent && lastPreset && !groupId && !groupsLoading && !friendsLoading ? (
+          <GlassPanel padding={0} style={styles.repeatCardPanel}>
           <Pressable accessibilityRole="button" onPress={applyLastPreset} style={styles.repeatCard}>
             <View style={styles.repeatIcon}><Ionicons name="repeat" size={21} color={colors.primary} /></View>
             <View style={styles.repeatCopy}>
@@ -257,7 +260,7 @@ export default function NewExpenseScreen() {
               <AppText variant="caption" style={{ color: colors.textMuted }}>{lastPreset.participantIds.length} people · Reuse your last group and payer</AppText>
             </View>
             <Ionicons name="chevron-forward" size={19} color={colors.textMuted} />
-          </Pressable>
+          </Pressable></GlassPanel>
         ) : null}
 
         <View style={styles.section}>
@@ -355,9 +358,9 @@ export default function NewExpenseScreen() {
               </Pressable>
             ))}
           </View>
-        </View> : null}
+        </GlassPanel> : null}
 
-        {participantIds.length > 0 ? <View style={styles.participantCard}>
+        {participantIds.length > 0 ? <GlassPanel padding={spacing.md} style={styles.participantCard}>
           <AppText variant="bodyMedium">{isSplitIntent && splitMethod === "equal" ? "Everyone pays the same" : "Split details"}</AppText>
           {isSplitIntent && splitMethod === "equal" ? <AppText variant="caption" style={{ color: colors.textMuted }}>{formatMoney(numericAmount)} across {participantIds.length} {participantIds.length === 1 ? "person" : "people"}</AppText> : null}
           {participantIds.map((id) => (
@@ -372,14 +375,14 @@ export default function NewExpenseScreen() {
               )}
             </View>
           ))}
-          <View style={styles.summary}>
+          <GlassPanel padding={spacing.md} style={styles.summary}>
             <AppText variant="caption" style={{ color: colors.textMuted }}>
               {splitMethod === "percentage" ? `Percentage total: ${percentageTotal.toFixed(2)}%` : `Split total: ${formatMoney(splitTotal)}`}
             </AppText>
             {splitMethod !== "equal" && !splitIsValid ? <AppText variant="caption" style={{ color: colors.danger }}>
               {splitMethod === "percentage" ? "Percentages must total 100%." : `Amounts must total ${formatMoney(numericAmount)}.`}
             </AppText> : null}
-          </View>
+          </GlassPanel>
         </View> : null}
 
         {(!isSplitIntent || showAdvanced) ? <View style={styles.section}>
