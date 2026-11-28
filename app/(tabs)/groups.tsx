@@ -81,6 +81,14 @@ export default function GroupsScreen() {
             <AppText variant="body" style={styles.muted}>Shared expenses, kept together.</AppText>
           </View>
           <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => router.push("/friends" as any)}
+              accessibilityRole="button"
+              accessibilityLabel="Find and add friends"
+              style={styles.iconButton}
+            >
+              <Ionicons name="person-add-outline" size={21} color={colors.primary} />
+            </Pressable>
             <Pressable onPress={openCreate} accessibilityLabel="Create group" style={styles.iconButton}>
               <Ionicons name="add" size={24} color={colors.primary} />
             </Pressable>
