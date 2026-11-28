@@ -46,12 +46,15 @@ export default function FriendsScreen() {
     requestsError,
     refresh,
     claimUsername,
+    findUserByUsername,
     sendFriendRequest,
     respondToRequest,
   } = useFriends();
 
   const [usernameDraft, setUsernameDraft] = useState("");
   const [searchUsername, setSearchUsername] = useState("");
+  const [foundUser, setFoundUser] = useState<{ uid: string; username: string; displayName: string } | null>(null);
+  const [searchingUser, setSearchingUser] = useState(false);
   const [savingHandle, setSavingHandle] = useState(false);
   const [sendingRequest, setSendingRequest] = useState(false);
   const [respondingId, setRespondingId] = useState<string | null>(null);
@@ -74,15 +77,32 @@ export default function FriendsScreen() {
     }
   };
 
+  const findUser = async () => {
+    if (searchingUser || !handle || !searchUsername.trim()) return;
+    setSearchingUser(true);
+    setFoundUser(null);
+    setActionError(null);
+    setNotice(null);
+    try {
+      const result = await findUserByUsername(searchUsername);
+      setFoundUser(result);
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : "We couldn't find that DeepPay user.");
+    } finally {
+      setSearchingUser(false);
+    }
+  };
+
   const addFriend = async () => {
-    if (sendingRequest || !handle || !searchUsername.trim()) return;
+    if (sendingRequest || !handle || !foundUser) return;
     setSendingRequest(true);
     setActionError(null);
     setNotice(null);
     try {
-      await sendFriendRequest(searchUsername);
+      await sendFriendRequest(foundUser.username);
       setSearchUsername("");
-      setNotice("Friend request sent.");
+      setFoundUser(null);
+      setNotice("Friend request sent to @" + foundUser.username + ".");
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : "We couldn't send this friend request.");
     } finally {
@@ -285,6 +305,7 @@ export default function FriendsScreen() {
                 value={searchUsername}
                 onChangeText={(value) => {
                   setSearchUsername(value.toLowerCase().replace(/[^a-z0-9_]/g, ""));
+                  setFoundUser(null);
                   setActionError(null);
                 }}
                 placeholder="friend_username"
@@ -302,11 +323,30 @@ export default function FriendsScreen() {
               <AppText variant="caption" style={styles.muted}>Create your username above to enable friend requests.</AppText>
             ) : null}
             <PrimaryButton
-              title={sendingRequest ? "Sending request…" : "Search and send request"}
-              onPress={() => { void addFriend(); }}
-              disabled={!handle || sendingRequest || searchUsername.trim().length < 3}
+              title={searchingUser ? "Searching…" : "Find user"}
+              onPress={() => { void findUser(); }}
+              disabled={!handle || searchingUser || searchUsername.trim().length < 3}
             />
           </GlassPanel>
+
+          {foundUser ? (
+            <GlassPanel padding={spacing.md} gap={spacing.md}>
+              <View style={styles.row}>
+                <FriendAvatar name={foundUser.displayName} />
+                <View style={styles.copy}>
+                  <AppText variant="bodyMedium">{foundUser.displayName}</AppText>
+                  <AppText variant="caption" style={{ color: colors.primary }}>@{foundUser.username}</AppText>
+                  <AppText variant="caption" style={styles.muted}>DeepPay account found</AppText>
+                </View>
+                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+              </View>
+              <PrimaryButton
+                title={sendingRequest ? "Sending request…" : "Send friend request"}
+                onPress={() => { void addFriend(); }}
+                disabled={sendingRequest}
+              />
+            </GlassPanel>
+          ) : null}
 
           {actionError ? (
             <GlassPanel padding={spacing.md}>
