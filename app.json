@@ -19,6 +19,9 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "android": {
+      "softwareKeyboardLayoutMode": "resize"
     }
   }
 }
