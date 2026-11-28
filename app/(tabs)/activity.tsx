@@ -314,7 +314,7 @@ export default function ActivityScreen() {
         </AppText>
       </ScrollView>
 
-      <BottomTabBar activeTab="activity" onTabPress={goTo} onPayPress={() => router.push({ pathname: "/upi", params: { tab: "pay" } } as any)} />
+      <BottomTabBar activeTab="activity" onTabPress={goTo} onPayPress={() => router.push({ pathname: "/upi", params: { tab: "my-qr" } } as any)} />
     </SafeAreaView>
   );
 }
