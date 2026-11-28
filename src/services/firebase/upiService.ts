@@ -10,6 +10,7 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { firebaseAuth, firestore } from "@/src/lib/firebase";
+import { withFirestoreTimeout } from "@/src/services/firebase/requestUtils";
 import { isValidVpa, normalizeVpa } from "@/src/services/upi/upiUtils";
 
 export type UpiProfile = {
@@ -216,7 +217,10 @@ export const firebaseUpiService = {
 
   async listRecentTransactions(): Promise<UpiTransaction[]> {
     const uid = requireUid();
-    const snapshot = await getDocs(collection(firestore, "users", uid, "upiTransactions"));
+    const snapshot = await withFirestoreTimeout(
+      getDocs(collection(firestore, "users", uid, "upiTransactions")),
+      "Loading payment history took too long. Check your connection and retry.",
+    );
     return snapshot.docs
       .map((item) => mapTransaction(item.id, item.data()))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
