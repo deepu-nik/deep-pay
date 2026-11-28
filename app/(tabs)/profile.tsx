@@ -30,6 +30,16 @@ function formatCount(value: number) {
   return value.toLocaleString("en-IN");
 }
 
+const settingRowStyles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    minHeight: 72,
+    paddingVertical: spacing.sm,
+  },
+});
+
 function ProfileSettingRow({
   icon,
   title,
@@ -47,7 +57,7 @@ function ProfileSettingRow({
 
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [
-      styles.settingRow,
+      settingRowStyles.row,
       pressed && { opacity: 0.72 },
     ]}>
       <View style={[styles.settingIcon, { backgroundColor: colors.iconBackground }]}>
