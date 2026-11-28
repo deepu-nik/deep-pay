@@ -127,12 +127,7 @@ export const firebaseFriendService = {
         15_000,
       );
       const elapsedMs = Date.now() - startedAt;
-      if (!profileSnapshot.exists()) {
-        throw new Error(
-          "Firestore responded in " + elapsedMs + " ms, but this signed-in account has no users profile in project " + projectId + ".",
-        );
-      }
-      return { projectId, elapsedMs, profileFound: true };
+      return { projectId, elapsedMs, profileFound: profileSnapshot.exists() };
     } catch (cause) {
       const elapsedMs = Date.now() - startedAt;
       const code = cause instanceof FirebaseError ? cause.code : "no-server-response";
