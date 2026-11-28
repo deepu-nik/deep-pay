@@ -8,6 +8,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { firebaseAuth, firestore } from "@/src/lib/firebase";
+import { withFirestoreTimeout } from "@/src/services/firebase/requestUtils";
 import type { CreateSettlementInput, Settlement } from "@/src/types/domain";
 
 function requireUid() {
@@ -42,7 +43,10 @@ function mapSettlement(id: string, data: Record<string, unknown>): Settlement {
 export const firebaseSettlementService = {
   async listByGroup(groupId: string): Promise<Settlement[]> {
     requireUid();
-    const snapshot = await getDocs(collection(firestore, "groups", groupId, "settlements"));
+    const snapshot = await withFirestoreTimeout(
+      getDocs(collection(firestore, "groups", groupId, "settlements")),
+      "Loading settlements took too long. Check your connection and retry.",
+    );
     return snapshot.docs
       .map((item) => mapSettlement(item.id, { ...item.data(), groupId }))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
