@@ -66,10 +66,10 @@ export default function SignInScreen() {
     safe: { flex: 1, backgroundColor: colors.background },
     content: { flexGrow: 1, padding: spacing.xl, gap: spacing.xl },
     header: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-    back: { width: 42, height: 42, borderRadius: radius.md, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+    back: { width: 42, height: 42, borderRadius: radius.md, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0] },
     field: { gap: spacing.xs },
-    input: { minHeight: 56, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, color: colors.text, fontSize: 16 },
-    note: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceMuted, gap: spacing.xs },
+    input: { minHeight: 56, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0], color: colors.text, fontSize: 16 },
+    note: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder, gap: spacing.xs },
     textButton: { alignSelf: "flex-end", paddingVertical: spacing.xs },
   });
 
