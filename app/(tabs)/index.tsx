@@ -177,12 +177,12 @@ export default function HomeScreen() {
               {visibleGroups.map((group, index) => {
                 const gradient = index % 2 === 0 ? colors.gradientSky : colors.gradientSunset;
                 return (
-                  <GlassPanel key={group.id} padding={0} style={styles.groupCardAction}>
+                  <GlassPanel key={group.id} padding={0} style={styles.groupCard}>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={`Open ${group.name}, ${group.memberIds.length} members`}
                     onPress={() => router.push(`/groups/${group.id}` as any)}
-                    style={styles.groupCard}
+                    style={styles.groupCardAction}
                   >
                     <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.groupIcon}>
                       <Ionicons name="people" size={21} color={colors.onAccent} />

@@ -358,7 +358,7 @@ export default function NewExpenseScreen() {
               </Pressable>
             ))}
           </View>
-        </GlassPanel> : null}
+        </View> : null}
 
         {participantIds.length > 0 ? <GlassPanel padding={spacing.md} style={styles.participantCard}>
           <AppText variant="bodyMedium">{isSplitIntent && splitMethod === "equal" ? "Everyone pays the same" : "Split details"}</AppText>
@@ -383,7 +383,7 @@ export default function NewExpenseScreen() {
               {splitMethod === "percentage" ? "Percentages must total 100%." : `Amounts must total ${formatMoney(numericAmount)}.`}
             </AppText> : null}
           </GlassPanel>
-        </View> : null}
+        </GlassPanel> : null}
 
         {(!isSplitIntent || showAdvanced) ? <View style={styles.section}>
           <AppText variant="bodyMedium">Category</AppText>
