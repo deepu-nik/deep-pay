@@ -118,7 +118,7 @@ export default function GroupsScreen() {
         )}
       </ScrollView>
 
-      <BottomTabBar activeTab="groups" onTabPress={goTo} onPayPress={() => router.push("/upi" as any)} />
+      <BottomTabBar activeTab="groups" onTabPress={goTo} onPayPress={() => router.push({ pathname: "/upi", params: { tab: "pay" } } as any)} />
 
       <Modal visible={editorVisible} transparent animationType="slide" onRequestClose={() => setEditorVisible(false)}>
         <View style={styles.modal}>
