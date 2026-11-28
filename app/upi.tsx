@@ -10,7 +10,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { CameraView, useCameraPermissions } from "expo-camera";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Linking from "expo-linking";
 import QRCode from "react-native-qrcode-svg";
@@ -29,8 +28,6 @@ import {
   isValidVpa,
   normalizeVpa,
   parseMoneyToMinor,
-  parseUpiQrData,
-  type ParsedUpiPayment,
 } from "@/src/services/upi/upiUtils";
 import {
   firebaseUpiService,
@@ -59,10 +56,9 @@ function formatDate(value: string) {
 
 export default function UpiScreen() {
   const router = useRouter();
-  const { tab: routeTab } = useLocalSearchParams<{ tab?: string }>();
+  const { tab: routeTab, payeeVpa: routePayeeVpa, payeeName: routePayeeName, amount: routeAmount, note: routeNote, reference: routeReference, transactionId: routeTransactionId } = useLocalSearchParams<{ tab?: string; payeeVpa?: string; payeeName?: string; amount?: string; note?: string; reference?: string; transactionId?: string }>();
   const { colors } = useTheme();
   const { user } = useAuth();
-  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
   const [activeTab, setActiveTab] = useState<UpiTab>("pay");
   const [profile, setProfile] = useState<UpiProfile | null>(null);
@@ -79,8 +75,6 @@ export default function UpiScreen() {
   const [scannedQr, setScannedQr] = useState(false);
   const [upiReference, setUpiReference] = useState("");
   const [upiTransactionId, setUpiTransactionId] = useState("");
-  const [scanLocked, setScanLocked] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
 
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
   const pendingPaymentRef = useRef(false);
@@ -94,6 +88,7 @@ export default function UpiScreen() {
   const [transactions, setTransactions] = useState<UpiTransaction[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [profileSyncMessage, setProfileSyncMessage] = useState<string | null>(null);
 
   const loadProfile = useCallback(async (force = false) => {
     if (profileLoadedRef.current && !force) return;
@@ -104,6 +99,15 @@ export default function UpiScreen() {
       setVpa(nextProfile?.vpa ?? "");
       setDisplayName(nextProfile?.displayName ?? user?.fullName ?? "");
       profileLoadedRef.current = true;
+      if (nextProfile?.syncStatus === "local") {
+        setMessage("Your UPI details were restored from this device. Syncing them to your DeepPay account…");
+        void firebaseUpiService.syncMyProfile(nextProfile).then((synced) => {
+          setProfile(synced);
+          setMessage("Your UPI details are now synced to your DeepPay account.");
+        }).catch((cause) => {
+          setProfileSyncMessage(firebaseUpiService.getProfileSyncError(cause));
+        });
+      }
     } catch (cause) {
       setMessage(cause instanceof Error ? cause.message : "Couldn't load your UPI details.");
     } finally {
@@ -129,7 +133,18 @@ export default function UpiScreen() {
     if (routeTab === "pay" || routeTab === "scan" || routeTab === "my-qr" || routeTab === "history") {
       setActiveTab(routeTab);
     }
-  }, [routeTab]);
+    if (routeTab === "pay" && routePayeeVpa) {
+      setPayeeVpa(routePayeeVpa);
+      setPayeeName(routePayeeName ?? "UPI recipient");
+      setAmount(routeAmount ?? "");
+      setNote(routeNote ?? "");
+      setPaymentSource("scanned_qr");
+      setUpiReference(routeReference ?? "");
+      setUpiTransactionId(routeTransactionId ?? "");
+      setScannedQr(true);
+      setMessage("QR scanned. Review the recipient and amount carefully before opening a UPI app.");
+    }
+  }, [routeTab, routePayeeVpa, routePayeeName, routeAmount, routeNote, routeReference, routeTransactionId]);
 
   useEffect(() => {
     if (activeTab === "my-qr") void loadProfile();
@@ -193,44 +208,10 @@ export default function UpiScreen() {
   const selectTab = async (tab: UpiTab) => {
     setMessage(null);
     if (tab === "scan") {
-      setScanError(null);
-      setScanLocked(false);
-      if (!cameraPermission?.granted) {
-        const permission = await requestCameraPermission();
-        if (!permission.granted) {
-          setMessage("Camera permission is needed to scan a UPI QR code.");
-          return;
-        }
-      }
+      router.push("/upi/scan" as Href);
+      return;
     }
     setActiveTab(tab);
-  };
-
-  const applyScannedPayment = (parsed: ParsedUpiPayment) => {
-    setPayeeVpa(parsed.payeeVpa);
-    setPayeeName(parsed.payeeName);
-    setAmount(parsed.amountMinor ? (parsed.amountMinor / 100).toFixed(2) : "");
-    setNote(parsed.note ?? "");
-    setPaymentSource("scanned_qr");
-    setUpiReference(parsed.reference ?? "");
-    setUpiTransactionId(parsed.transactionId ?? "");
-    setScannedQr(true);
-    setScanLocked(true);
-    setScanError(null);
-    setActiveTab("pay");
-    setMessage("QR details loaded. Check the recipient and amount carefully before opening a UPI app.");
-  };
-
-  const handleBarcodeScanned = (result: { data: string }) => {
-    if (scanLocked) return;
-    setScanLocked(true);
-    try {
-      const parsed = parseUpiQrData(result.data);
-      applyScannedPayment(parsed);
-    } catch (cause) {
-      setScanError(cause instanceof Error ? cause.message : "This QR code isn't supported.");
-      setTimeout(() => setScanLocked(false), 1600);
-    }
   };
 
   const openUpiApp = async () => {
@@ -312,18 +293,42 @@ export default function UpiScreen() {
     if (savingProfile) return;
     setSavingProfile(true);
     setMessage(null);
+    setProfileSyncMessage(null);
     try {
-      const saved = await firebaseUpiService.saveMyProfile({
+      const savedLocally = await firebaseUpiService.saveMyProfile({
         vpa,
         displayName: displayName || user?.fullName || "",
       });
-      setProfile(saved);
-      setVpa(saved.vpa);
-      setDisplayName(saved.displayName);
+      setProfile(savedLocally);
+      setVpa(savedLocally.vpa);
+      setDisplayName(savedLocally.displayName);
       profileLoadedRef.current = true;
-      setMessage("Your UPI QR details are saved to your DeepPay account.");
+      setMessage("UPI details saved on this device. Syncing to your DeepPay account…");
+
+      // Local persistence completes the Save action. Cloud sync runs separately.
+      void firebaseUpiService.syncMyProfile(savedLocally).then((synced) => {
+        setProfile(synced);
+        setMessage("UPI details saved and synced to your DeepPay account.");
+      }).catch((cause) => {
+        setProfileSyncMessage(firebaseUpiService.getProfileSyncError(cause));
+      });
     } catch (cause) {
-      setMessage(cause instanceof Error ? cause.message : "Couldn't save your UPI details.");
+      setMessage(cause instanceof Error ? cause.message : "Couldn't save your UPI details on this device.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const retryProfileSync = async () => {
+    if (!profile || savingProfile) return;
+    setSavingProfile(true);
+    setProfileSyncMessage(null);
+    try {
+      const synced = await firebaseUpiService.syncMyProfile(profile);
+      setProfile(synced);
+      setMessage("UPI details successfully synced to your DeepPay account.");
+    } catch (cause) {
+      setProfileSyncMessage(firebaseUpiService.getProfileSyncError(cause));
     } finally {
       setSavingProfile(false);
     }
@@ -339,13 +344,6 @@ export default function UpiScreen() {
     } catch {
       setMessage("Couldn't open the share sheet.");
     }
-  };
-
-  const resetScan = () => {
-    setScanLocked(false);
-    setScanError(null);
-    setMessage(null);
-    setActiveTab("scan");
   };
 
   const receiveUri = profile
@@ -384,7 +382,7 @@ export default function UpiScreen() {
               key={item.tab}
               accessibilityRole="button"
               accessibilityState={{ selected: activeTab === item.tab }}
-              onPress={() => { void selectTab(item.tab); }}
+              onPress={() => { if (item.tab === "scan") router.push("/upi/scan" as Href); else void selectTab(item.tab); }}
               style={[styles.actionCard, activeTab === item.tab && styles.actionCardActive]}
             >
               <View style={styles.actionIcon}>
@@ -515,43 +513,12 @@ export default function UpiScreen() {
           </>
         ) : null}
 
-        {activeTab === "scan" ? (
-          <GlassPanel padding={spacing.lg} gap={spacing.md}>
-            <AppText variant="h2">Scan any UPI QR</AppText>
-            <AppText variant="caption" style={styles.muted}>Scan a UPI payment QR. DeepPay checks the payment address and shows the details before you leave this app.</AppText>
-            {!cameraPermission ? (
-              <LoadingState message="Checking camera permission…" />
-            ) : !cameraPermission.granted ? (
-              <>
-                <AppText variant="caption" style={styles.muted}>Allow camera access to scan a QR code.</AppText>
-                <PrimaryButton title="Allow camera" onPress={() => { void requestCameraPermission(); }} />
-              </>
-            ) : (
-              <View style={styles.camera}>
-                <CameraView
-                  style={StyleSheet.absoluteFill}
-                  facing="back"
-                  barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-                  onBarcodeScanned={scanLocked ? undefined : handleBarcodeScanned}
-                />
-                <View pointerEvents="none" style={styles.cameraOverlay}>
-                  <View style={styles.scanFrame} />
-                </View>
-              </View>
-            )}
-            {scanError ? <AppText variant="caption" style={styles.error}>{scanError}</AppText> : null}
-            <Pressable onPress={resetScan} style={{ alignItems: "center", paddingVertical: spacing.sm }}>
-              <AppText variant="caption" style={{ color: colors.primary }}>Scan again</AppText>
-            </Pressable>
-          </GlassPanel>
-        ) : null}
-
         {activeTab === "my-qr" ? (
           <>
             <GlassPanel padding={spacing.lg} gap={spacing.md}>
               <AppText variant="h2">Your UPI details</AppText>
               <AppText variant="caption" style={styles.muted}>
-                Use a UPI ID that belongs to you. DeepPay builds a static receive QR from the details you enter; it doesn't verify ownership with your bank.
+                Your UPI ID and display name are saved on this device first, then synced to your DeepPay account. The receive QR is regenerated from these saved details whenever you open this page.
               </AppText>
               {profileLoading ? <LoadingState message="Loading your UPI profile…" /> : null}
               {!profileLoading && !profileLoadedRef.current ? (
@@ -588,9 +555,15 @@ export default function UpiScreen() {
               <PrimaryButton title={savingProfile ? "Saving…" : "Save UPI details"} onPress={() => { void saveProfile(); }} disabled={profileLoading || savingProfile || !isValidVpa(vpa) || displayName.trim().length < 2} />
             </GlassPanel>
 
+            {profileSyncMessage ? (
+              <GlassPanel padding={spacing.md}>
+                <AppText variant="caption" style={styles.warning}>{profileSyncMessage}</AppText>
+              </GlassPanel>
+            ) : null}
             {profile ? (
               <GlassPanel padding={spacing.lg} gap={spacing.md}>
                 <AppText variant="h2">Your receive QR</AppText>
+                <AppText variant="caption" style={styles.muted}>Generated from your saved UPI details. No separate QR-image save is needed.</AppText>
                 <View style={styles.qrWrap}>
                   <QRCode value={receiveUri} size={224} color="#211A33" backgroundColor="#FFFFFF" quietZone={12} ecl="Q" />
                   <View style={styles.qrMeta}>
@@ -599,6 +572,12 @@ export default function UpiScreen() {
                   </View>
                 </View>
                 <AppText variant="caption" style={styles.muted}>Show this QR to someone paying you. Ask them to confirm the name and UPI ID in their UPI app before approving.</AppText>
+                <AppText variant="caption" style={{ color: profile.syncStatus === "synced" ? colors.success : colors.warning }}>
+                  {profile.syncStatus === "synced" ? "Synced to your DeepPay account" : "Saved on this device · Account sync pending"}
+                </AppText>
+                {profile.syncStatus !== "synced" ? (
+                  <PrimaryButton title={savingProfile ? "Syncing…" : "Retry account sync"} onPress={() => { void retryProfileSync(); }} disabled={savingProfile} />
+                ) : null}
                 <PrimaryButton title="Share UPI details" onPress={() => { void shareMyUpi(); }} />
               </GlassPanel>
             ) : (
