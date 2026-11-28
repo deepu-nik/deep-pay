@@ -247,7 +247,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <BottomTabBar activeTab="home" onTabPress={goTo} onPayPress={() => router.push("/upi" as Href)} />
+      <BottomTabBar activeTab="home" onTabPress={goTo} onPayPress={() => router.push({ pathname: "/upi", params: { tab: "pay" } } as Href)} />
     </SafeAreaView>
   );
 }
