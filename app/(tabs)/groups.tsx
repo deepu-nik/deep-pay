@@ -14,14 +14,11 @@ import { useAuth } from "@/src/context/AuthContext";
 import { useTheme } from "@/src/theme";
 import { radius, spacing } from "@/src/theme/tokens";
 
-type GroupsSection = "groups" | "friends";
-
 export default function GroupsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { user } = useAuth();
   const { groups, loading, error, refresh, createGroup } = useGroups();
-  const [activeSection, setActiveSection] = useState<GroupsSection>("groups");
   const [editorVisible, setEditorVisible] = useState(false);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -75,12 +72,6 @@ export default function GroupsScreen() {
       alignItems: "center", justifyContent: "center",
     },
     groupCopy: { flex: 1, gap: 3 },
-    friendPanel: { gap: spacing.md },
-    friendHero: {
-      width: 60, height: 60, borderRadius: 21,
-      backgroundColor: colors.iconBackground,
-      alignItems: "center", justifyContent: "center",
-    },
     modal: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" },
     sheet: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
     sheetContent: { gap: spacing.lg, paddingBottom: spacing.xxl - spacing.lg },
@@ -99,7 +90,6 @@ export default function GroupsScreen() {
   });
 
   const openCreate = () => {
-    setActiveSection("groups");
     setName("");
     setEditorVisible(true);
   };
@@ -137,12 +127,11 @@ export default function GroupsScreen() {
         <View style={styles.tabs} accessibilityRole="tablist">
           <Pressable
             accessibilityRole="tab"
-            accessibilityState={{ selected: activeSection === "groups" }}
-            onPress={() => setActiveSection("groups")}
-            style={[styles.tab, activeSection === "groups" && styles.tabActive]}
+            accessibilityState={{ selected: true }}
+            style={[styles.tab, styles.tabActive]}
           >
             <Ionicons name="people-outline" size={19} color={activeSection === "groups" ? colors.white : colors.textMuted} />
-            <AppText variant="caption" style={activeSection === "groups" ? styles.tabTextActive : styles.tabText}>Groups</AppText>
+            <AppText variant="caption" style={styles.tabTextActive}>Groups</AppText>
           </Pressable>
           <Pressable
             accessibilityRole="tab"
@@ -155,7 +144,6 @@ export default function GroupsScreen() {
           </Pressable>
         </View>
 
-        {activeSection === "groups" ? (
           <View>
             <View style={styles.sectionHeading}>
               <AppText variant="h2">Your groups</AppText>
@@ -227,22 +215,7 @@ export default function GroupsScreen() {
               </GlassPanel>
             )}
           </View>
-        ) : (
-          <GlassPanel padding={spacing.lg} style={styles.friendPanel}>
-            <View style={styles.friendHero}>
-              <Ionicons name="people-outline" size={28} color={colors.primary} />
-            </View>
-            <AppText variant="h2">Bring your people together</AppText>
-            <AppText variant="body" style={styles.muted}>
-              Find friends by their DeepPay username, send requests and manage the people you connect with.
-            </AppText>
-            <PrimaryButton title="Find & add friends" onPress={() => router.push("/friends" as any)} />
-            <AppText variant="caption" style={styles.muted}>
-              You can invite friends into a group using that group's invite link.
-            </AppText>
-          </GlassPanel>
-        )}
-      </ScrollView>
+</ScrollView>
 
       <BottomTabBar activeTab="groups" onTabPress={goTo} onPayPress={() => router.push("/upi" as any)} />
 
