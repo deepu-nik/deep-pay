@@ -80,7 +80,7 @@ The rules permit an authenticated user to read their own profile, create it with
 - Phase 0 — Design system + app shell
 - Phase 1 — Firebase Authentication + user profile
 - Phase 2 — Firestore groups, expense ledger and settlement confirmations
-- Phase 3 — Usernames, friend discovery and group invitations
+- Phase 3 — Usernames, friend discovery, friend requests and group invitations (friend discovery and requests implemented; group invites implemented)
 - Phase 4 — UPI QR, scanning and external app handoff
 - Phase 5 — Personal finance analytics (implemented); bank transaction imports remain future work
 - Phase 7 — Monthly category budgets (implemented)
@@ -176,3 +176,15 @@ UPI handoff records are intentionally excluded from spending analytics because t
 Publish the updated owner-only budget rules before testing this screen:
 
     firebase deploy --only firestore:rules
+
+ 
+## Friends and username discovery
+
+Each account can claim one unique username (3–20 lowercase letters, digits or underscores). Other signed-in users can find that account by exact username and send a friend request. The recipient can accept or decline; accepted friendships are stored in a record visible only to the two members. Username lookup documents can be fetched by exact ID but cannot be listed.
+
+The Friends screen is available from the Home header, Groups header, Profile, and the Create action sheet. Group membership still uses the existing seven-day invite-link flow; a friendship does not automatically add someone to a group.
+
+Publish the updated username and friend-request security rules before testing:
+
+    firebase deploy --only firestore:rules
+
