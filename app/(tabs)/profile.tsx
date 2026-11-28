@@ -410,21 +410,21 @@ export default function ProfileScreen() {
               icon="document-text-outline"
               title="Terms & conditions"
               description="How DeepPay may be used"
-              onPress={() => router.push({ pathname: "/legal", params: { section: "terms" } } as Href)}
+              onPress={() => router.push("/legal?section=terms" as any)}
             />
             <View style={stylesLocal.separator} />
             <ProfileSettingRow
               icon="shield-checkmark-outline"
               title="Privacy notice"
               description="What information the app uses"
-              onPress={() => router.push({ pathname: "/legal", params: { section: "privacy" } } as Href)}
+              onPress={() => router.push("/legal?section=privacy" as any)}
             />
             <View style={stylesLocal.separator} />
             <ProfileSettingRow
               icon="wallet-outline"
               title="UPI & payment disclosure"
               description="Important payment and QR limitations"
-              onPress={() => router.push({ pathname: "/legal", params: { section: "payments" } } as Href)}
+              onPress={() => router.push("/legal?section=payments" as any)}
             />
           </GlassPanel>
         </View>
