@@ -12,7 +12,7 @@ type Action = { label: string; icon: keyof typeof Ionicons.glyphMap; description
 
 const actions: Action[] = [
   { label: "Create Group", icon: "people-outline", description: "Start a trip, club, or shared expense group" },
-  { label: "UPI & QR", icon: "qr-code-outline", description: "Scan, pay or share your personal UPI QR" },
+  { label: "UPI & QR", icon: "qr-code-outline", description: "View and share your personal receive QR" },
   { label: "Add Friend", icon: "person-add-outline", description: "Add someone to your DeepPay friends" },
   { label: "Split a Bill", icon: "git-branch-outline", description: "Quickly split a bill with friends" },
   { label: "Add Expense", icon: "receipt-outline", description: "Record something you paid for" },
