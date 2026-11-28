@@ -1,3 +1,4 @@
+import { FirebaseError } from "firebase/app";
 import {
   Timestamp,
   collection,
@@ -77,11 +78,27 @@ export const firebaseUpiService = {
     if (!isValidVpa(vpa)) throw new Error("Enter a valid UPI ID, for example name@bank.");
     if (displayName.length < 2 || displayName.length > 80) throw new Error("Display name must be between 2 and 80 characters.");
 
-    await setDoc(doc(firestore, "users", uid, "paymentProfiles", "upi"), {
-      vpa,
-      displayName,
-      updatedAt: serverTimestamp(),
-    });
+    try {
+      await setDoc(doc(firestore, "users", uid, "paymentProfiles", "upi"), {
+        vpa,
+        displayName,
+        updatedAt: serverTimestamp(),
+      });
+    } catch (cause) {
+      if (cause instanceof FirebaseError && cause.code === "permission-denied") {
+        throw new Error(
+          "Firebase denied saving your UPI profile. Deploy the latest Firestore rules from this branch using: firebase deploy --only firestore:rules",
+        );
+      }
+      if (cause instanceof FirebaseError && (
+        cause.code === "unavailable"
+        || cause.code === "deadline-exceeded"
+        || cause.code === "network-request-failed"
+      )) {
+        throw new Error("Couldn't reach Firebase to save your UPI details. Check your internet connection and try again.");
+      }
+      throw cause;
+    }
 
     return { vpa, displayName, updatedAt: new Date().toISOString() };
   },
