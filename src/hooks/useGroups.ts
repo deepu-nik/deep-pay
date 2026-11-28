@@ -82,6 +82,11 @@ export function useGroups() {
     return group;
   }, []);
 
+  const archiveGroup = useCallback(async (id: string) => {
+    await firebaseGroupService.archiveGroup(id);
+    setGroups((current) => current.filter((item) => item.id !== id));
+  }, []);
+
   const deleteGroup = useCallback(async (id: string) => {
     await firebaseGroupService.deleteGroup(id);
     setGroups((current) => current.filter((item) => item.id !== id));
@@ -107,6 +112,7 @@ export function useGroups() {
     listMembers,
     createGroup,
     updateGroup,
+    archiveGroup,
     deleteGroup,
     createInvite,
     joinGroupInvite,
