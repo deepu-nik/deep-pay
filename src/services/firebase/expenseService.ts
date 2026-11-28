@@ -281,7 +281,20 @@ export const firebaseExpenseService = {
       return sum;
     }, 0);
 
-    const balances = await Promise.all(groups.map((group) => firebaseExpenseService.getGroupBalances(group.id)));
+    const balances = await Promise.all(groups.map(async (group) => {
+      const settlementsSnapshot = await getDocs(collection(firestore, "groups", group.id, "settlements"));
+      const settlements = settlementsSnapshot.docs.map((item) => {
+        const data = item.data();
+        return {
+          fromUid: typeof data.fromUid === "string" ? data.fromUid : "",
+          toUid: typeof data.toUid === "string" ? data.toUid : "",
+          amountMinor: typeof data.amountMinor === "number" ? data.amountMinor : 0,
+          status: typeof data.status === "string" ? data.status : "pending",
+        };
+      });
+      const groupExpenses = expenses.filter((expense) => expense.groupId === group.id);
+      return calculateBalances(groupExpenses, settlements, group.memberIds);
+    }));
     const ownBalances = balances.flat().filter((balance) => balance.userId === uid);
     const youOweMinor = ownBalances.reduce((sum, balance) => sum + Math.max(0, -Math.round(balance.net * 100)), 0);
     const owedToYouMinor = ownBalances.reduce((sum, balance) => sum + Math.max(0, Math.round(balance.net * 100)), 0);
