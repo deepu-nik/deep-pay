@@ -33,7 +33,7 @@ function getGreeting() {
 export default function HomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { summary, expenses, groups, loading, error, refresh } = useHomeData();
+  const { summary, expenses, groups, loading, groupsLoading, groupsError, error, refresh } = useHomeData();
   const [sheetVisible, setSheetVisible] = useState(false);
 
   useFocusEffect(useCallback(() => {
@@ -43,7 +43,7 @@ export default function HomeScreen() {
   const openCreate = () => setSheetVisible(true);
   const goToGroups = () => router.push("/(tabs)/groups" as any);
 
-  const openUpiTab = (tab: "scan" | "my-qr") => router.push({ pathname: "/upi", params: { tab } } as Href);
+  const openUpiTab = (tab: "scan" | "my-qr") => tab === "scan" ? router.push("/upi/scan" as Href) : router.push({ pathname: "/upi", params: { tab } } as Href);
 
   const handleQuickAction = (label: "Expense" | "Split" | "Groups" | "My QR") => {
     if (label === "Expense") {
@@ -203,7 +203,12 @@ export default function HomeScreen() {
 
         <View style={styles.section}>
           <SectionHeader title="Your groups" action={groups.length ? "See all" : undefined} onAction={goToGroups} />
-          {loading && !groups.length ? <LoadingState message="Loading your groups…" /> : visibleGroups.length ? (
+          {groupsLoading && !groups.length ? <LoadingState message="Loading your groups…" /> : groupsError && !groups.length ? (
+            <Pressable accessibilityRole="button" onPress={() => void refresh()}>
+              <ErrorState message={groupsError} />
+              <View style={styles.retry}><AppText variant="caption" style={{ color: colors.primary }}>Tap to retry</AppText></View>
+            </Pressable>
+          ) : visibleGroups.length ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.groupList}>
               {visibleGroups.map((group, index) => {
                 const gradient = index % 2 === 0 ? colors.gradientSky : colors.gradientSunset;
