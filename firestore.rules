@@ -642,7 +642,11 @@ service cloud.firestore {
     match /friendRequests/{requestId} {
       allow get: if signedIn()
         && (
-          requestId.matches('^' + request.auth.uid + '__.*
+          requestId.matches('^' + request.auth.uid + '__.*$')
+          || requestId.matches('^.*__' + request.auth.uid + '$')
+        );
+      allow list: if signedIn()
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
       allow create: if signedIn()
         && request.resource.data.keys().hasAll([
           'fromUid',
@@ -688,7 +692,12 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      allow get, list: if signedIn()
+      allow get: if signedIn()
+        && (
+          friendshipId.matches('^' + request.auth.uid + '__.*$')
+          || friendshipId.matches('^.*__' + request.auth.uid + '$')
+        );
+      allow list: if signedIn()
         && resource.data.memberUids is list
         && resource.data.memberUids.hasAny([request.auth.uid]);
       allow create: if signedIn()
@@ -705,10 +714,8 @@ service cloud.firestore {
         && getAfter(friendRequestPath(request.resource.data.requestId)).data.status == 'accepted'
         && getAfter(friendRequestPath(request.resource.data.requestId)).data.toUid == request.auth.uid
         && (
-          friendshipId == getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
-            + '__' + request.auth.uid
-          || friendshipId == request.auth.uid + '__'
-            + getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
+          friendshipId == getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid + '__' + request.auth.uid
+          || friendshipId == request.auth.uid + '__' + getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
         )
         && request.resource.data.memberUids.hasAny([
           getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
