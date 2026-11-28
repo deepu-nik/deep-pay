@@ -19,21 +19,30 @@ export function useHomeData() {
     if (!groupsLoaded.current) setGroupsLoading(true);
     setError(null);
     setGroupsError(null);
-    try {
-      const nextGroups = await firebaseGroupService.listGroups();
-      setGroups(nextGroups);
-      groupsLoaded.current = true;
-      setGroupsLoading(false);
 
+    let nextGroups: Group[] = [];
+    try {
+      nextGroups = await firebaseGroupService.listGroups();
+      groupsLoaded.current = true;
+      setGroups(nextGroups);
+    } catch {
+      groupsLoaded.current = false;
+      setGroups([]);
+      setGroupsError("Groups are temporarily unavailable.");
+    } finally {
+      setGroupsLoading(false);
+    }
+
+    try {
+      // Personal expenses can still load while group access is unavailable.
       const nextExpenses = await firebaseExpenseService.listRecent(nextGroups);
       setExpenses(nextExpenses);
       const nextSummary = await firebaseExpenseService.getHomeSummary(nextExpenses, nextGroups);
       setSummary(nextSummary);
+      setError(null);
       hasLoaded.current = true;
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "We couldn't load your dashboard. Check your connection and try again.";
-      setError(message);
-      if (!groupsLoaded.current) setGroupsError(message);
+    } catch {
+      setError("Recent expenses are temporarily unavailable.");
     } finally {
       setLoading(false);
       setGroupsLoading(false);
