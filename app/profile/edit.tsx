@@ -38,10 +38,10 @@ export default function EditProfileScreen() {
     safe: { flex: 1, backgroundColor: colors.background },
     content: { flexGrow: 1, padding: spacing.lg, gap: spacing.xl },
     header: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-    back: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
+    back: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder, alignItems: "center", justifyContent: "center" },
     field: { gap: spacing.xs },
-    input: { minHeight: 54, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, color: colors.text, fontSize: 16 },
-    readOnly: { minHeight: 54, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceMuted, justifyContent: "center" },
+    input: { minHeight: 54, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0], color: colors.text, fontSize: 16 },
+    readOnly: { minHeight: 54, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0], justifyContent: "center" },
   });
 
   return (
