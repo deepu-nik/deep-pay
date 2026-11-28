@@ -77,7 +77,7 @@ export function BottomTabBar({ activeTab, onTabPress, onPayPress }: Props) {
         style={({ pressed }) => [styles.pay, pressed && styles.pressed]}
       >
         <LinearGradient colors={colors.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.payIcon}>
-          <Ionicons name="wallet-outline" size={21} color="#FFFFFF" />
+          <Ionicons name="qr-code-outline" size={21} color="#FFFFFF" />
         </LinearGradient>
         <AppText variant="caption" style={{ color: colors.primary, fontWeight: "800" }}>Pay</AppText>
       </Pressable>
