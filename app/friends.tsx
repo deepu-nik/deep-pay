@@ -244,9 +244,7 @@ export default function FriendsScreen() {
               </View>
             </View>
 
-            {handleLoading ? (
-              <LoadingState message="Checking your username…" />
-            ) : handle ? (
+            {handle ? (
               <View style={styles.row}>
                 <FriendAvatar name={handle.displayName} />
                 <View style={styles.copy}>
@@ -257,6 +255,9 @@ export default function FriendsScreen() {
               </View>
             ) : (
               <>
+                {handleLoading ? (
+                  <AppText variant="caption" style={styles.muted}>Checking whether you already have a username…</AppText>
+                ) : null}
                 <AppText variant="caption" style={styles.muted}>
                   Create your unique DeepPay username once. Use 3–20 lowercase letters, numbers or underscores.
                 </AppText>
@@ -286,7 +287,7 @@ export default function FriendsScreen() {
                 <PrimaryButton
                   title={savingHandle ? "Saving username…" : "Create my username"}
                   onPress={() => { void saveHandle(); }}
-                  disabled={savingHandle || usernameDraft.trim().length < 3}
+                  disabled={handleLoading || savingHandle || usernameDraft.trim().length < 3}
                 />
               </>
             )}
