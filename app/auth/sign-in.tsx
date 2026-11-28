@@ -4,6 +4,7 @@ import { useRouter, type Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
+import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { PrimaryButton } from "@/src/components/common/PrimaryButton";
 import { useAuth } from "@/src/context/AuthContext";
 import { useTheme } from "@/src/theme";
@@ -91,6 +92,7 @@ export default function SignInScreen() {
             </AppText>
           </View>
 
+          <GlassPanel padding={spacing.lg} style={{ gap: spacing.lg }}>
           <View style={styles.field}>
             <AppText variant="bodyMedium">Email address</AppText>
             <TextInput
@@ -137,6 +139,8 @@ export default function SignInScreen() {
               Your sign-in is securely managed by Firebase Authentication.
             </AppText>
           </View>
+
+          </GlassPanel>
 
           {error ? <AppText variant="caption" style={{ color: colors.danger }}>{error}</AppText> : null}
           {notice ? <AppText variant="caption" style={{ color: colors.success }}>{notice}</AppText> : null}
