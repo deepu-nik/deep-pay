@@ -2,10 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   AppState,
-  type AppStateStatus,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   Share,
   StyleSheet,
@@ -13,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import { SafeAreaView } from "react-native-safe-area-context";
 import * as Linking from "expo-linking";
 import QRCode from "react-native-qrcode-svg";
 import { Ionicons } from "@expo/vector-icons";
@@ -84,7 +83,7 @@ export default function UpiScreen() {
 
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
   const pendingPaymentRef = useRef(false);
-  const previousAppState = useRef<AppStateStatus>(AppState.currentState ?? "active");
+  const previousAppState = useRef<string>(AppState.currentState ?? "active");
   const [waitingForReturn, setWaitingForReturn] = useState(false);
   const [returnedToDeepPay, setReturnedToDeepPay] = useState(false);
   const [transactionReference, setTransactionReference] = useState("");
@@ -587,7 +586,7 @@ export default function UpiScreen() {
               <View key={transaction.id}>
                 {index > 0 ? <View style={styles.separator} /> : null}
                 <View style={styles.historyRow}>
-                  <View style={styles.historyIcon}><Ionicons name="arrow-up-right" size={19} color={colors.primary} /></View>
+                  <View style={styles.historyIcon}><Ionicons name="arrow-forward" size={19} color={colors.primary} /></View>
                   <View style={styles.historyCopy}>
                     <AppText variant="bodyMedium">{transaction.payeeName}</AppText>
                     <AppText variant="caption" style={styles.muted}>{transaction.payeeVpa} · {formatDate(transaction.createdAt)}</AppText>
