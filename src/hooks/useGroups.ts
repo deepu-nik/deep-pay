@@ -30,7 +30,12 @@ export function useGroups() {
         return next;
       })
       .catch((cause: unknown) => {
-        const message = cause instanceof Error ? cause.message : "We couldn't load your groups.";
+        const code = cause && typeof cause === "object" && "code" in cause
+          ? String((cause as { code?: unknown }).code ?? "")
+          : "";
+        const message = code === "permission-denied" || code === "firestore/permission-denied"
+          ? "Firestore denied access to your groups. Deploy the latest rules with: firebase deploy --only firestore:rules --project deeppay-d3df2"
+          : cause instanceof Error ? cause.message : "We couldn't load your groups.";
         setError(message);
         throw cause;
       })
