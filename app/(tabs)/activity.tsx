@@ -11,7 +11,6 @@ import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { LoadingState } from "@/src/components/common/LoadingState";
 import { PrimaryButton } from "@/src/components/common/PrimaryButton";
 import { BottomTabBar, type TabKey } from "@/src/components/navigation/BottomTabBar";
-import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet";
 import { firebaseActivityService, type ActivityEntry } from "@/src/services/firebase/activityService";
 import { useTheme } from "@/src/theme";
 import { spacing } from "@/src/theme/tokens";
@@ -98,7 +97,6 @@ export default function ActivityScreen() {
   const [items, setItems] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sheetVisible, setSheetVisible] = useState(false);
   const [activityFilter, setActivityFilter] = useState<"all" | "expense" | "settlement">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -316,8 +314,7 @@ export default function ActivityScreen() {
         </AppText>
       </ScrollView>
 
-      <BottomTabBar activeTab="activity" onTabPress={goTo} onAddPress={() => setSheetVisible(true)} />
-      <CreateActionSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
+      <BottomTabBar activeTab="activity" onTabPress={goTo} onPayPress={() => router.push("/upi" as any)} />
     </SafeAreaView>
   );
 }
