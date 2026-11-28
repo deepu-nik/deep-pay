@@ -267,6 +267,13 @@ export default function ProfileScreen() {
             />
             <View style={stylesLocal.separator} />
             <ProfileSettingRow
+              icon="people-outline"
+              title="Friends"
+              description="Find people, accept requests and manage your friends"
+              onPress={() => router.push("/friends" as Href)}
+            />
+            <View style={stylesLocal.separator} />
+            <ProfileSettingRow
               icon="person-circle-outline"
               title="Personal information"
               description="Name and account email"
