@@ -168,8 +168,40 @@ export default function GroupsScreen() {
               <PrimaryButton title="＋  Create group" onPress={openCreate} />
             </View>
 
-            {loading ? (
+            {loading && groups.length === 0 ? (
               <GlassPanel padding={spacing.xl}><LoadingState message="Loading your groups…" /></GlassPanel>
+            ) : groups.length > 0 ? (
+              <>
+                {error ? (
+                  <View style={{ paddingHorizontal: spacing.sm, paddingBottom: spacing.sm }}>
+                    <AppText variant="caption" style={styles.muted}>Showing saved groups. Refresh to check for updates.</AppText>
+                  </View>
+                ) : null}
+                {groups.map((group) => (
+                  <GlassPanel key={group.id} padding={spacing.lg} style={styles.card}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={"Open " + group.name + ", " + memberCount(group.memberIds)}
+                      onPress={() => router.push(("/groups/" + group.id) as any)}
+                      style={styles.groupRow}
+                    >
+                      <View style={styles.groupIcon}>
+                        <Ionicons name="people-outline" size={23} color={colors.primary} />
+                      </View>
+                      <View style={styles.groupCopy}>
+                        <AppText variant="bodyMedium" numberOfLines={1}>{group.name}</AppText>
+                        <AppText variant="caption" style={styles.muted}>{memberCount(group.memberIds)}</AppText>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+                    </Pressable>
+                  </GlassPanel>
+                ))}
+                {error ? (
+                  <Pressable accessibilityRole="button" onPress={() => { void refresh().catch(() => undefined); }} style={styles.retry}>
+                    <AppText variant="caption" style={{ color: colors.primary, fontWeight: "800" }}>Refresh groups</AppText>
+                  </Pressable>
+                ) : null}
+              </>
             ) : error ? (
               <GlassPanel padding={spacing.lg} gap={spacing.md}>
                 <View style={styles.groupRow}>
@@ -185,25 +217,7 @@ export default function GroupsScreen() {
                   <AppText variant="caption" style={{ color: colors.primary, fontWeight: "800" }}>Try again</AppText>
                 </Pressable>
               </GlassPanel>
-            ) : groups.length ? groups.map((group) => (
-              <GlassPanel key={group.id} padding={spacing.lg} style={styles.card}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={"Open " + group.name + ", " + memberCount(group.memberIds)}
-                  onPress={() => router.push(("/groups/" + group.id) as any)}
-                  style={styles.groupRow}
-                >
-                  <View style={styles.groupIcon}>
-                    <Ionicons name="people-outline" size={23} color={colors.primary} />
-                  </View>
-                  <View style={styles.groupCopy}>
-                    <AppText variant="bodyMedium" numberOfLines={1}>{group.name}</AppText>
-                    <AppText variant="caption" style={styles.muted}>{memberCount(group.memberIds)}</AppText>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-                </Pressable>
-              </GlassPanel>
-            )) : (
+            ) : (
               <GlassPanel padding={spacing.lg}>
                 <EmptyState
                   icon="people-outline"
