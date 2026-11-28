@@ -392,6 +392,7 @@ export default function UpiScreen() {
           ) : null}
         </View>
 
+        {activeTab === null && !routeTab ? (
         <View style={styles.actionGrid}>
           {([
             { tab: "pay", title: "Pay someone", subtitle: "Enter UPI ID and amount", icon: "wallet-outline" },
@@ -417,6 +418,7 @@ export default function UpiScreen() {
             </Pressable>
           ))}
         </View>
+        ) : null}
 
         {message ? (
           <GlassPanel padding={spacing.md}>
