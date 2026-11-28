@@ -1,4 +1,5 @@
 import { firebaseAuth } from "@/src/lib/firebase";
+import { withFirestoreTimeout } from "@/src/services/firebase/requestUtils";
 import { firebaseExpenseService } from "@/src/services/firebase/expenseService";
 import { firebaseGroupService } from "@/src/services/firebase/groupService";
 import { firebaseSettlementService } from "@/src/services/firebase/settlementService";
@@ -19,13 +20,17 @@ export const firebaseActivityService = {
     const uid = firebaseAuth.currentUser?.uid;
     if (!uid) throw new Error("Sign in to continue.");
 
-    const [expenses, groups] = await Promise.all([
-      firebaseExpenseService.listRecent(),
-      firebaseGroupService.listGroups(),
-    ]);
+    const [expenses, groups] = await withFirestoreTimeout(
+      Promise.all([
+        firebaseExpenseService.listRecent(),
+        firebaseGroupService.listGroups(),
+      ]),
+      "Loading activity took too long. Check your connection and retry.",
+    );
     const groupNames = new Map(groups.map((group) => [group.id, group.name]));
-    const settlementsByGroup = await Promise.all(
-      groups.map((group) => firebaseSettlementService.listByGroup(group.id)),
+    const settlementsByGroup = await withFirestoreTimeout(
+      Promise.all(groups.map((group) => firebaseSettlementService.listByGroup(group.id))),
+      "Loading settlement activity took too long. Check your connection and retry.",
     );
 
     const expenseEntries: ActivityEntry[] = expenses.map((expense) => ({
