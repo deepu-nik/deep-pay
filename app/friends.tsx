@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -45,6 +45,7 @@ export default function FriendsScreen() {
     checkFirestoreConnection,
     findUserByUsername,
     sendFriendRequest,
+    removeFriend,
     respondToRequest,
   } = useFriends();
 
@@ -55,6 +56,7 @@ export default function FriendsScreen() {
   const [connectionResult, setConnectionResult] = useState<string | null>(null);
   const [sendingRequest, setSendingRequest] = useState(false);
   const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [removingFriendId, setRemovingFriendId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<"friends" | "find" | "requests">("friends");
@@ -110,6 +112,34 @@ export default function FriendsScreen() {
     } finally {
       setSendingRequest(false);
     }
+  };
+
+  const confirmRemoveFriend = (friend: { id: string; friendshipId: string; name: string; username: string }) => {
+    Alert.alert(
+      "Remove friend?",
+      "Remove " + friend.name + " (@" + friend.username + ") from your friends? You can send a new request later.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            if (removingFriendId) return;
+            setRemovingFriendId(friend.id);
+            setActionError(null);
+            setNotice(null);
+            try {
+              await removeFriend(friend.friendshipId);
+              setNotice("@" + friend.username + " was removed from your friends.");
+            } catch (cause) {
+              setActionError(cause instanceof Error ? cause.message : "We couldn't remove this friend.");
+            } finally {
+              setRemovingFriendId(null);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleResponse = async (requestId: string, accept: boolean) => {
@@ -370,7 +400,20 @@ export default function FriendsScreen() {
                       <AppText variant="bodyMedium">{friend.name}</AppText>
                       <AppText variant="caption" style={styles.muted}>@{friend.username}</AppText>
                     </View>
-                    <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={"Remove " + friend.name + " from friends"}
+                      disabled={removingFriendId === friend.id}
+                      onPress={() => confirmRemoveFriend(friend)}
+                      hitSlop={10}
+                      style={{ padding: spacing.xs }}
+                    >
+                      <Ionicons
+                        name={removingFriendId === friend.id ? "hourglass-outline" : "person-remove-outline"}
+                        size={20}
+                        color={removingFriendId === friend.id ? colors.textMuted : colors.danger}
+                      />
+                    </Pressable>
                   </View>
                 </GlassPanel>
               )) : (
