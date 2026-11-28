@@ -1,9 +1,10 @@
-import { FirebaseError } from "firebase/app";
+import { FirebaseError, getApp } from "firebase/app";
 import {
   Timestamp,
   collection,
   doc,
   getDoc,
+  getDocFromServer,
   getDocs,
   query,
   serverTimestamp,
@@ -115,6 +116,44 @@ function mapRequest(id: string, data: Record<string, unknown>): FriendRequest | 
 }
 
 export const firebaseFriendService = {
+  async checkFirestoreConnection(): Promise<{ projectId: string; elapsedMs: number; profileFound: boolean }> {
+    const uid = requireUid();
+    const projectId = getApp().options.projectId ?? "unknown";
+    const startedAt = Date.now();
+    try {
+      const profileSnapshot = await withFirestoreTimeout(
+        getDocFromServer(doc(firestore, "users", uid)),
+        "The Firestore server did not respond within 15 seconds. Check the active Firebase project, internet connection, and Firestore database.",
+        15_000,
+      );
+      const elapsedMs = Date.now() - startedAt;
+      if (!profileSnapshot.exists()) {
+        throw new Error(
+          "Firestore responded in " + elapsedMs + " ms, but this signed-in account has no users profile in project " + projectId + ".",
+        );
+      }
+      return { projectId, elapsedMs, profileFound: true };
+    } catch (cause) {
+      const elapsedMs = Date.now() - startedAt;
+      const code = cause instanceof FirebaseError ? cause.code : "no-server-response";
+      const detail = cause instanceof Error ? cause.message : "Unknown Firestore error.";
+      console.warn("[Friends] Firestore connection check failed", { projectId, elapsedMs, code, detail });
+      if (cause instanceof FirebaseError && cause.code === "permission-denied") {
+        throw new Error(
+          "Firestore is reachable at project " + projectId + " but denied reading your own users profile (permission-denied). Verify the active project's Firestore rules.",
+        );
+      }
+      if (cause instanceof FirebaseError && cause.code === "unavailable") {
+        throw new Error(
+          "Firestore project " + projectId + " is unavailable. Check the internet connection and whether the Firestore database is active.",
+        );
+      }
+      throw new Error(
+        "Firestore connection check failed for project " + projectId + " after " + elapsedMs + " ms (" + code + "): " + detail,
+      );
+    }
+  },
+
   async getMyHandle(): Promise<FriendHandle | null> {
     const uid = requireUid();
     const snapshot = await withFirestoreTimeout(
