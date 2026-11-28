@@ -100,6 +100,10 @@ export function useFriends() {
     void refresh();
   }, [refresh]);
 
+  const checkFirestoreConnection = useCallback(async () => {
+    return firebaseFriendService.checkFirestoreConnection();
+  }, []);
+
   const claimUsername = useCallback(async (username: string) => {
     const nextHandle = await firebaseFriendService.claimUsername(username, user?.fullName);
     setHandle(nextHandle);
@@ -133,6 +137,7 @@ export function useFriends() {
     friendsError,
     requestsError,
     refresh,
+    checkFirestoreConnection,
     claimUsername,
     findUserByUsername,
     sendFriendRequest,
