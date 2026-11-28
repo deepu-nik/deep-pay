@@ -98,6 +98,10 @@ export function useFriends() {
     return nextHandle;
   }, [user?.fullName]);
 
+  const findUserByUsername = useCallback(async (username: string) => {
+    return firebaseFriendService.findUserByUsername(username);
+  }, []);
+
   const sendFriendRequest = useCallback(async (username: string) => {
     await firebaseFriendService.sendFriendRequest(username);
     await refresh();
@@ -121,6 +125,7 @@ export function useFriends() {
     requestsError,
     refresh,
     claimUsername,
+    findUserByUsername,
     sendFriendRequest,
     respondToRequest,
   };
