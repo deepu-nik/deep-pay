@@ -7,17 +7,27 @@ import {
   type FriendRequest,
 } from "@/src/services/firebase/friendService";
 
-function errorText(cause: unknown, fallback: string) {
-  if (cause && typeof cause === "object" && "code" in cause) {
-    const code = String((cause as { code?: unknown }).code ?? "");
-    if (code === "permission-denied" || code === "firestore/permission-denied") {
-      return "Firestore permissions need the latest DeepPay rules. Pull the latest branch and run: firebase deploy --only firestore:rules";
-    }
-    if (code === "unavailable" || code === "deadline-exceeded" || code === "network-request-failed") {
-      return "Firebase couldn't be reached. Check your connection and refresh.";
-    }
+function errorText(cause: unknown, action: string, fallback: string) {
+  const code = cause && typeof cause === "object" && "code" in cause
+    ? String((cause as { code?: unknown }).code ?? "unknown")
+    : "unknown";
+
+  console.warn("[Friends] Firestore sync failed", {
+    action,
+    code,
+    detail: cause instanceof Error ? cause.message : String(cause),
+  });
+
+  if (code === "permission-denied" || code === "firestore/permission-denied") {
+    return "Firestore denied " + action + " (permission-denied). Publish the latest rules to deeppay-d3df2 with: firebase deploy --only firestore:rules --project deeppay-d3df2";
   }
-  return cause instanceof Error ? cause.message : fallback;
+  if (code === "unavailable" || code === "deadline-exceeded" || code === "network-request-failed") {
+    return "Firebase could not complete " + action + " (" + code + "). Check the connection and retry.";
+  }
+  if (cause instanceof Error) {
+    return action + " failed (" + code + "): " + cause.message;
+  }
+  return fallback + " (" + code + ").";
 }
 
 export function useFriends() {
@@ -63,7 +73,7 @@ export function useFriends() {
         setHandle(await firebaseFriendService.getMyHandle());
         setHandleError(null);
       } catch (cause) {
-        setHandleError(errorText(cause, "We couldn't check your username. Please retry."));
+        setHandleError(errorText(cause, "reading your username", "We couldn't check your username. Please retry."));
       } finally {
         setHandleLoading(false);
       }
@@ -74,7 +84,7 @@ export function useFriends() {
         setFriends(await firebaseFriendService.listFriends());
         setFriendsError(null);
       } catch (cause) {
-        setFriendsError(errorText(cause, "We couldn't load your friends. Please retry."));
+        setFriendsError(errorText(cause, "loading accepted friendships", "We couldn't load your friends. Please retry."));
       } finally {
         setFriendsLoading(false);
       }
@@ -87,7 +97,7 @@ export function useFriends() {
         setOutgoingRequests(nextRequests.outgoing);
         setRequestsError(null);
       } catch (cause) {
-        setRequestsError(errorText(cause, "We couldn't load friend requests. Please retry."));
+        setRequestsError(errorText(cause, "loading incoming and sent friend requests", "We couldn't load friend requests. Please retry."));
       } finally {
         setRequestsLoading(false);
       }
