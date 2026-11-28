@@ -301,7 +301,6 @@ export default function UpiScreen() {
       setActiveTab("history");
       setMessage("Saved as a payment reported by you. DeepPay has not verified the transfer with your bank.");
       historyLoadedRef.current = false;
-      await loadTransactions(true);
     } catch (cause) {
       setMessage(cause instanceof Error ? cause.message : "Couldn't save this payment record.");
     } finally {
