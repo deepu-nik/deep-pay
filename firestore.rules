@@ -471,11 +471,12 @@ service cloud.firestore {
     }
 
     match /groups/{groupId} {
-      // The client lists groups with array-contains on memberUids. Keep this
-      // as a direct membership test so Firestore can prove the query safe.
-      allow get, list: if signedIn()
+      // Group documents are fetched by exact ID from the user's private
+      // groupMemberships index. No collection-wide group listing is allowed.
+      allow get: if signedIn()
         && resource.data.memberUids is list
         && request.auth.uid in resource.data.memberUids;
+      allow list: if false;
 
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly([
