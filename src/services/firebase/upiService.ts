@@ -10,6 +10,7 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { firebaseAuth, firestore } from "@/src/lib/firebase";
+import { FIRESTORE_REQUEST_TIMEOUT_MS, withFirestoreTimeout } from "@/src/services/firebase/requestUtils";
 import { withFirestoreTimeout } from "@/src/services/firebase/requestUtils";
 import { isValidVpa, normalizeVpa } from "@/src/services/upi/upiUtils";
 
@@ -48,20 +49,6 @@ function isStoredProfile(value: unknown): value is UpiProfile {
     && typeof profile.displayName === "string"
     && profile.displayName.length >= 2
     && (profile.syncStatus === "local" || profile.syncStatus === "synced");
-}
-
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
-      }),
-    ]);
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-  }
 }
 
 function profileSyncError(cause: unknown) {
@@ -119,10 +106,10 @@ export const firebaseUpiService = {
       }
     }
 
-    const snapshot = await withTimeout(
+    const snapshot = await withFirestoreTimeout(
       getDoc(doc(firestore, "users", uid, "paymentProfiles", "upi")),
-      6000,
       "Loading your UPI profile timed out. Check your connection and retry.",
+      FIRESTORE_REQUEST_TIMEOUT_MS,
     );
     if (!snapshot.exists()) return null;
     const data = snapshot.data();
@@ -156,14 +143,14 @@ export const firebaseUpiService = {
 
   async syncMyProfile(profile: UpiProfile): Promise<UpiProfile> {
     const uid = requireUid();
-    await withTimeout(
+    await withFirestoreTimeout(
       setDoc(doc(firestore, "users", uid, "paymentProfiles", "upi"), {
         vpa: profile.vpa,
         displayName: profile.displayName,
         updatedAt: serverTimestamp(),
       }),
-      8000,
       "Firebase profile sync timed out.",
+      FIRESTORE_REQUEST_TIMEOUT_MS,
     );
     const synced: UpiProfile = { ...profile, syncStatus: "synced", updatedAt: new Date().toISOString() };
     await AsyncStorage.setItem(profileStorageKey(uid), JSON.stringify(synced));
