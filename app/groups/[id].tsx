@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import * as Linking from "expo-linking";
 import { Alert, Modal, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -155,7 +156,7 @@ export default function GroupDetailScreen() {
     setActionError(null);
     try {
       const inviteId = await createInvite(id);
-      const link = "deeppay://group-invite/" + inviteId;
+      const link = Linking.createURL("group-invite/" + inviteId);
       await Share.share({
         message: "Join my " + group.name + " group on DeepPay. Open this invitation in DeepPay: " + link + "\nThis invitation expires in 7 days.",
         url: link,

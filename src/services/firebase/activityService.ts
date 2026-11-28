@@ -44,15 +44,30 @@ export const firebaseActivityService = {
     const settlementEntries: ActivityEntry[] = settlementsByGroup.flat().map((settlement) => ({
       id: "settlement:" + settlement.id,
       kind: "settlement",
-      title: settlement.fromUserId === uid
-        ? "You recorded a payment"
-        : settlement.toUserId === uid
-          ? "A member recorded a payment to you"
-          : "A group settlement was recorded",
-      detail: groupNames.get(settlement.groupId) ?? "Group settlement",
+      title: settlement.status === "confirmed"
+        ? settlement.fromUserId === uid
+          ? "You completed a payment"
+          : settlement.toUserId === uid
+            ? "You received a payment"
+            : "A group payment was confirmed"
+        : settlement.status === "rejected"
+          ? "A payment was marked as not received"
+          : settlement.fromUserId === uid
+            ? "You marked a payment as sent"
+            : "A payment is awaiting confirmation",
+      detail: [
+        groupNames.get(settlement.groupId) ?? "Group settlement",
+        settlement.status === "confirmed"
+          ? "Confirmed"
+          : settlement.status === "rejected"
+            ? "Not received"
+            : "Awaiting recipient confirmation",
+      ].join(" · "),
       timestamp: settlement.createdAt ? new Date(settlement.createdAt).getTime() : 0,
       amount: settlement.amount,
-      direction: settlement.fromUserId === uid ? "out" : settlement.toUserId === uid ? "in" : "neutral",
+      direction: settlement.status === "confirmed"
+        ? settlement.fromUserId === uid ? "out" : settlement.toUserId === uid ? "in" : "neutral"
+        : "neutral",
       groupId: settlement.groupId,
     }));
 
