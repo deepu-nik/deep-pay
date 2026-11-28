@@ -126,20 +126,27 @@ export const firebaseFriendService = {
     return { uid, username: data.username, displayName: data.displayName };
   },
 
-  async claimUsername(input: string): Promise<FriendHandle> {
+  async claimUsername(input: string, displayNameInput?: string): Promise<FriendHandle> {
     const uid = requireUid();
     const username = validateUsername(input);
     const handleRef = doc(firestore, "userHandles", uid);
-    const current = await getDoc(handleRef);
+    const current = await withTimeout(
+      getDoc(handleRef),
+      "Checking your username took too long. Check your connection and retry.",
+    );
     if (current.exists() && current.data().username !== username) {
       throw new Error("Your username is already set and cannot be changed yet.");
     }
 
-    const displayName = firebaseAuth.currentUser?.displayName?.trim()
+    const displayName = displayNameInput?.trim()
+      || firebaseAuth.currentUser?.displayName?.trim()
       || firebaseAuth.currentUser?.email?.split("@")[0]
       || "DeepPay member";
     const userNameRef = doc(firestore, "usernames", username);
-    const reserved = await getDoc(userNameRef);
+    const reserved = await withTimeout(
+      getDoc(userNameRef),
+      "Checking username availability took too long. Check your connection and retry.",
+    );
     if (reserved.exists() && reserved.data().uid !== uid) {
       throw new Error("That username is already taken. Try another.");
     }
@@ -185,11 +192,10 @@ export const firebaseFriendService = {
     const pairRef = doc(firestore, "friendships", friendshipId(uid, targetUid));
     const outgoingRef = doc(firestore, "friendRequests", requestId(uid, targetUid));
     const incomingRef = doc(firestore, "friendRequests", requestId(targetUid, uid));
-    const [existingFriend, existingRequest, incomingRequest] = await Promise.all([
-      getDoc(pairRef),
-      getDoc(outgoingRef),
-      getDoc(incomingRef),
-    ]);
+    const [existingFriend, existingRequest, incomingRequest] = await withTimeout(
+      Promise.all([getDoc(pairRef), getDoc(outgoingRef), getDoc(incomingRef)]),
+      "Checking friend status took too long. Check your connection and retry.",
+    );
     if (existingFriend.exists()) throw new Error("You're already friends with @" + username + ".");
     if (existingRequest.exists()) throw new Error("You've already sent a request to @" + username + ".");
     if (incomingRequest.exists() && incomingRequest.data().status === "pending") {
@@ -253,7 +259,10 @@ export const firebaseFriendService = {
   async respondToRequest(requestKey: string, accept: boolean): Promise<void> {
     const uid = requireUid();
     const requestRef = doc(firestore, "friendRequests", requestKey);
-    const snapshot = await getDoc(requestRef);
+    const snapshot = await withTimeout(
+      getDoc(requestRef),
+      "Opening this friend request took too long. Check your connection and retry.",
+    );
     if (!snapshot.exists()) throw new Error("This friend request is no longer available.");
     const request = mapRequest(snapshot.id, snapshot.data());
     if (!request || request.toUid !== uid || request.status !== "pending") {
