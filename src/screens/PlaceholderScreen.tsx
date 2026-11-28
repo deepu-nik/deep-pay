@@ -25,7 +25,7 @@ export function PlaceholderScreen({ icon, title, description, activeTab }: { ico
     <BottomTabBar
       activeTab={activeTab}
       onTabPress={goTo}
-      onPayPress={() => router.push({ pathname: "/upi", params: { tab: "my-qr" } } as Href)}
+      onPayPress={() => router.push("/upi" as Href)}
     />
   </View>;
 }
