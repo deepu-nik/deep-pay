@@ -9,7 +9,7 @@ type Props = { label: string; icon: keyof typeof Ionicons.glyphMap; onPress?: ()
 
 export function QuickAction({ label, icon, onPress }: Props) {
   const { colors } = useTheme();
-  const gradient = label === "Groups" || label === "UPI"
+  const gradient = label === "Groups" || label === "UPI" || label === "My QR"
     ? colors.gradientSky
     : label === "Friends"
       ? colors.gradientSunset
