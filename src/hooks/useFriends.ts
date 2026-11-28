@@ -7,14 +7,25 @@ import {
   type FriendRequest,
 } from "@/src/services/firebase/friendService";
 
+function errorText(cause: unknown, fallback: string) {
+  return cause instanceof Error ? cause.message : fallback;
+}
+
 export function useFriends() {
   const { user } = useAuth();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [handle, setHandle] = useState<FriendHandle | null>(null);
   const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<FriendRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+
+  // Keep each data source independent. A failed friends-list query must not
+  // hide username setup, user search, or incoming request actions.
+  const [handleLoading, setHandleLoading] = useState(true);
+  const [friendsLoading, setFriendsLoading] = useState(true);
+  const [requestsLoading, setRequestsLoading] = useState(true);
+  const [handleError, setHandleError] = useState<string | null>(null);
+  const [friendsError, setFriendsError] = useState<string | null>(null);
+  const [requestsError, setRequestsError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!user?.id) {
@@ -22,28 +33,52 @@ export function useFriends() {
       setHandle(null);
       setIncomingRequests([]);
       setOutgoingRequests([]);
-      setLoading(false);
-      setError(null);
+      setHandleLoading(false);
+      setFriendsLoading(false);
+      setRequestsLoading(false);
+      setHandleError(null);
+      setFriendsError(null);
+      setRequestsError(null);
       return;
     }
 
-    setLoading(true);
-    setError(null);
-    try {
-      const [nextHandle, nextFriends, nextRequests] = await Promise.all([
-        firebaseFriendService.getMyHandle(),
-        firebaseFriendService.listFriends(),
-        firebaseFriendService.listRequests(),
-      ]);
-      setHandle(nextHandle);
-      setFriends(nextFriends);
-      setIncomingRequests(nextRequests.incoming);
-      setOutgoingRequests(nextRequests.outgoing);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "We couldn't load your friends. Please try again.");
-    } finally {
-      setLoading(false);
+    setHandleLoading(true);
+    setFriendsLoading(true);
+    setRequestsLoading(true);
+    setHandleError(null);
+    setFriendsError(null);
+    setRequestsError(null);
+
+    const [handleResult, friendsResult, requestsResult] = await Promise.allSettled([
+      firebaseFriendService.getMyHandle(),
+      firebaseFriendService.listFriends(),
+      firebaseFriendService.listRequests(),
+    ]);
+
+    if (handleResult.status === "fulfilled") {
+      setHandle(handleResult.value);
+      setHandleError(null);
+    } else {
+      setHandleError(errorText(handleResult.reason, "We couldn't check your username. Please retry."));
     }
+    setHandleLoading(false);
+
+    if (friendsResult.status === "fulfilled") {
+      setFriends(friendsResult.value);
+      setFriendsError(null);
+    } else {
+      setFriendsError(errorText(friendsResult.reason, "We couldn't load your friends. Please retry."));
+    }
+    setFriendsLoading(false);
+
+    if (requestsResult.status === "fulfilled") {
+      setIncomingRequests(requestsResult.value.incoming);
+      setOutgoingRequests(requestsResult.value.outgoing);
+      setRequestsError(null);
+    } else {
+      setRequestsError(errorText(requestsResult.reason, "We couldn't load friend requests. Please retry."));
+    }
+    setRequestsLoading(false);
   }, [user?.id]);
 
   useEffect(() => {
@@ -53,6 +88,7 @@ export function useFriends() {
   const claimUsername = useCallback(async (username: string) => {
     const nextHandle = await firebaseFriendService.claimUsername(username, user?.fullName);
     setHandle(nextHandle);
+    setHandleError(null);
     return nextHandle;
   }, [user?.fullName]);
 
@@ -71,8 +107,12 @@ export function useFriends() {
     handle,
     incomingRequests,
     outgoingRequests,
-    loading,
-    error,
+    handleLoading,
+    friendsLoading,
+    requestsLoading,
+    handleError,
+    friendsError,
+    requestsError,
     refresh,
     claimUsername,
     sendFriendRequest,
