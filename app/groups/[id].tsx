@@ -92,7 +92,8 @@ export default function GroupDetailScreen() {
     expenseIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.expenseIconBackground, alignItems: "center", justifyContent: "center" },
     expenseMeta: { flex: 1 },
     modal: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" },
-    sheet: { backgroundColor: colors.glassGradient[0], borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, borderWidth: 1, borderColor: colors.glassBorder, padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.lg },
+    sheet: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+    sheetContent: { gap: spacing.lg, paddingBottom: spacing.xxl },
     input: { minHeight: 52, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: radius.md, paddingHorizontal: spacing.lg, color: colors.text, fontSize: 16, backgroundColor: colors.glassGradient[0] },
     chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
     settlementSummary: { marginBottom: spacing.lg },
@@ -261,22 +262,22 @@ export default function GroupDetailScreen() {
     </ScrollView>
 
     <Modal visible={settlementVisible} transparent animationType="slide" onRequestClose={() => setSettlementVisible(false)}>
-      <View style={styles.modal}><View style={styles.sheet}>
+      <View style={styles.modal}><GlassPanel padding={spacing.lg} style={styles.sheet}><View style={styles.sheetContent}>
         <View style={styles.header}><AppText variant="h2">Settle up</AppText><Pressable onPress={() => setSettlementVisible(false)}><Ionicons name="close" size={24} color={colors.text} /></Pressable></View>
         <AppText variant="body" style={styles.muted}>Record a payment from You to {friendNames[settlementTarget] ?? settlementTarget}.</AppText>
         <TextInput value={settlementAmount} onChangeText={setSettlementAmount} placeholder="Amount" placeholderTextColor={colors.textMuted} style={styles.input} keyboardType="decimal-pad" />
         <PrimaryButton title={settlementSaving ? "Saving…" : "Record settlement"} onPress={saveSettlement} disabled={settlementSaving || !settlementAmount} />
-      </View></View>
+      </View></GlassPanel></View>
     </Modal>
 
     <Modal visible={editorVisible} transparent animationType="slide" onRequestClose={() => setEditorVisible(false)}>
-      <View style={styles.modal}><View style={styles.sheet}>
+      <View style={styles.modal}><GlassPanel padding={spacing.lg} style={styles.sheet}><View style={styles.sheetContent}>
         <View style={styles.header}><AppText variant="h2">Edit group</AppText><Pressable onPress={() => setEditorVisible(false)}><Ionicons name="close" size={24} color={colors.text} /></Pressable></View>
         <TextInput value={name} onChangeText={setName} placeholder="Group name" placeholderTextColor={colors.textMuted} style={styles.input} autoFocus />
         <AppText variant="bodyMedium">Members</AppText>
         <View style={styles.chips}>{friends.map((friend) => <Pressable key={friend.id} onPress={() => toggle(friend.id)} style={[styles.chip, selected.includes(friend.id) && styles.selectedChip]}><AppText variant="caption" style={selected.includes(friend.id) ? { color: colors.primary } : undefined}>{friend.name}</AppText></Pressable>)}</View>
         <PrimaryButton title="Save changes" onPress={save} disabled={!name.trim()} />
-      </View></View>
+      </View></GlassPanel></View>
     </Modal>
   </SafeAreaView>;
 }

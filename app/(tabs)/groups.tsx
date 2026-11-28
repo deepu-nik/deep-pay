@@ -39,7 +39,7 @@ export default function GroupsScreen() {
     card:{marginBottom:spacing.md},
     row:{flexDirection:"row",alignItems:"center",gap:spacing.md}, groupIcon:{width:48,height:48,borderRadius:24,backgroundColor:colors.iconBackground,alignItems:"center",justifyContent:"center"},
     muted:{color:colors.textMuted}, modal:{flex:1,justifyContent:"flex-end",backgroundColor:"rgba(0,0,0,0.35)"},
-    sheet:{backgroundColor:colors.glassGradient[0],borderTopLeftRadius:radius.xl,borderTopRightRadius:radius.xl,padding:spacing.lg,paddingBottom:spacing.xxl,gap:spacing.lg,borderWidth:1,borderColor:colors.glassBorder},
+    sheet:{borderTopLeftRadius:radius.xl,borderTopRightRadius:radius.xl,borderBottomLeftRadius:0,borderBottomRightRadius:0}, sheetContent:{gap:spacing.lg,paddingBottom:spacing.xxl},
     input:{minHeight:52,borderWidth:1,borderColor:colors.glassBorder,borderRadius:radius.md,paddingHorizontal:spacing.lg,color:colors.text,fontSize:16,backgroundColor:colors.glassGradient[0]},
     chips:{flexDirection:"row",flexWrap:"wrap",gap:spacing.sm}, chip:{paddingHorizontal:spacing.md,paddingVertical:spacing.sm,borderRadius:radius.pill,borderWidth:1,borderColor:colors.glassBorder,backgroundColor:colors.glassGradient[0]},
     selectedChip:{borderColor:colors.primary,backgroundColor:colors.iconBackground},
@@ -107,7 +107,7 @@ export default function GroupsScreen() {
     <BottomTabBar activeTab="groups" onTabPress={goTo} onAddPress={()=>setSheetVisible(true)}/>
     <CreateActionSheet visible={sheetVisible} onClose={()=>setSheetVisible(false)}/>
     <Modal visible={editorVisible} transparent animationType="slide" onRequestClose={()=>setEditorVisible(false)}>
-      <View style={styles.modal}><View style={styles.sheet}>
+      <View style={styles.modal}><GlassPanel padding={spacing.lg} style={styles.sheet}><View style={styles.sheetContent}>
         <View style={styles.header}><AppText variant="h2">{editingGroup ? "Edit group" : "Create group"}</AppText><Pressable onPress={()=>setEditorVisible(false)}><Ionicons name="close" size={24} color={colors.text}/></Pressable></View>
         <TextInput value={name} onChangeText={setName} placeholder="e.g. Goa Trip" placeholderTextColor={colors.textMuted} style={styles.input} autoFocus/>
         <AppText variant="bodyMedium">Members</AppText>
@@ -117,7 +117,7 @@ export default function GroupsScreen() {
           </Pressable>)}
         </View>}
         <PrimaryButton title={editingGroup ? "Save changes" : "Create group"} onPress={save} disabled={!name.trim()}/>
-      </View></View>
+      </View></GlassPanel></View>
     </Modal>
   </SafeAreaView>;
 }
