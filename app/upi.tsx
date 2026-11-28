@@ -60,7 +60,8 @@ export default function UpiScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<UpiTab>("pay");
+  const [activeTab, setActiveTab] = useState<UpiTab | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
   const [profile, setProfile] = useState<UpiProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -98,6 +99,7 @@ export default function UpiScreen() {
       setProfile(nextProfile);
       setVpa(nextProfile?.vpa ?? "");
       setDisplayName(nextProfile?.displayName ?? user?.fullName ?? "");
+      setEditingProfile(!nextProfile);
       profileLoadedRef.current = true;
       if (nextProfile?.syncStatus === "local") {
         setMessage("Your UPI details were restored from this device. Syncing them to your DeepPay account…");
@@ -136,6 +138,8 @@ export default function UpiScreen() {
     }
     if (routeTab === "pay" || routeTab === "my-qr" || routeTab === "history") {
       setActiveTab(routeTab);
+    } else {
+      setActiveTab(null);
     }
     if (routeTab === "pay" && routePayeeVpa) {
       setPayeeVpa(routePayeeVpa);
@@ -209,13 +213,13 @@ export default function UpiScreen() {
     statusBadge: { alignSelf: "flex-start", paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: radius.pill, backgroundColor: colors.iconBackground },
   });
 
-  const selectTab = async (tab: UpiTab) => {
+  const selectTab = (tab: UpiTab) => {
     setMessage(null);
     if (tab === "scan") {
       router.push("/upi/scan" as Href);
       return;
     }
-    setActiveTab(tab);
+    router.push({ pathname: "/upi", params: { tab } } as Href);
   };
 
   const openUpiApp = async () => {
@@ -306,6 +310,7 @@ export default function UpiScreen() {
       setProfile(savedLocally);
       setVpa(savedLocally.vpa);
       setDisplayName(savedLocally.displayName);
+      setEditingProfile(false);
       profileLoadedRef.current = true;
       setMessage("UPI details saved on this device. Syncing to your DeepPay account…");
 
@@ -358,47 +363,61 @@ export default function UpiScreen() {
     <SafeAreaView style={styles.safe} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}>
+          <Pressable accessibilityRole="button" accessibilityLabel={activeTab ? "Back to UPI options" : "Go back"} onPress={() => router.back()} style={styles.back}>
             <Ionicons name="arrow-back" size={21} color={colors.text} />
           </Pressable>
           <View style={styles.headerCopy}>
-            <AppText variant="title">UPI & QR</AppText>
-            <AppText variant="caption" style={styles.subtitle}>Pay, scan and share your payment QR.</AppText>
+            <AppText variant="title">
+              {activeTab === "pay" ? "Pay someone" : activeTab === "my-qr" ? "My receive QR" : activeTab === "history" ? "UPI history" : "UPI & QR"}
+            </AppText>
+            <AppText variant="caption" style={styles.subtitle}>
+              {activeTab === "pay"
+                ? "Review the details before opening your UPI app."
+                : activeTab === "my-qr"
+                  ? "Show this screen to receive a payment."
+                  : activeTab === "history"
+                    ? "Your payment records, all in one place."
+                    : "Choose what you'd like to do."}
+            </AppText>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open my receive QR code"
-            onPress={() => { void selectTab("my-qr"); }}
-            style={styles.back}
-          >
-            <Ionicons name="qr-code-outline" size={21} color={colors.primary} />
-          </Pressable>
+          {activeTab === null ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open my receive QR code"
+              onPress={() => selectTab("my-qr")}
+              style={styles.back}
+            >
+              <Ionicons name="qr-code-outline" size={21} color={colors.primary} />
+            </Pressable>
+          ) : null}
         </View>
 
-        <View style={styles.actionGrid}>
-          {([
-            { tab: "pay", title: "Pay someone", subtitle: "Enter UPI ID and amount", icon: "wallet-outline" },
-            { tab: "scan", title: "Scan to Pay", subtitle: "Scan any UPI QR", icon: "scan-outline" },
-            { tab: "my-qr", title: "My QR", subtitle: "Receive a payment", icon: "qr-code-outline" },
-            { tab: "history", title: "History", subtitle: "Your saved payment records", icon: "time-outline" },
-          ] as const).map((item) => (
-            <Pressable
-              key={item.tab}
-              accessibilityRole="button"
-              accessibilityState={{ selected: activeTab === item.tab }}
-              onPress={() => { if (item.tab === "scan") router.push("/upi/scan" as Href); else void selectTab(item.tab); }}
-              style={[styles.actionCard, activeTab === item.tab && styles.actionCardActive]}
-            >
-              <View style={styles.actionIcon}>
-                <Ionicons name={item.icon} size={20} color={colors.primary} />
-              </View>
-              <View style={styles.actionCopy}>
-                <AppText variant="bodyMedium">{item.title}</AppText>
-                <AppText variant="caption" style={styles.muted}>{item.subtitle}</AppText>
-              </View>
-            </Pressable>
-          ))}
-        </View>
+        {activeTab === null ? (
+          <View style={styles.actionGrid}>
+            {([
+              { tab: "pay", title: "Pay someone", subtitle: "Enter UPI ID and amount", icon: "wallet-outline" },
+              { tab: "scan", title: "Scan to Pay", subtitle: "Scan any UPI QR", icon: "scan-outline" },
+              { tab: "my-qr", title: "My QR", subtitle: "Receive a payment", icon: "qr-code-outline" },
+              { tab: "history", title: "History", subtitle: "Your saved payment records", icon: "time-outline" },
+            ] as const).map((item) => (
+              <Pressable
+                key={item.tab}
+                accessibilityRole="button"
+                onPress={() => selectTab(item.tab)}
+                style={styles.actionCard}
+              >
+                <View style={styles.actionIcon}>
+                  <Ionicons name={item.icon} size={20} color={colors.primary} />
+                </View>
+                <View style={styles.actionCopy}>
+                  <AppText variant="bodyMedium">{item.title}</AppText>
+                  <AppText variant="caption" style={styles.muted}>{item.subtitle}</AppText>
+                </View>
+                <Ionicons name="arrow-forward" size={17} color={colors.textMuted} />
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
         {message ? (
           <GlassPanel padding={spacing.md}>
@@ -519,76 +538,91 @@ export default function UpiScreen() {
 
         {activeTab === "my-qr" ? (
           <>
-            <GlassPanel padding={spacing.lg} gap={spacing.md}>
-              <AppText variant="h2">Your UPI details</AppText>
-              <AppText variant="caption" style={styles.muted}>
-                Your UPI ID and display name are saved on this device first, then synced to your DeepPay account. The receive QR is regenerated from these saved details whenever you open this page.
-              </AppText>
-              {profileLoading ? <LoadingState message="Loading your UPI profile…" /> : null}
-              {!profileLoading && !profileLoadedRef.current ? (
-                <Pressable onPress={() => { void loadProfile(true); }} style={{ paddingVertical: spacing.xs }}>
-                  <AppText variant="caption" style={{ color: colors.primary }}>Tap to retry loading your saved UPI details</AppText>
+            {profileLoading ? (
+              <GlassPanel padding={spacing.xl}>
+                <LoadingState message="Loading your receive QR…" />
+              </GlassPanel>
+            ) : !profileLoadedRef.current ? (
+              <GlassPanel padding={spacing.lg} gap={spacing.md}>
+                <AppText variant="h2">Your receive QR</AppText>
+                <AppText variant="caption" style={styles.muted}>We couldn't load your saved UPI details.</AppText>
+                <PrimaryButton title="Try again" onPress={() => { void loadProfile(true); }} />
+              </GlassPanel>
+            ) : profile ? (
+              <GlassPanel padding={spacing.lg} gap={spacing.md}>
+                <AppText variant="h2">Scan to pay me</AppText>
+                <AppText variant="caption" style={styles.muted}>Keep this screen open and let the other person scan your QR in their UPI app.</AppText>
+                <View style={styles.qrWrap}>
+                  <QRCode value={receiveUri} size={252} color="#211A33" backgroundColor="#FFFFFF" quietZone={14} ecl="Q" />
+                  <View style={styles.qrMeta}>
+                    <AppText variant="bodyMedium" style={styles.qrValue}>{profile.displayName}</AppText>
+                    <AppText variant="caption" style={styles.qrValue}>UPI ID: {profile.vpa}</AppText>
+                  </View>
+                </View>
+                <AppText variant="caption" style={{ color: profile.syncStatus === "synced" ? colors.success : colors.warning }}>
+                  {profile.syncStatus === "synced" ? "UPI details synced" : "Saved on this device · Account sync pending"}
+                </AppText>
+                {profile.syncStatus !== "synced" ? (
+                  <Pressable onPress={() => { void retryProfileSync(); }} disabled={savingProfile} style={{ alignSelf: "center", paddingVertical: spacing.xs }}>
+                    <AppText variant="caption" style={{ color: colors.primary }}>{savingProfile ? "Syncing…" : "Retry account sync"}</AppText>
+                  </Pressable>
+                ) : null}
+                <PrimaryButton title="Share UPI details" onPress={() => { void shareMyUpi(); }} />
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setEditingProfile((current) => !current)}
+                  style={{ alignItems: "center", paddingVertical: spacing.sm }}
+                >
+                  <AppText variant="caption" style={{ color: colors.primary, fontWeight: "700" }}>
+                    {editingProfile ? "Hide edit details" : "Edit UPI details"}
+                  </AppText>
                 </Pressable>
-              ) : null}
-              <View style={styles.section}>
-                <AppText variant="bodyMedium">Your UPI ID</AppText>
-                <TextInput
-                  value={vpa}
-                  onChangeText={setVpa}
-                  placeholder="yourname@bank"
-                  placeholderTextColor={colors.textMuted}
-                  style={styles.input}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                  editable={!profileLoading}
-                />
-              </View>
-              <View style={styles.section}>
-                <AppText variant="bodyMedium">Name shown to payers</AppText>
-                <TextInput
-                  value={displayName}
-                  onChangeText={setDisplayName}
-                  placeholder={user?.fullName ?? "Your name"}
-                  placeholderTextColor={colors.textMuted}
-                  style={styles.input}
-                  maxLength={80}
-                  editable={!profileLoading}
-                />
-              </View>
-              <PrimaryButton title={savingProfile ? "Saving…" : "Save UPI details"} onPress={() => { void saveProfile(); }} disabled={profileLoading || savingProfile || !isValidVpa(vpa) || displayName.trim().length < 2} />
-            </GlassPanel>
+              </GlassPanel>
+            ) : (
+              <GlassPanel padding={spacing.lg} gap={spacing.md}>
+                <AppText variant="h2">Set up your receive QR</AppText>
+                <AppText variant="caption" style={styles.muted}>Add your UPI ID and display name once. DeepPay will create your personal receive QR.</AppText>
+              </GlassPanel>
+            )}
 
             {profileSyncMessage ? (
               <GlassPanel padding={spacing.md}>
                 <AppText variant="caption" style={styles.warning}>{profileSyncMessage}</AppText>
               </GlassPanel>
             ) : null}
-            {profile ? (
+
+            {editingProfile || !profile ? (
               <GlassPanel padding={spacing.lg} gap={spacing.md}>
-                <AppText variant="h2">Your receive QR</AppText>
-                <AppText variant="caption" style={styles.muted}>Generated from your saved UPI details. No separate QR-image save is needed.</AppText>
-                <View style={styles.qrWrap}>
-                  <QRCode value={receiveUri} size={224} color="#211A33" backgroundColor="#FFFFFF" quietZone={12} ecl="Q" />
-                  <View style={styles.qrMeta}>
-                    <AppText variant="bodyMedium" style={styles.qrValue}>{profile.displayName}</AppText>
-                    <AppText variant="caption" style={styles.qrValue}>UPI ID: {profile.vpa}</AppText>
-                  </View>
+                <AppText variant="h2">{profile ? "Edit your UPI details" : "Your UPI details"}</AppText>
+                <View style={styles.section}>
+                  <AppText variant="bodyMedium">Your UPI ID</AppText>
+                  <TextInput
+                    value={vpa}
+                    onChangeText={setVpa}
+                    placeholder="yourname@bank"
+                    placeholderTextColor={colors.textMuted}
+                    style={styles.input}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    editable={!profileLoading}
+                  />
                 </View>
-                <AppText variant="caption" style={styles.muted}>Show this QR to someone paying you. Ask them to confirm the name and UPI ID in their UPI app before approving.</AppText>
-                <AppText variant="caption" style={{ color: profile.syncStatus === "synced" ? colors.success : colors.warning }}>
-                  {profile.syncStatus === "synced" ? "Synced to your DeepPay account" : "Saved on this device · Account sync pending"}
-                </AppText>
-                {profile.syncStatus !== "synced" ? (
-                  <PrimaryButton title={savingProfile ? "Syncing…" : "Retry account sync"} onPress={() => { void retryProfileSync(); }} disabled={savingProfile} />
-                ) : null}
-                <PrimaryButton title="Share UPI details" onPress={() => { void shareMyUpi(); }} />
+                <View style={styles.section}>
+                  <AppText variant="bodyMedium">Name shown to payers</AppText>
+                  <TextInput
+                    value={displayName}
+                    onChangeText={setDisplayName}
+                    placeholder={user?.fullName ?? "Your name"}
+                    placeholderTextColor={colors.textMuted}
+                    style={styles.input}
+                    maxLength={80}
+                    editable={!profileLoading}
+                  />
+                </View>
+                <PrimaryButton title={savingProfile ? "Saving…" : profile ? "Save changes" : "Save UPI details"} onPress={() => { void saveProfile(); }} disabled={profileLoading || savingProfile || !isValidVpa(vpa) || displayName.trim().length < 2} />
               </GlassPanel>
-            ) : (
-              <GlassPanel padding={spacing.lg}>
-                <AppText variant="body" style={styles.muted}>Save your UPI ID to create your personal receive QR.</AppText>
-              </GlassPanel>
-            )}
+            ) : null}
           </>
         ) : null}
 
