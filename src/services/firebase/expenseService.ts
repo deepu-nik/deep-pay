@@ -71,7 +71,7 @@ function mapExpense(id: string, data: Record<string, unknown>): Expense {
 }
 
 function splitToMinor(input: CreateExpenseInput, uid: string, amountMinor: number, participantUids: string[]): StoredSplit[] {
-  const rawSplits = input.splits?.length
+  const rawSplits: NonNullable<CreateExpenseInput["splits"]> = input.splits?.length
     ? input.splits
     : (() => {
         const base = Math.floor(amountMinor / participantUids.length);
