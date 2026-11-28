@@ -2,7 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { AppText } from "@/src/components/common/AppText";
 import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { useTheme } from "@/src/theme";
@@ -58,7 +58,7 @@ export function CreateActionSheet({
     if (label === "Add Expense") router.push("/expenses/new");
     if (label === "Create Group") router.push("/groups");
     if (label === "Add Friend") router.push("/friends");
-    if (label === "UPI & QR") router.push("/upi");
+    if (label === "UPI & QR") router.push("/upi" as Href);
     onAction?.(label);
     onClose();
   };
