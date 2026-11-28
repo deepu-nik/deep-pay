@@ -97,7 +97,7 @@ export default function ProfileScreen() {
     void refresh();
   }, [refresh]));
 
-  const currentTheme = modes.find((item) => item.key === mode) ?? modes[0];
+  const currentTheme = modes.find((item) => item.key === mode) ?? modes[0]!;
   const initials = (user?.fullName ?? "D").trim().slice(0, 1).toUpperCase() || "D";
 
   const goTo = (tab: TabKey) => {
