@@ -137,7 +137,7 @@ export default function ActivityScreen() {
     content: { padding: spacing.lg, paddingBottom: 145, gap: spacing.lg },
     header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     subtitle: { color: colors.textMuted, marginTop: 3 },
-    headerButton: { width: 46, height: 46, borderRadius: 17, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.surface },
+    headerButton: { width: 46, height: 46, borderRadius: 17, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0] },
     summary: { flexDirection: "row", gap: spacing.md },
     summaryCard: { flex: 1 },
     summaryIcon: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: colors.iconBackground, marginBottom: spacing.sm },
