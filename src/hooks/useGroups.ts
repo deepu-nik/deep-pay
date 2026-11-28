@@ -43,21 +43,8 @@ export function useGroups() {
   }, [user?.id]);
 
   useEffect(() => {
-    let active = true;
-    if (!user?.id) {
-      setGroups([]);
-      setLoading(false);
-      return () => { active = false; };
-    }
-    setLoading(true);
-    firebaseGroupService.listGroups()
-      .then((next) => { if (active) setGroups(next); })
-      .catch((cause: unknown) => {
-        if (active) setError(cause instanceof Error ? cause.message : "We couldn't load your groups.");
-      })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [user?.id]);
+    void refresh().catch(() => undefined);
+  }, [refresh]);
 
   const listMembers = useCallback((groupId: string): Promise<GroupMember[]> => {
     return firebaseGroupService.listMembers(groupId);
