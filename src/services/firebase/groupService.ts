@@ -13,6 +13,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { firebaseAuth, firestore } from "@/src/lib/firebase";
+import { withFirestoreTimeout } from "@/src/services/firebase/requestUtils";
 import type { CreateGroupInput, Group, GroupMember } from "@/src/types/domain";
 
 export type GroupInviteDetails = {
@@ -26,23 +27,6 @@ function requireUid() {
   const uid = firebaseAuth.currentUser?.uid;
   if (!uid) throw new Error("Sign in to continue.");
   return uid;
-}
-
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message = "Loading your groups took too long. Check your connection and tap to retry."): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        timeoutId = setTimeout(
-          () => reject(new Error(message)),
-          timeoutMs,
-        );
-      }),
-    ]);
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-  }
 }
 
 function currentDisplayName() {
@@ -78,7 +62,10 @@ export const firebaseGroupService = {
       collection(firestore, "groups"),
       where("memberUids", "array-contains", uid),
     );
-    const snapshot = await withTimeout(getDocs(groupsQuery), 7000);
+    const snapshot = await withFirestoreTimeout(
+      getDocs(groupsQuery),
+      "Loading your groups took too long. Check your connection and tap to retry.",
+    );
     return snapshot.docs
       .filter((item) => item.data().status === "active")
       .map((item) => mapGroup(item.id, item.data()))
@@ -87,9 +74,8 @@ export const firebaseGroupService = {
 
   async listMembers(groupId: string): Promise<GroupMember[]> {
     requireUid();
-    const snapshot = await withTimeout(
+    const snapshot = await withFirestoreTimeout(
       getDocs(collection(firestore, "groups", groupId, "members")),
-      7000,
       "Loading group members took too long. Check your connection and retry.",
     );
     return snapshot.docs
