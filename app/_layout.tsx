@@ -17,11 +17,12 @@ function AppShell() {
     // its type-generation step runs. Keep the runtime segment check string-safe.
     const firstSegment = segments[0] as string | undefined;
     const isAuthRoute = firstSegment === "auth";
+    const isPublicInviteRoute = firstSegment === "group-invite";
     const isEntryRoute = firstSegment === "index" || firstSegment === undefined;
 
     if (user && isAuthRoute) {
       router.replace("/(tabs)");
-    } else if (!user && !isAuthRoute && !isEntryRoute) {
+    } else if (!user && !isAuthRoute && !isPublicInviteRoute && !isEntryRoute) {
       router.replace("/auth/welcome" as Href);
     }
   }, [user, loading, segments, router]);

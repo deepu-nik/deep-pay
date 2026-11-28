@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
-import { mockExpenseService } from "@/src/services/mock/expenseService";
-import { mockGroupService } from "@/src/services/mock/groupService";
+import { firebaseExpenseService } from "@/src/services/firebase/expenseService";
+import { firebaseGroupService } from "@/src/services/firebase/groupService";
 import type { Expense, Group, HomeSummary } from "@/src/types/domain";
 
 export function useHomeData() {
@@ -13,19 +13,17 @@ export function useHomeData() {
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
       const [nextSummary, nextExpenses, nextGroups] = await Promise.all([
-        mockExpenseService.getHomeSummary(),
-        mockExpenseService.listRecent(),
-        mockGroupService.listGroups(),
+        firebaseExpenseService.getHomeSummary(),
+        firebaseExpenseService.listRecent(),
+        firebaseGroupService.listGroups(),
       ]);
-
       setSummary(nextSummary);
       setExpenses(nextExpenses);
       setGroups(nextGroups);
-    } catch {
-      setError("We couldn't load your dashboard. Check your connection and try again.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "We couldn't load your dashboard. Check your connection and try again.");
     } finally {
       setLoading(false);
     }

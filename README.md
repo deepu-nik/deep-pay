@@ -10,10 +10,10 @@ DeepPay uses **Firebase Authentication + Cloud Firestore** for account identity 
 - Cloud Firestore stores each user's profile at `users/{uid}`.
 - The Expo app uses the Firebase JavaScript SDK, which works with Expo Go.
 - Authentication state is persisted with React Native AsyncStorage through Firebase Auth's persistence adapter.
-- Firestore Security Rules restrict each user to their own profile document. Other collections remain denied until their access model is designed.
+- Firestore Security Rules keep user profiles private and grant access to expenses, settlements and group membership only to the owner or authorized group members.
 - There is no custom Express/MongoDB authentication server in this Firebase foundation.
 
-The current Firebase phase covers account creation, sign-in, password reset, profile updates and sign-out. Expense, group, split and settlement repositories are still separate mock-data work and will be migrated to Firestore with collection-specific rules in later phases.
+The Firebase foundation covers account creation, sign-in, password reset, profile updates and sign-out. The Firestore expense-engine branch adds authenticated group membership, group invitations, paise-based expense records, settlement confirmations and a Firebase-backed activity feed. The Friends directory and cross-account friend discovery are still a later milestone.
 
 ## Firebase project setup
 
@@ -70,20 +70,19 @@ The rules permit an authenticated user to read their own profile, create it with
 
 - Never deploy permissive test-mode rules to a real project.
 - Do not add an allow-all or authenticated-user-wide rule to unblock development.
-- Groups, expenses, settlements and shared balances need explicit membership and ownership rules before their Firestore repositories are enabled.
+- Group, expense and settlement repositories use explicit membership and ownership rules. Financial record corrections and stronger server-side validation remain future work.
 - Consider Firebase App Check before a public launch.
 - Email verification, Google sign-in and account deletion workflows can be added as separate auth enhancements.
-- DeepPay does not move money or execute UPI transactions in this phase; it stores account/profile information only.
+- This milestone records expenses and peer-confirmed settlements. It does not initiate UPI payments or verify transfers with a bank.
 
 ## Product roadmap
 
 - Phase 0 — Design system + app shell
 - Phase 1 — Firebase Authentication + user profile
-- Phase 2 — Firestore expense storage
-- Phase 3 — Splitting
-- Phase 4 — Friends + groups and membership rules
-- Phase 5 — Settlements
-- Phase 6 — UPI handoff
+- Phase 2 — Firestore groups, expense ledger and settlement confirmations
+- Phase 3 — Usernames, friend discovery and group invitations
+- Phase 4 — UPI QR, scanning and external app handoff
+- Phase 5 — Transaction imports and personal finance analytics
 - Phase 7 — Analytics + budgets
 - Phase 8 — Notifications
 - Phase 9 — AI expense assistant
@@ -92,3 +91,50 @@ The rules permit an authenticated user to read their own profile, create it with
 ## Working brand
 
 The product is currently called **DeepPay**. Branding is isolated from application logic so the name can be changed later without restructuring the app.
+
+
+## Firestore expense engine
+
+The implementation branch is feature/firestore-expense-engine, based on the Firebase foundation branch.
+
+### Data model
+
+- users/{uid} retains the existing private authentication profile.
+- users/{uid}/expenses/{expenseId} stores personal expenses.
+- users/{uid}/groupMemberships/{groupId} stores a private membership index.
+- groups/{groupId} stores group metadata and member UIDs.
+- groups/{groupId}/members/{uid} stores the member's in-group display name and role.
+- groups/{groupId}/expenses/{expenseId} stores shared expenses.
+- groups/{groupId}/settlements/{settlementId} stores payments awaiting recipient confirmation.
+- groupInvites/{inviteId} stores seven-day group invitations.
+
+Money is written as integer paise (for example, ₹125.50 is 12550) to avoid floating-point currency storage.
+
+### Group invitations
+
+Create a group with its owner first, then use the invite action from the group details screen. The invitation is valid for seven days. The invited person must sign in to DeepPay and open the invitation again before joining. Membership changes are performed through the invite flow; the group editor cannot add arbitrary client-side friend IDs.
+
+### Expense and settlement behavior
+
+- Expenses are immutable after creation in this first Firestore milestone. Edit, delete and audit/correction flows are intentionally deferred.
+- Group expenses require every participant and the payer to be an actual group member.
+- Personal expenses contain only the signed-in user.
+- Settlements begin as payer_marked_paid. Only the recipient can confirm or reject them.
+- Only confirmed settlements affect group balances.
+- The current client verifies split arithmetic before writing; a trusted server-side verifier is not part of the zero-cost architecture. Group financial records therefore remain collaborative records, not bank-verified statements.
+
+### Existing prototype data
+
+Previously stored mock expenses and groups in local AsyncStorage are not deleted, but they are not automatically migrated. Sample IDs such as You, aarav and riya are not Firebase UIDs, so importing them without explicit identity mapping could assign balances to the wrong people. A reviewed import/mapping tool is a separate task.
+
+### Publish Firestore rules
+
+Before testing the new group and expense features, publish the repository rules to the same Firebase project used by the app:
+
+    firebase deploy --only firestore:rules
+
+Alternatively, copy firestore.rules into Firebase Console → Firestore Database → Rules and publish it. Do not use Firebase's permissive test rules.
+
+### Free-tier boundary
+
+The app uses the Firebase client SDK directly and does not require a payment gateway, Cloud Functions or a paid UPI provider for this milestone. Firebase Spark quotas apply; exceeding a free quota can pause the affected service until the quota resets. UPI payment execution is not included in this Firestore milestone.
