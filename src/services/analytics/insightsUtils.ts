@@ -29,8 +29,11 @@ export type MonthlyInsights = {
 };
 
 function monthKeyFromExpense(expense: Expense): string {
+  if (expense.createdAt) {
+    const createdAt = new Date(expense.createdAt);
+    if (!Number.isNaN(createdAt.getTime())) return monthKey(createdAt);
+  }
   if (/^\d{4}-\d{2}-\d{2}/.test(expense.date)) return expense.date.slice(0, 7);
-  if (expense.createdAt && /^\d{4}-\d{2}/.test(expense.createdAt)) return expense.createdAt.slice(0, 7);
   return "";
 }
 
