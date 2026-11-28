@@ -15,16 +15,29 @@ export type ActivityEntry = {
   groupId?: string;
 };
 
+export type ActivityResult = {
+  items: ActivityEntry[];
+  groupsUnavailable: boolean;
+};
+
 export const firebaseActivityService = {
-  async listRecent(): Promise<ActivityEntry[]> {
+  async listRecent(): Promise<ActivityResult> {
     const uid = firebaseAuth.currentUser?.uid;
     if (!uid) throw new Error("Sign in to continue.");
 
-    const [expenses, groups] = await withFirestoreTimeout(
-      Promise.all([
-        firebaseExpenseService.listRecent(),
+    let groupsUnavailable = false;
+    let groups: Awaited<ReturnType<typeof firebaseGroupService.listGroups>> = [];
+    try {
+      groups = await withFirestoreTimeout(
         firebaseGroupService.listGroups(),
-      ]),
+        "Loading your groups took too long. Check your connection and retry.",
+      );
+    } catch {
+      groupsUnavailable = true;
+    }
+
+    const expenses = await withFirestoreTimeout(
+      firebaseExpenseService.listRecent(groups),
       "Loading activity took too long. Check your connection and retry.",
     );
     const groupNames = new Map(groups.map((group) => [group.id, group.name]));
@@ -76,8 +89,10 @@ export const firebaseActivityService = {
       groupId: settlement.groupId,
     }));
 
-    return [...expenseEntries, ...settlementEntries]
+    const items = [...expenseEntries, ...settlementEntries]
       .filter((item) => Number.isFinite(item.timestamp) && item.timestamp > 0)
       .sort((a, b) => b.timestamp - a.timestamp);
+
+    return { items, groupsUnavailable };
   },
 };
