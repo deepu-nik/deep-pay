@@ -318,7 +318,7 @@ export default function ProfileScreen() {
         <AppText variant="caption" style={stylesLocal.footer}>Made to make shared money feel simple.</AppText>
       </ScrollView>
 
-      <BottomTabBar activeTab="profile" onTabPress={goTo} onPayPress={() => router.push({ pathname: "/upi", params: { tab: "my-qr" } } as Href)} />
+      <BottomTabBar activeTab="profile" onTabPress={goTo} onPayPress={() => router.push("/upi" as Href)} />
 
       <Modal visible={themeVisible} transparent animationType="slide" onRequestClose={() => setThemeVisible(false)}>
         <View style={stylesLocal.modalRoot}>
