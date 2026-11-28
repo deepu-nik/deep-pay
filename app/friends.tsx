@@ -302,7 +302,7 @@ export default function FriendsScreen() {
           <GlassPanel padding={spacing.lg} gap={spacing.md}>
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
-                <AppText variant="h2">1. Your username</AppText>
+                <AppText variant="h2">Your username</AppText>
                 <AppText variant="caption" style={styles.muted}>
                   Friends can find you by username. Your email address is never shown.
                 </AppText>
@@ -435,14 +435,6 @@ export default function FriendsScreen() {
                   </Pressable>
                 </GlassPanel>
               )}
-              {friendsError ? (
-                <GlassPanel padding={spacing.md}>
-                  <AppText variant="caption" style={{ color: colors.danger }}>{friendsError}</AppText>
-                  <Pressable onPress={() => { void refresh(); }} style={{ paddingTop: spacing.sm }}>
-                    <AppText variant="caption" style={{ color: colors.primary }}>Retry friends</AppText>
-                  </Pressable>
-                </GlassPanel>
-              ) : null}
             </View>
           ) : null}
 
@@ -594,14 +586,6 @@ export default function FriendsScreen() {
                 </GlassPanel>
               )}
 
-              {requestsError ? (
-                <GlassPanel padding={spacing.md}>
-                  <AppText variant="caption" style={{ color: colors.danger }}>{requestsError}</AppText>
-                  <Pressable onPress={() => { void refresh(); }} style={{ paddingTop: spacing.sm }}>
-                    <AppText variant="caption" style={{ color: colors.primary }}>Retry requests</AppText>
-                  </Pressable>
-                </GlassPanel>
-              ) : null}
               {actionError ? (
                 <GlassPanel padding={spacing.md}>
                   <AppText variant="caption" style={{ color: colors.danger }}>{actionError}</AppText>
