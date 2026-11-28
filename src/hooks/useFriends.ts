@@ -51,10 +51,10 @@ export function useFriends() {
   }, [refresh]);
 
   const claimUsername = useCallback(async (username: string) => {
-    const nextHandle = await firebaseFriendService.claimUsername(username);
+    const nextHandle = await firebaseFriendService.claimUsername(username, user?.fullName);
     setHandle(nextHandle);
     return nextHandle;
-  }, []);
+  }, [user?.fullName]);
 
   const sendFriendRequest = useCallback(async (username: string) => {
     await firebaseFriendService.sendFriendRequest(username);
