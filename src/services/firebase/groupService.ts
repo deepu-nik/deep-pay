@@ -28,6 +28,23 @@ function requireUid() {
   return uid;
 }
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error("Loading your groups took too long. Check your connection and tap to retry.")),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 function currentDisplayName() {
   return firebaseAuth.currentUser?.displayName?.trim() || firebaseAuth.currentUser?.email?.split("@")[0] || "DeepPay member";
 }
@@ -61,7 +78,7 @@ export const firebaseGroupService = {
       collection(firestore, "groups"),
       where("memberUids", "array-contains", uid),
     );
-    const snapshot = await getDocs(groupsQuery);
+    const snapshot = await withTimeout(getDocs(groupsQuery), 7000);
     return snapshot.docs
       .filter((item) => item.data().status === "active")
       .map((item) => mapGroup(item.id, item.data()))
