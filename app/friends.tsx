@@ -320,23 +320,24 @@ export default function FriendsScreen() {
                   disabled={handleLoading || savingHandle || usernameDraft.trim().length < 3}
                 />
 
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => { void testFirebaseConnection(); }}
-                  disabled={checkingConnection}
-                  style={{ alignSelf: "center", paddingVertical: spacing.xs }}
-                >
-                  <AppText variant="caption" style={{ color: colors.primary }}>
-                    {checkingConnection ? "Checking Firebase server…" : "Test Firebase connection"}
-                  </AppText>
-                </Pressable>
-                {connectionResult ? (
-                  <AppText variant="caption" style={{ color: connectionResult.startsWith("Connected") ? colors.success : colors.warning }}>
-                    {connectionResult}
-                  </AppText>
-                ) : null}
               </>
             )}
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => { void testFirebaseConnection(); }}
+              disabled={checkingConnection}
+              style={{ alignSelf: "center", paddingVertical: spacing.xs }}
+            >
+              <AppText variant="caption" style={{ color: colors.primary }}>
+                {checkingConnection ? "Checking Firebase server…" : "Test Firebase connection"}
+              </AppText>
+            </Pressable>
+            {connectionResult ? (
+              <AppText variant="caption" style={{ color: connectionResult.startsWith("Connected") ? colors.success : colors.warning }}>
+                {connectionResult}
+              </AppText>
+            ) : null}
           </GlassPanel>
 
           <GlassPanel padding={spacing.lg} gap={spacing.md}>
