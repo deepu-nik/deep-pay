@@ -4,6 +4,7 @@ import { useRouter, type Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
+import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { PrimaryButton } from "@/src/components/common/PrimaryButton";
 import { useAuth } from "@/src/context/AuthContext";
 import { useTheme } from "@/src/theme";
@@ -79,7 +80,7 @@ export default function SignUpScreen() {
             </AppText>
           </View>
 
-          <View style={styles.form}>
+          <GlassPanel padding={spacing.lg} style={styles.form}>
             <View style={styles.field}>
               <AppText variant="bodyMedium">Full name</AppText>
               <TextInput
@@ -143,7 +144,7 @@ export default function SignUpScreen() {
                 style={styles.input}
               />
             </View>
-          </View>
+          </GlassPanel>
 
           <View style={styles.note}>
             <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
