@@ -7,3 +7,4 @@ export * from "./LoadingState";
 export * from "./PrimaryButton";
 export * from "./QuickAction";
 export * from "./SectionHeader";
+export * from "./GlassPanel";
