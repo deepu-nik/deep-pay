@@ -43,7 +43,9 @@ export default function HomeScreen() {
   const openCreate = () => setSheetVisible(true);
   const goToGroups = () => router.push("/(tabs)/groups" as any);
 
-  const handleQuickAction = (label: "Expense" | "Split" | "Groups" | "UPI") => {
+  const openUpiTab = (tab: "scan" | "my-qr") => router.push({ pathname: "/upi", params: { tab } } as Href);
+
+  const handleQuickAction = (label: "Expense" | "Split" | "Groups" | "My QR") => {
     if (label === "Expense") {
       router.push("/expenses/new");
       return;
@@ -59,7 +61,7 @@ export default function HomeScreen() {
       return;
     }
 
-    router.push("/upi" as Href);
+    openUpiTab("my-qr");
   };
 
   const goTo = (tab: "home" | "groups" | "activity" | "profile") => {
@@ -86,7 +88,11 @@ export default function HomeScreen() {
     balanceValue: { color: "#FFFFFF", fontWeight: "800" },
     balanceOwedValue: { color: colors.accentYellow, fontWeight: "800" },
     balanceHint: { color: "rgba(255,255,255,0.68)" },
-    actions: { flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.xl },
+    actions: { flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.md },
+    scanAction: { flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder },
+    scanActionIcon: { width: 46, height: 46, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: colors.iconBackground },
+    scanActionCopy: { flex: 1, gap: 3 },
+    receiveQrAction: { flexDirection: "row", alignItems: "center", gap: spacing.sm, alignSelf: "flex-start", marginTop: spacing.lg, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: "rgba(255,255,255,0.32)", backgroundColor: "rgba(255,255,255,0.14)" },
     section: { marginBottom: spacing.xl },
     groupList: { paddingRight: spacing.lg, gap: spacing.md },
     groupCard: { width: 214, minHeight: 96, borderRadius: radius.lg, overflow: "hidden" },
@@ -156,6 +162,16 @@ export default function HomeScreen() {
               <AppText variant="caption" style={styles.balanceHint}>Across groups</AppText>
             </Pressable>
           </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="View QR to receive payment"
+            onPress={() => openUpiTab("my-qr")}
+            style={styles.receiveQrAction}
+          >
+            <Ionicons name="qr-code-outline" size={18} color="#FFFFFF" />
+            <AppText variant="caption" style={{ color: "#FFFFFF", fontWeight: "700" }}>View QR to receive payment</AppText>
+            <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
+          </Pressable>
         </View>
 
         <SectionHeader title="Quick actions" />
@@ -164,11 +180,26 @@ export default function HomeScreen() {
             { label: "Expense", icon: "add-circle" },
             { label: "Split", icon: "git-branch" },
             { label: "Groups", icon: "people" },
-            { label: "UPI", icon: "qr-code" },
+            { label: "My QR", icon: "qr-code" },
           ] as const).map(({ label, icon }) => (
             <QuickAction key={label} label={label} icon={icon} onPress={() => handleQuickAction(label)} />
           ))}
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Scan to Pay"
+          onPress={() => openUpiTab("scan")}
+          style={styles.scanAction}
+        >
+          <View style={styles.scanActionIcon}>
+            <Ionicons name="scan-outline" size={23} color={colors.primary} />
+          </View>
+          <View style={styles.scanActionCopy}>
+            <AppText variant="bodyMedium">Scan to Pay</AppText>
+            <AppText variant="caption" style={{ color: colors.textMuted }}>Scan a UPI QR code and pay with your UPI app</AppText>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+        </Pressable>
 
         <View style={styles.section}>
           <SectionHeader title="Your groups" action={groups.length ? "See all" : undefined} onAction={goToGroups} />
