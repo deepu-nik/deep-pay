@@ -104,9 +104,11 @@ export default function FriendsScreen() {
     setActionError(null);
     try {
       const result = await checkFirestoreConnection();
-      setConnectionResult(
-        "Connected to Firebase project " + result.projectId
-        + " · Server replied in " + result.elapsedMs + " ms · Account profile found.",
+      setConnectionResult(result.profileFound
+        ? "Connected to Firebase project " + result.projectId
+          + " · Server replied in " + result.elapsedMs + " ms · Account profile found."
+        : "Firestore reachable at project " + result.projectId
+          + " · Server replied in " + result.elapsedMs + " ms · Account profile missing. Sign out, then sign back in to repair it.",
       );
     } catch (cause) {
       setConnectionResult(cause instanceof Error ? cause.message : "Firestore connection test failed.");
