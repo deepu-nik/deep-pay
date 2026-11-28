@@ -525,7 +525,8 @@ service cloud.firestore {
           && request.resource.data.role == (
             getAfter(groupPath(groupId)).data.createdByUid == memberUid ? 'owner' : 'member'
           );
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if isGroupOwner(groupId);
       }
 
       match /expenses/{expenseId} {
@@ -581,7 +582,9 @@ service cloud.firestore {
         && resource.data.status == 'active'
         && resource.data.expiresAt is timestamp
         && resource.data.expiresAt > request.time;
-      allow list: if signedIn() && resource.data.createdByUid == request.auth.uid;
+      allow list: if signedIn()
+        && resource.data.groupId is string
+        && isGroupOwner(resource.data.groupId);
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly([
           'groupId',
