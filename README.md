@@ -82,8 +82,8 @@ The rules permit an authenticated user to read their own profile, create it with
 - Phase 2 — Firestore groups, expense ledger and settlement confirmations
 - Phase 3 — Usernames, friend discovery and group invitations
 - Phase 4 — UPI QR, scanning and external app handoff
-- Phase 5 — Transaction imports and personal finance analytics
-- Phase 7 — Analytics + budgets
+- Phase 5 — Personal finance analytics (implemented); bank transaction imports remain future work
+- Phase 7 — Monthly category budgets (implemented)
 - Phase 8 — Notifications
 - Phase 9 — AI expense assistant
 - Phase 10 — Receipt scanner + smart split
@@ -163,3 +163,16 @@ The UPI screen uses Expo Camera and react-native-svg based QR rendering. After c
     npm run typecheck
 
 Camera permission is only requested when the Scan tab is opened.
+
+
+## Personal finance insights and monthly budgets
+
+The Insights screen summarizes the signed-in user's share of personal and group expenses by calendar month. It shows category totals, a daily average, and a comparison with the previous month when prior-month records exist.
+
+Monthly category budgets are stored privately at `users/{uid}/budgets/{category}`. Each category has one reusable monthly limit. The screen compares the current month's recorded share against that limit and highlights overspending.
+
+UPI handoff records are intentionally excluded from spending analytics because they are payer-reported and are not verified by a bank. Budgets are planning tools only; they do not move, reserve, or restrict money in a bank account.
+
+Publish the updated owner-only budget rules before testing this screen:
+
+    firebase deploy --only firestore:rules
