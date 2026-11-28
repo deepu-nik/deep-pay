@@ -32,14 +32,18 @@ export function CreateActionSheet({
   const styles = StyleSheet.create({
     backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(12,7,28,0.48)" },
     sheet: {
-      backgroundColor: colors.surface,
+      backgroundColor: colors.glassGradient[0],
       borderTopLeftRadius: 32,
       borderTopRightRadius: 32,
       padding: spacing.lg,
       paddingTop: spacing.xl,
       paddingBottom: Math.max(spacing.lg, insets.bottom + spacing.md),
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.glassBorder,
+      shadowColor: colors.primary,
+      shadowOpacity: 0.14,
+      shadowRadius: 22,
+      elevation: 8,
       gap: spacing.xs,
     },
     handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: colors.border, alignSelf: "center", marginBottom: spacing.lg },
@@ -48,7 +52,7 @@ export function CreateActionSheet({
     actionPressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
     icon: { width: 52, height: 52, borderRadius: 19, alignItems: "center", justifyContent: "center", overflow: "hidden" },
     copy: { flex: 1, gap: 3 },
-    close: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: colors.surfaceMuted },
+    close: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder },
   });
 
   const handleAction = (label: string) => {
