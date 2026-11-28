@@ -130,6 +130,11 @@ export function useFriends() {
     await refresh();
   }, [refresh]);
 
+  const removeFriend = useCallback(async (friendshipId: string) => {
+    await firebaseFriendService.removeFriend(friendshipId);
+    await refresh();
+  }, [refresh]);
+
   const respondToRequest = useCallback(async (requestId: string, accept: boolean) => {
     await firebaseFriendService.respondToRequest(requestId, accept);
     await refresh();
@@ -151,6 +156,7 @@ export function useFriends() {
     claimUsername,
     findUserByUsername,
     sendFriendRequest,
+    removeFriend,
     respondToRequest,
   };
 }
