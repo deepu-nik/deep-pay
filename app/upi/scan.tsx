@@ -51,8 +51,8 @@ export default function FullScreenUpiScanner() {
 
   const styles = StyleSheet.create({
     screen: { flex: 1, backgroundColor: "#090812" },
-    camera: { ...StyleSheet.absoluteFillObject },
-    shade: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(9,8,18,0.16)" },
+    camera: { ...StyleSheet.absoluteFill },
+    shade: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(9,8,18,0.16)" },
     safe: { flex: 1, paddingHorizontal: spacing.lg },
     header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: spacing.xs },
     close: { width: 46, height: 46, borderRadius: 23, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(12,10,24,0.68)", borderWidth: 1, borderColor: "rgba(255,255,255,0.24)" },
