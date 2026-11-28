@@ -614,7 +614,6 @@ export default function FriendsScreen() {
               ) : null}
             </View>
           ) : null}
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
