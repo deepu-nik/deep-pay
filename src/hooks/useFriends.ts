@@ -8,6 +8,15 @@ import {
 } from "@/src/services/firebase/friendService";
 
 function errorText(cause: unknown, fallback: string) {
+  if (cause && typeof cause === "object" && "code" in cause) {
+    const code = String((cause as { code?: unknown }).code ?? "");
+    if (code === "permission-denied" || code === "firestore/permission-denied") {
+      return "Firestore permissions need the latest DeepPay rules. Pull the latest branch and run: firebase deploy --only firestore:rules";
+    }
+    if (code === "unavailable" || code === "deadline-exceeded" || code === "network-request-failed") {
+      return "Firebase couldn't be reached. Check your connection and refresh.";
+    }
+  }
   return cause instanceof Error ? cause.message : fallback;
 }
 
