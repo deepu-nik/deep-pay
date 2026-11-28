@@ -14,7 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as Linking from "expo-linking";
 import QRCode from "react-native-qrcode-svg";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { AppText } from "@/src/components/common/AppText";
 import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { LoadingState } from "@/src/components/common/LoadingState";
