@@ -58,7 +58,7 @@ export function CreateActionSheet({
     if (label === "Add Expense") router.push("/expenses/new");
     if (label === "Create Group") router.push("/groups");
     if (label === "Add Friend") router.push("/friends");
-    if (label === "UPI & QR") router.push("/upi" as Href);
+    if (label === "UPI & QR") router.push({ pathname: "/upi", params: { tab: "my-qr" } } as Href);
     onAction?.(label);
     onClose();
   };
