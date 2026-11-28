@@ -97,7 +97,7 @@ export default function GroupsScreen() {
           <GlassPanel padding={spacing.xl}><LoadingState message="Loading groups…" /></GlassPanel>
         ) : error ? (
           <View style={{ alignItems: "center", gap: spacing.sm, paddingVertical: spacing.lg }}>
-            <AppText variant="caption" style={styles.muted}>Groups are temporarily unavailable.</AppText>
+            <AppText variant="caption" style={[styles.muted, { textAlign: "center" }]}>{error}</AppText>
             <Pressable accessibilityRole="button" onPress={() => { void refresh().catch(() => undefined); }}>
               <AppText variant="caption" style={{ color: colors.primary }}>Retry</AppText>
             </Pressable>
