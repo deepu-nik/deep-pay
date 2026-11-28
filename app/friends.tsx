@@ -60,6 +60,7 @@ export default function FriendsScreen() {
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const syncIssue = handleError || requestsError || friendsError;
 
   const saveHandle = async () => {
     if (savingHandle) return;
@@ -231,6 +232,19 @@ export default function FriendsScreen() {
             </Pressable>
           </View>
 
+          {syncIssue ? (
+            <GlassPanel padding={spacing.md} gap={spacing.xs}>
+              <AppText variant="bodyMedium" style={{ color: colors.warning }}>Friends couldn't sync some account data</AppText>
+              <AppText variant="caption" style={styles.muted}>{syncIssue}</AppText>
+              <AppText variant="caption" style={styles.muted}>
+                An account with no friends or requests is normal. These sections will populate when other users connect with you.
+              </AppText>
+              <Pressable onPress={() => { void refresh(); }} style={{ paddingTop: spacing.xs }}>
+                <AppText variant="caption" style={{ color: colors.primary }}>Retry sync</AppText>
+              </Pressable>
+            </GlassPanel>
+          ) : null}
+
           <GlassPanel padding={spacing.lg} gap={spacing.md}>
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
@@ -261,11 +275,6 @@ export default function FriendsScreen() {
                 <AppText variant="caption" style={styles.muted}>
                   Create your unique DeepPay username once. Use 3–20 lowercase letters, numbers or underscores.
                 </AppText>
-                {handleError ? (
-                  <AppText variant="caption" style={{ color: colors.warning }}>
-                    We couldn't check your saved username. The setup form is still available; refresh if this message continues.
-                  </AppText>
-                ) : null}
                 <View style={styles.inline}>
                   <View style={styles.prefix}><AppText variant="bodyMedium" style={{ color: colors.primary }}>@</AppText></View>
                   <TextInput
@@ -369,13 +378,6 @@ export default function FriendsScreen() {
             </View>
             {requestsLoading ? (
               <GlassPanel padding={spacing.md}><LoadingState message="Loading friend requests…" /></GlassPanel>
-            ) : requestsError ? (
-              <GlassPanel padding={spacing.md} gap={spacing.sm}>
-                <AppText variant="caption" style={{ color: colors.warning }}>{requestsError}</AppText>
-                <Pressable onPress={() => { void refresh(); }}>
-                  <AppText variant="caption" style={{ color: colors.primary }}>Retry loading requests</AppText>
-                </Pressable>
-              </GlassPanel>
             ) : incomingRequests.length ? incomingRequests.map((request) => (
               <GlassPanel key={request.id} padding={spacing.md}>
                 <View style={styles.row}>
@@ -419,8 +421,6 @@ export default function FriendsScreen() {
             <AppText variant="h2" style={styles.sectionTitle}>Sent requests</AppText>
             {requestsLoading ? (
               <AppText variant="caption" style={styles.muted}>Loading sent requests…</AppText>
-            ) : requestsError ? (
-              <AppText variant="caption" style={{ color: colors.warning }}>Sent requests couldn't be loaded.</AppText>
             ) : outgoingRequests.length ? outgoingRequests.map((request) => (
               <GlassPanel key={request.id} padding={spacing.md}>
                 <View style={styles.row}>
@@ -446,13 +446,6 @@ export default function FriendsScreen() {
             </View>
             {friendsLoading ? (
               <GlassPanel padding={spacing.md}><LoadingState message="Loading your friends…" /></GlassPanel>
-            ) : friendsError ? (
-              <GlassPanel padding={spacing.md} gap={spacing.sm}>
-                <AppText variant="caption" style={{ color: colors.warning }}>{friendsError}</AppText>
-                <Pressable onPress={() => { void refresh(); }}>
-                  <AppText variant="caption" style={{ color: colors.primary }}>Retry loading friends</AppText>
-                </Pressable>
-              </GlassPanel>
             ) : friends.length ? friends.map((friend) => (
               <GlassPanel key={friend.id} padding={spacing.md}>
                 <View style={styles.row}>
