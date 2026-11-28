@@ -1,3 +1,4 @@
+import { FirebaseError } from "firebase/app";
 import {
   Timestamp,
   collection,
@@ -12,6 +13,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { firebaseAuth, firestore } from "@/src/lib/firebase";
+import { FIRESTORE_REQUEST_TIMEOUT_MS, withFirestoreTimeout } from "@/src/services/firebase/requestUtils";
 
 export type FriendHandle = {
   uid: string;
@@ -71,18 +73,21 @@ function timestampToIso(value: unknown) {
   return typeof value === "string" ? value : new Date(0).toISOString();
 }
 
-async function withTimeout<T>(promise: Promise<T>, message: string, timeoutMs = 8000): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
-      }),
-    ]);
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
+function mapFriendServiceError(cause: unknown, action: string): Error {
+  if (cause instanceof FirebaseError && cause.code === "permission-denied") {
+    return new Error(
+      "Firestore blocked " + action + ". Pull the latest DeepPay branch, then deploy its rules with: firebase deploy --only firestore:rules",
+    );
   }
+  if (cause instanceof FirebaseError && (
+    cause.code === "unavailable"
+    || cause.code === "deadline-exceeded"
+    || cause.code === "network-request-failed"
+  )) {
+    return new Error("Firebase is temporarily unavailable while " + action + ". Check your connection and retry.");
+  }
+  if (cause instanceof Error) return cause;
+  return new Error("We couldn't complete this Friends action. Please retry.");
 }
 
 function mapRequest(id: string, data: Record<string, unknown>): FriendRequest | null {
@@ -112,7 +117,7 @@ function mapRequest(id: string, data: Record<string, unknown>): FriendRequest | 
 export const firebaseFriendService = {
   async getMyHandle(): Promise<FriendHandle | null> {
     const uid = requireUid();
-    const snapshot = await withTimeout(
+    const snapshot = await withFirestoreTimeout(
       getDoc(doc(firestore, "userHandles", uid)),
       "Loading your username took too long. Check your connection and retry.",
     );
@@ -130,7 +135,7 @@ export const firebaseFriendService = {
     const uid = requireUid();
     const username = validateUsername(input);
     const handleRef = doc(firestore, "userHandles", uid);
-    const current = await withTimeout(
+    const current = await withFirestoreTimeout(
       getDoc(handleRef),
       "Checking your username took too long. Check your connection and retry.",
     );
@@ -143,7 +148,7 @@ export const firebaseFriendService = {
       || firebaseAuth.currentUser?.email?.split("@")[0]
       || "DeepPay member";
     const userNameRef = doc(firestore, "usernames", username);
-    const reserved = await withTimeout(
+    const reserved = await withFirestoreTimeout(
       getDoc(userNameRef),
       "Checking username availability took too long. Check your connection and retry.",
     );
@@ -167,14 +172,22 @@ export const firebaseFriendService = {
       createdAt: current.exists() ? current.data().createdAt : serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
-    await batch.commit();
+    try {
+      await withFirestoreTimeout(
+        batch.commit(),
+        "Saving your username took too long. Check your connection and retry.",
+        FIRESTORE_REQUEST_TIMEOUT_MS,
+      );
+    } catch (cause) {
+      throw mapFriendServiceError(cause, "saving your username");
+    }
     return { uid, username, displayName };
   },
 
   async findUserByUsername(usernameInput: string): Promise<FriendHandle> {
     const uid = requireUid();
     const username = validateUsername(usernameInput);
-    const targetSnapshot = await withTimeout(
+    const targetSnapshot = await withFirestoreTimeout(
       getDoc(doc(firestore, "usernames", username)),
       "Finding that username took too long. Check your connection and retry.",
     );
@@ -200,7 +213,7 @@ export const firebaseFriendService = {
     const pairRef = doc(firestore, "friendships", friendshipId(uid, target.uid));
     const outgoingRef = doc(firestore, "friendRequests", requestId(uid, target.uid));
     const incomingRef = doc(firestore, "friendRequests", requestId(target.uid, uid));
-    const [existingFriend, existingRequest, incomingRequest] = await withTimeout(
+    const [existingFriend, existingRequest, incomingRequest] = await withFirestoreTimeout(
       Promise.all([getDoc(pairRef), getDoc(outgoingRef), getDoc(incomingRef)]),
       "Checking friend status took too long. Check your connection and retry.",
     );
@@ -210,21 +223,25 @@ export const firebaseFriendService = {
       throw new Error("@" + target.username + " already sent you a request. You can accept it below.");
     }
 
-    await setDoc(outgoingRef, {
-      fromUid: uid,
-      toUid: target.uid,
-      fromUsername: sender.username,
-      toUsername: target.username,
-      fromDisplayName: sender.displayName,
-      toDisplayName: target.displayName,
-      status: "pending",
-      createdAt: serverTimestamp(),
-    });
+    try {
+      await withFirestoreTimeout(setDoc(outgoingRef, {
+        fromUid: uid,
+        toUid: target.uid,
+        fromUsername: sender.username,
+        toUsername: target.username,
+        fromDisplayName: sender.displayName,
+        toDisplayName: target.displayName,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      }), "Sending this friend request took too long. Check your connection and retry.", FIRESTORE_REQUEST_TIMEOUT_MS);
+    } catch (cause) {
+      throw mapFriendServiceError(cause, "sending this friend request");
+    }
   },
 
   async listFriends(): Promise<Friend[]> {
     const uid = requireUid();
-    const snapshot = await withTimeout(
+    const snapshot = await withFirestoreTimeout(
       getDocs(query(collection(firestore, "friendships"), where("memberUids", "array-contains", uid))),
       "Loading your friends took too long. Check your connection and retry.",
     );
@@ -249,8 +266,8 @@ export const firebaseFriendService = {
     const incomingQuery = query(collection(firestore, "friendRequests"), where("toUid", "==", uid));
     const outgoingQuery = query(collection(firestore, "friendRequests"), where("fromUid", "==", uid));
     const [incomingSnapshot, outgoingSnapshot] = await Promise.all([
-      withTimeout(getDocs(incomingQuery), "Loading friend requests took too long. Check your connection and retry."),
-      withTimeout(getDocs(outgoingQuery), "Loading friend requests took too long. Check your connection and retry."),
+      withFirestoreTimeout(getDocs(incomingQuery), "Loading friend requests took too long. Check your connection and retry."),
+      withFirestoreTimeout(getDocs(outgoingQuery), "Loading friend requests took too long. Check your connection and retry."),
     ]);
 
     const incoming = incomingSnapshot.docs
@@ -267,7 +284,7 @@ export const firebaseFriendService = {
   async respondToRequest(requestKey: string, accept: boolean): Promise<void> {
     const uid = requireUid();
     const requestRef = doc(firestore, "friendRequests", requestKey);
-    const snapshot = await withTimeout(
+    const snapshot = await withFirestoreTimeout(
       getDoc(requestRef),
       "Opening this friend request took too long. Check your connection and retry.",
     );
@@ -296,6 +313,14 @@ export const firebaseFriendService = {
       });
     }
 
-    await batch.commit();
+    try {
+      await withFirestoreTimeout(
+        batch.commit(),
+        "Updating this friend request took too long. Check your connection and retry.",
+        FIRESTORE_REQUEST_TIMEOUT_MS,
+      );
+    } catch (cause) {
+      throw mapFriendServiceError(cause, "updating this friend request");
+    }
   },
 };
