@@ -430,14 +430,17 @@ service cloud.firestore {
     }
 
     match /friendships/{friendshipId} {
-      allow get: if signedIn()
-        && (
-          friendshipId.matches('^' + request.auth.uid + '__.*$')
-          || friendshipId.matches('^.*__' + request.auth.uid + '$')
-        );
-      allow list: if signedIn()
-        && resource.data.memberUids is list
-        && resource.data.memberUids.hasAny([request.auth.uid]);
+      // The client lists friendships with:
+      // where('memberUids', 'array-contains', request.auth.uid)
+      // Use the matching direct membership expression so Firestore can
+      // prove that every possible query result belongs to the signed-in user.
+      function isFriendshipMember() {
+        return signedIn()
+          && resource.data.memberUids is list
+          && request.auth.uid in resource.data.memberUids;
+      }
+
+      allow get, list: if isFriendshipMember();
       allow create: if signedIn()
         && request.resource.data.keys().hasAll(['requestId', 'memberUids', 'members', 'createdAt'])
         && request.resource.data.keys().hasOnly(['requestId', 'memberUids', 'members', 'createdAt'])
