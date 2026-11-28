@@ -19,7 +19,7 @@ export function QuickAction({ label, icon, onPress }: Props) {
   const iconColor = label === "Expense" ? colors.white : colors.onAccent;
 
   const styles = StyleSheet.create({
-    container: { alignItems: "center", gap: spacing.sm, minWidth: 70, paddingVertical: spacing.xs },
+    container: { width: "31%", minWidth: 0, alignItems: "center", gap: spacing.sm, paddingVertical: spacing.xs },
     pressed: { opacity: 0.78, transform: [{ scale: 0.96 }] },
     icon: {
       width: 58,
@@ -36,7 +36,7 @@ export function QuickAction({ label, icon, onPress }: Props) {
       shadowRadius: 8,
       elevation: 3,
     },
-    label: { fontWeight: "700" },
+    label: { fontWeight: "700", textAlign: "center" },
   });
 
   return (
@@ -44,7 +44,7 @@ export function QuickAction({ label, icon, onPress }: Props) {
       <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.icon}>
         <Ionicons name={icon} size={25} color={iconColor} />
       </LinearGradient>
-      <AppText variant="caption" style={styles.label}>{label}</AppText>
+      <AppText variant="caption" numberOfLines={2} style={styles.label}>{label}</AppText>
     </Pressable>
   );
 }
