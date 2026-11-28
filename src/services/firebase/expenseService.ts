@@ -8,6 +8,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { firebaseAuth, firestore } from "@/src/lib/firebase";
+import { withFirestoreTimeout } from "@/src/services/firebase/requestUtils";
 import { firebaseGroupService } from "@/src/services/firebase/groupService";
 import type {
   CreateExpenseInput,
@@ -139,7 +140,10 @@ function calculateBalances(
 }
 
 async function listGroupExpenses(groupId: string) {
-  const snapshot = await getDocs(collection(firestore, "groups", groupId, "expenses"));
+  const snapshot = await withFirestoreTimeout(
+    getDocs(collection(firestore, "groups", groupId, "expenses")),
+    "Loading group expenses took too long. Check your connection and retry.",
+  );
   return snapshot.docs.map((item) => mapExpense(item.id, item.data()));
 }
 
@@ -228,7 +232,10 @@ export const firebaseExpenseService = {
   async listRecent(groupsInput?: Group[]): Promise<Expense[]> {
     const uid = requireUid();
     const groups = groupsInput ?? await firebaseGroupService.listGroups();
-    const personalSnapshot = await getDocs(collection(firestore, "users", uid, "expenses"));
+    const personalSnapshot = await withFirestoreTimeout(
+      getDocs(collection(firestore, "users", uid, "expenses")),
+      "Loading your expenses took too long. Check your connection and retry.",
+    );
     const personal = personalSnapshot.docs.map((item) => mapExpense(item.id, item.data()));
     const groupExpenses = await Promise.all(groups.map((group) => listGroupExpenses(group.id)));
     return [...personal, ...groupExpenses.flat()]
@@ -238,9 +245,9 @@ export const firebaseExpenseService = {
   async getGroupBalances(groupId: string): Promise<GroupBalance[]> {
     const uid = requireUid();
     const [groupSnapshot, expensesSnapshot, settlementsSnapshot] = await Promise.all([
-      getDoc(doc(firestore, "groups", groupId)),
-      getDocs(collection(firestore, "groups", groupId, "expenses")),
-      getDocs(collection(firestore, "groups", groupId, "settlements")),
+      withFirestoreTimeout(getDoc(doc(firestore, "groups", groupId)), "Loading this group took too long. Retry in a moment."),
+      withFirestoreTimeout(getDocs(collection(firestore, "groups", groupId, "expenses")), "Loading group expenses took too long. Retry in a moment."),
+      withFirestoreTimeout(getDocs(collection(firestore, "groups", groupId, "settlements")), "Loading group settlements took too long. Retry in a moment."),
     ]);
     if (!groupSnapshot.exists()) throw new Error("Group not found.");
     const group = groupSnapshot.data();
@@ -282,7 +289,10 @@ export const firebaseExpenseService = {
     }, 0);
 
     const balances = await Promise.all(groups.map(async (group) => {
-      const settlementsSnapshot = await getDocs(collection(firestore, "groups", group.id, "settlements"));
+      const settlementsSnapshot = await withFirestoreTimeout(
+        getDocs(collection(firestore, "groups", group.id, "settlements")),
+        "Loading group balances took too long. Check your connection and retry.",
+      );
       const settlements = settlementsSnapshot.docs.map((item) => {
         const data = item.data();
         return {
