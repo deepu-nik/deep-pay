@@ -18,8 +18,8 @@ export function useFriends() {
   const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<FriendRequest[]>([]);
 
-  // Keep each data source independent. A failed friends-list query must not
-  // hide username setup, user search, or incoming request actions.
+  // Each request owns its loading and error state. Slow or denied list reads
+  // must not hold up the username form or the other Friends actions.
   const [handleLoading, setHandleLoading] = useState(true);
   const [friendsLoading, setFriendsLoading] = useState(true);
   const [requestsLoading, setRequestsLoading] = useState(true);
@@ -49,36 +49,42 @@ export function useFriends() {
     setFriendsError(null);
     setRequestsError(null);
 
-    const [handleResult, friendsResult, requestsResult] = await Promise.allSettled([
-      firebaseFriendService.getMyHandle(),
-      firebaseFriendService.listFriends(),
-      firebaseFriendService.listRequests(),
-    ]);
+    const loadHandle = async () => {
+      try {
+        setHandle(await firebaseFriendService.getMyHandle());
+        setHandleError(null);
+      } catch (cause) {
+        setHandleError(errorText(cause, "We couldn't check your username. Please retry."));
+      } finally {
+        setHandleLoading(false);
+      }
+    };
 
-    if (handleResult.status === "fulfilled") {
-      setHandle(handleResult.value);
-      setHandleError(null);
-    } else {
-      setHandleError(errorText(handleResult.reason, "We couldn't check your username. Please retry."));
-    }
-    setHandleLoading(false);
+    const loadFriends = async () => {
+      try {
+        setFriends(await firebaseFriendService.listFriends());
+        setFriendsError(null);
+      } catch (cause) {
+        setFriendsError(errorText(cause, "We couldn't load your friends. Please retry."));
+      } finally {
+        setFriendsLoading(false);
+      }
+    };
 
-    if (friendsResult.status === "fulfilled") {
-      setFriends(friendsResult.value);
-      setFriendsError(null);
-    } else {
-      setFriendsError(errorText(friendsResult.reason, "We couldn't load your friends. Please retry."));
-    }
-    setFriendsLoading(false);
+    const loadRequests = async () => {
+      try {
+        const nextRequests = await firebaseFriendService.listRequests();
+        setIncomingRequests(nextRequests.incoming);
+        setOutgoingRequests(nextRequests.outgoing);
+        setRequestsError(null);
+      } catch (cause) {
+        setRequestsError(errorText(cause, "We couldn't load friend requests. Please retry."));
+      } finally {
+        setRequestsLoading(false);
+      }
+    };
 
-    if (requestsResult.status === "fulfilled") {
-      setIncomingRequests(requestsResult.value.incoming);
-      setOutgoingRequests(requestsResult.value.outgoing);
-      setRequestsError(null);
-    } else {
-      setRequestsError(errorText(requestsResult.reason, "We couldn't load friend requests. Please retry."));
-    }
-    setRequestsLoading(false);
+    await Promise.all([loadHandle(), loadFriends(), loadRequests()]);
   }, [user?.id]);
 
   useEffect(() => {
