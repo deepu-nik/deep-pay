@@ -244,21 +244,13 @@ export default function ProfileScreen() {
             <AppText variant="title">Profile</AppText>
             <AppText variant="body" style={{ color: colors.textMuted }}>Your account, your settings, your DeepPay.</AppText>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open appearance settings"
-            onPress={() => setThemeVisible(true)}
-            style={stylesLocal.headerButton}
-          >
-            <Ionicons name="settings-outline" size={22} color={colors.primary} />
-          </Pressable>
         </View>
 
         <GlassPanel padding={spacing.lg} style={stylesLocal.hero}>
           <View style={stylesLocal.heroRow}>
             <View style={stylesLocal.avatar}>
               <LinearGradient colors={colors.gradientPrimary} style={StyleSheet.absoluteFill} />
-              <AppText variant="h2" style={{ color: colors.onAccent, fontSize: 28 }}>{initials}</AppText>
+              <AppText variant="h2" style={{ color: colors.onPrimaryGradient, fontSize: 28 }}>{initials}</AppText>
             </View>
             <View style={stylesLocal.identity}>
               <AppText style={stylesLocal.name} numberOfLines={1}>{user?.fullName ?? "DeepPay member"}</AppText>
