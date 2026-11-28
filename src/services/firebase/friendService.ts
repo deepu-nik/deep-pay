@@ -3,7 +3,6 @@ import {
   Timestamp,
   collection,
   doc,
-  deleteDoc,
   getDoc,
   getDocFromServer,
   getDocs,
