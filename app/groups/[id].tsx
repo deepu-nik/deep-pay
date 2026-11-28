@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import * as Linking from "expo-linking";
-import { Alert, Modal, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -431,7 +431,8 @@ export default function GroupDetailScreen() {
       </ScrollView>
 
       <Modal visible={settlementVisible} transparent animationType="slide" onRequestClose={() => setSettlementVisible(false)}>
-        <View style={styles.modal}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+<View style={styles.modal}>
           <GlassPanel padding={spacing.lg} style={styles.sheet}>
             <View style={styles.sheetContent}>
               <View style={styles.header}>
@@ -452,10 +453,12 @@ export default function GroupDetailScreen() {
             </View>
           </GlassPanel>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={editorVisible} transparent animationType="slide" onRequestClose={() => setEditorVisible(false)}>
-        <View style={styles.modal}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+<View style={styles.modal}>
           <GlassPanel padding={spacing.lg} style={styles.sheet}>
             <View style={styles.sheetContent}>
               <View style={styles.header}>
@@ -468,6 +471,7 @@ export default function GroupDetailScreen() {
             </View>
           </GlassPanel>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
