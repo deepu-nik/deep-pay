@@ -18,12 +18,16 @@ The design deliberately avoids Cloud Functions, Firebase Admin credentials, paym
 | groups/{groupId}/expenses/{id} | Shared expense records | Group members |
 | groups/{groupId}/settlements/{id} | Pending and confirmed settlements | Group members |
 | groupInvites/{inviteId} | Seven-day invite tokens | Authenticated users with an active, unexpired invite |
+| userHandles/{uid} | The signed-in user's private, immutable username mapping | Owner |
+| usernames/{username} | Exact-match public username lookup with display name and UID | Authenticated direct get; listing is denied |
+| friendRequests/{fromUid}__{toUid} | Incoming/outgoing friend request and response status | Sender and recipient |
+| friendships/{pairId} | Accepted two-user friendship record | The two friend UIDs |
 
 ## Identity model
 
 Firebase Auth UID is the only identity key. The previous mock IDs (You, aarav, etc.) are not converted to Firebase IDs.
 
-The group document contains memberUids so the app can query a user's groups with an array-contains query. Each member also has a subdocument with a display name scoped to that group. The user's private groupMemberships subcollection mirrors membership for future navigation and indexes.
+The group document contains memberUids so the app can query a user's groups with an array-contains query. Friend discovery uses a unique, lowercase username selected by each account. Usernames are looked up by exact document ID; the directory cannot be listed or enumerated. Friend requests are created by the sender and can only be accepted or rejected by the recipient. An accepted request and its friendship record are written in one Firestore batch. Each member also has a subdocument with a display name scoped to that group. The user's private groupMemberships subcollection mirrors membership for future navigation and indexes.
 
 Group creation is owner-only. New members join through a random Firestore invite document that expires after seven days. The invite is not a UPI payment QR. It is a DeepPay membership invitation.
 
@@ -63,3 +67,14 @@ The old local AsyncStorage mock data is retained on the device but not automatic
 ## Free-tier constraints
 
 This implementation uses Firebase's client SDK and the Firestore Spark plan within its published quotas. No payment gateway, Cloud Functions or sponsor-bank UPI integration is required. Quotas are limits, not a guarantee of unlimited free service. UPI handoff, QR and transaction import features are subsequent milestones.
+
+
+## UPI & QR handoff
+
+The UPI screen stores the signed-in user's self-entered UPI ID and display name under `users/{uid}/paymentProfiles/upi`. The QR is generated locally from a standard `upi://pay` URI with INR currency and no fixed amount, so the payer enters the amount in their UPI app.
+
+Scanning accepts a UPI payment URI (or a plain UPI ID) only. It does not open arbitrary URLs from QR codes. The recipient VPA, display name, amount and note are shown for review before handoff.
+
+On Android, the app opens the standard UPI payment URI using the operating system so installed UPI apps can handle it. The current NPCI BHIM-UPI guidance describes UPI Intent as Android-only. iOS keeps the QR and VPA sharing functions but does not present the Android intent as available.
+
+Returning from an external UPI app is not a payment confirmation callback. DeepPay therefore asks the user to explicitly report completion and may store an optional reference/UTR as `payer_reported` under `users/{uid}/upiTransactions/{id}`. These records are personal and do not change group balances. They are not verified by a bank, PSP, NPCI, or DeepPay. A UPI ID entered in the profile is also not validated as belonging to that user; it should be checked independently before sharing the QR.

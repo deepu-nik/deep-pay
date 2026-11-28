@@ -1,17 +1,15 @@
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
 import { EmptyState } from "@/src/components/common/EmptyState";
-import { ErrorState } from "@/src/components/common/ErrorState";
 import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { LoadingState } from "@/src/components/common/LoadingState";
 import { PrimaryButton } from "@/src/components/common/PrimaryButton";
 import { BottomTabBar, type TabKey } from "@/src/components/navigation/BottomTabBar";
-import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet";
 import { firebaseActivityService, type ActivityEntry } from "@/src/services/firebase/activityService";
 import { useTheme } from "@/src/theme";
 import { spacing } from "@/src/theme/tokens";
@@ -74,7 +72,7 @@ function ActivityRow({
         end={{ x: 1, y: 1 }}
         style={styles.activityIcon}
       >
-        <Ionicons name={icon} size={20} color={colors.onAccent} />
+        <Ionicons name={icon} size={20} color={isExpense ? colors.onPrimaryGradient : colors.onAccent} />
       </LinearGradient>
       <View style={styles.activityCopy}>
         <AppText variant="bodyMedium" numberOfLines={1}>{item.title}</AppText>
@@ -98,14 +96,17 @@ export default function ActivityScreen() {
   const [items, setItems] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [sheetVisible, setSheetVisible] = useState(false);
+  const [groupsUnavailable, setGroupsUnavailable] = useState(false);
+  const [activityFilter, setActivityFilter] = useState<"all" | "expense" | "settlement">("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const nextItems = await firebaseActivityService.listRecent();
-      setItems(nextItems);
+      const result = await firebaseActivityService.listRecent();
+      setItems(result.items);
+      setGroupsUnavailable(result.groupsUnavailable);
     } catch {
       setError("We couldn't load your activity. Please try again.");
     } finally {
@@ -122,13 +123,20 @@ export default function ActivityScreen() {
     router.replace((tab === "home" ? "/(tabs)" : "/(tabs)/" + tab) as any);
   };
 
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const visibleItems = items.filter((item) => {
+    if (activityFilter !== "all" && item.kind !== activityFilter) return false;
+    if (!normalizedSearch) return true;
+    const searchable = [item.title, item.detail, item.kind, formatMoney(item.amount)].join(" ").toLowerCase();
+    return searchable.includes(normalizedSearch);
+  });
   const buckets: Record<(typeof sectionOrder)[number], ActivityEntry[]> = {
     Today: [],
     Yesterday: [],
     "This week": [],
     Earlier: [],
   };
-  items.forEach((item) => buckets[getSection(item.timestamp)].push(item));
+  visibleItems.forEach((item) => buckets[getSection(item.timestamp)].push(item));
   const expenseCount = items.filter((item) => item.kind === "expense").length;
   const settlementCount = items.filter((item) => item.kind === "settlement").length;
 
@@ -138,6 +146,11 @@ export default function ActivityScreen() {
     header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     subtitle: { color: colors.textMuted, marginTop: 3 },
     headerButton: { width: 46, height: 46, borderRadius: 17, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0] },
+    searchBox: { minHeight: 50, borderRadius: 17, flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0] },
+    searchInput: { flex: 1, minHeight: 48, color: colors.text, fontSize: 15 },
+    filterRow: { flexDirection: "row", gap: spacing.sm },
+    filterChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 999, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0] },
+    filterChipActive: { borderColor: colors.primary, backgroundColor: colors.iconBackground },
     summary: { flexDirection: "row", gap: spacing.md },
     summaryCard: { flex: 1 },
     summaryIcon: { width: 34, height: 34, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: colors.iconBackground, marginBottom: spacing.sm },
@@ -151,7 +164,7 @@ export default function ActivityScreen() {
     activityCopy: { flex: 1, gap: 3 },
     activityAmount: { alignItems: "flex-end", gap: 3 },
     separator: { height: 1, backgroundColor: colors.glassBorder, marginLeft: 60 },
-    emptyCard: { alignItems: "center", gap: spacing.md },
+    emptyCard: { width: "100%", alignItems: "stretch", gap: spacing.md },
     errorAction: { alignItems: "center", paddingTop: spacing.md },
     note: { color: colors.textMuted, lineHeight: 19 },
   });
@@ -187,15 +200,54 @@ export default function ActivityScreen() {
           </GlassPanel>
         </View>
 
+        <View style={localStyles.searchBox}>
+          <Ionicons name="search-outline" size={19} color={colors.textMuted} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search expenses, groups or amounts"
+            placeholderTextColor={colors.textMuted}
+            style={localStyles.searchInput}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Clear activity search" onPress={() => setSearchQuery("")}>
+              <Ionicons name="close-circle" size={19} color={colors.textMuted} />
+            </Pressable>
+          ) : null}
+        </View>
+        <View style={localStyles.filterRow}>
+          {([
+            { key: "all", label: "All" },
+            { key: "expense", label: "Expenses" },
+            { key: "settlement", label: "Settlements" },
+          ] as const).map((option) => {
+            const selected = activityFilter === option.key;
+            return (
+              <Pressable
+                key={option.key}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                onPress={() => setActivityFilter(option.key)}
+                style={[localStyles.filterChip, selected && localStyles.filterChipActive]}
+              >
+                <AppText variant="caption" style={{ color: selected ? colors.primary : colors.textMuted }}>
+                  {option.label}
+                </AppText>
+              </Pressable>
+            );
+          })}
+        </View>
+
         {loading ? (
           <GlassPanel><LoadingState message="Gathering your latest activity…" /></GlassPanel>
         ) : error ? (
-          <GlassPanel>
-            <ErrorState message={error} />
-            <Pressable accessibilityRole="button" onPress={() => { void refresh(); }} style={localStyles.errorAction}>
-              <AppText variant="caption" style={{ color: colors.primary }}>Try again</AppText>
+          <View style={localStyles.errorAction}>
+            <AppText variant="caption" style={{ color: colors.textMuted }}>Activity is temporarily unavailable.</AppText>
+            <Pressable accessibilityRole="button" onPress={() => { void refresh(); }} hitSlop={10}>
+              <AppText variant="caption" style={{ color: colors.primary }}>Retry</AppText>
             </Pressable>
-          </GlassPanel>
+          </View>
         ) : items.length === 0 ? (
           <GlassPanel padding={spacing.xl} style={localStyles.emptyCard}>
             <EmptyState
@@ -206,6 +258,19 @@ export default function ActivityScreen() {
             <View style={{ width: "100%" }}>
               <PrimaryButton title="Add your first expense" onPress={() => router.push("/expenses/new")} />
             </View>
+          </GlassPanel>
+        ) : visibleItems.length === 0 ? (
+          <GlassPanel padding={spacing.lg} style={localStyles.emptyCard}>
+            <Ionicons name="search-outline" size={28} color={colors.textMuted} />
+            <AppText variant="bodyMedium">No matching activity</AppText>
+            <AppText variant="caption" style={localStyles.note}>Try another search or change the filter.</AppText>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => { setSearchQuery(""); setActivityFilter("all"); }}
+              style={localStyles.errorAction}
+            >
+              <AppText variant="caption" style={{ color: colors.primary }}>Clear filters</AppText>
+            </Pressable>
           </GlassPanel>
         ) : (
           sectionOrder.map((section) => {
@@ -237,13 +302,16 @@ export default function ActivityScreen() {
           })
         )}
 
-        <AppText variant="caption" style={localStyles.note}>
-          Activity is synced from your DeepPay groups, expenses and confirmed or pending settlements.
-        </AppText>
+        {groupsUnavailable ? (
+          <AppText variant="caption" style={localStyles.note}>Showing personal records. Group activity will return when group access is available.</AppText>
+        ) : (
+          <AppText variant="caption" style={localStyles.note}>
+            Activity is synced from your DeepPay groups, expenses and confirmed or pending settlements.
+          </AppText>
+        )}
       </ScrollView>
 
-      <BottomTabBar activeTab="activity" onTabPress={goTo} onAddPress={() => setSheetVisible(true)} />
-      <CreateActionSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
+      <BottomTabBar activeTab="activity" onTabPress={goTo} onPayPress={() => router.push("/upi" as any)} />
     </SafeAreaView>
   );
 }

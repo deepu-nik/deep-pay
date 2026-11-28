@@ -4,10 +4,10 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppText } from "@/src/components/common/AppText";
 import { useTheme } from "@/src/theme";
-import { radius, spacing } from "@/src/theme/tokens";
+import { spacing } from "@/src/theme/tokens";
 
 export type TabKey = "home" | "groups" | "activity" | "profile";
-type Props = { activeTab: TabKey; onTabPress: (tab: TabKey) => void; onAddPress: () => void };
+type Props = { activeTab: TabKey; onTabPress: (tab: TabKey) => void; onPayPress: () => void };
 const tabs: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: "home", label: "Home", icon: "home-outline" },
   { key: "groups", label: "Groups", icon: "people-outline" },
@@ -15,7 +15,7 @@ const tabs: { key: TabKey; label: string; icon: keyof typeof Ionicons.glyphMap }
   { key: "profile", label: "Profile", icon: "person-outline" },
 ];
 
-export function BottomTabBar({ activeTab, onTabPress, onAddPress }: Props) {
+export function BottomTabBar({ activeTab, onTabPress, onPayPress }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -44,21 +44,15 @@ export function BottomTabBar({ activeTab, onTabPress, onAddPress }: Props) {
     tab: { flex: 1, alignItems: "center", justifyContent: "center", gap: 3, paddingVertical: spacing.sm },
     tabIcon: { width: 42, height: 34, borderRadius: 14, alignItems: "center", justifyContent: "center" },
     tabActive: { backgroundColor: colors.iconBackground },
-    add: {
-      width: 56,
-      height: 56,
-      borderRadius: radius.pill,
+    pay: { flex: 1, alignItems: "center", justifyContent: "center", gap: 3, paddingVertical: spacing.sm },
+    payIcon: {
+      width: 42,
+      height: 34,
+      borderRadius: 14,
       alignItems: "center",
       justifyContent: "center",
-      marginTop: -25,
-      borderWidth: 4,
-      borderColor: colors.background,
       overflow: "hidden",
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 5 },
-      shadowOpacity: 0.3,
-      shadowRadius: 9,
-      elevation: 7,
+      backgroundColor: colors.iconBackground,
     },
     pressed: { opacity: 0.78, transform: [{ scale: 0.96 }] },
   });
@@ -76,10 +70,16 @@ export function BottomTabBar({ activeTab, onTabPress, onAddPress }: Props) {
       {tabs.slice(0, 2).map((tab) => (
         <TabButton key={tab.key} tab={tab} active={activeTab === tab.key} onPress={() => onTabPress(tab.key)} colors={colors} styles={styles} />
       ))}
-      <Pressable accessibilityRole="button" accessibilityLabel="Create" onPress={onAddPress} style={({ pressed }) => [styles.add, pressed && styles.pressed]}>
-        <LinearGradient colors={colors.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, width: "100%", alignItems: "center", justifyContent: "center", borderRadius: radius.pill }}>
-          <Ionicons name="add" size={30} color="#FFFFFF" />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Pay"
+        onPress={onPayPress}
+        style={({ pressed }) => [styles.pay, pressed && styles.pressed]}
+      >
+        <LinearGradient colors={colors.gradientPrimary} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.payIcon}>
+          <Ionicons name="qr-code-outline" size={21} color="#FFFFFF" />
         </LinearGradient>
+        <AppText variant="caption" style={{ color: colors.primary, fontWeight: "800" }}>Pay</AppText>
       </Pressable>
       {tabs.slice(2).map((tab) => (
         <TabButton key={tab.key} tab={tab} active={activeTab === tab.key} onPress={() => onTabPress(tab.key)} colors={colors} styles={styles} />
@@ -98,7 +98,7 @@ function TabButton({ tab, active, onPress, colors, styles }: {
   const iconName = active ? tab.icon.replace("-outline", "") as keyof typeof Ionicons.glyphMap : tab.icon;
 
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={tab.label} accessibilityState={{ selected: active }} onPress={onPress} style={styles.tab}>
+    <Pressable accessibilityRole="button" accessibilityLabel={tab.label} accessibilityState={{ selected: active }} onPress={onPress} style={({ pressed }) => [styles.tab, pressed && styles.pressed]}>
       <View style={[styles.tabIcon, active && styles.tabActive]}>
         <Ionicons name={iconName} size={21} color={active ? colors.primary : colors.textMuted} />
       </View>

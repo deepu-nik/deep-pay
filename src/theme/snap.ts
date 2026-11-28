@@ -27,6 +27,7 @@ export const snapColors: ThemeColors = {
   glassBorder: "rgba(17, 17, 17, 0.12)",
   glassHighlight: "rgba(255, 255, 255, 0.96)",
   onAccent: "#111111",
+  onPrimaryGradient: "#FFFFFF",
   white: "#FFFFFF",
   black: "#000000",
 };

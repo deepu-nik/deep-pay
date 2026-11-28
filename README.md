@@ -80,10 +80,10 @@ The rules permit an authenticated user to read their own profile, create it with
 - Phase 0 — Design system + app shell
 - Phase 1 — Firebase Authentication + user profile
 - Phase 2 — Firestore groups, expense ledger and settlement confirmations
-- Phase 3 — Usernames, friend discovery and group invitations
+- Phase 3 — Usernames, friend discovery, friend requests and group invitations (friend discovery and requests implemented; group invites implemented)
 - Phase 4 — UPI QR, scanning and external app handoff
-- Phase 5 — Transaction imports and personal finance analytics
-- Phase 7 — Analytics + budgets
+- Phase 5 — Personal finance analytics (implemented); bank transaction imports remain future work
+- Phase 7 — Monthly category budgets (implemented)
 - Phase 8 — Notifications
 - Phase 9 — AI expense assistant
 - Phase 10 — Receipt scanner + smart split
@@ -138,3 +138,53 @@ Alternatively, copy firestore.rules into Firebase Console → Firestore Database
 ### Free-tier boundary
 
 The app uses the Firebase client SDK directly and does not require a payment gateway, Cloud Functions or a paid UPI provider for this milestone. Firebase Spark quotas apply; exceeding a free quota can pause the affected service until the quota resets. UPI payment execution is not included in this Firestore milestone.
+
+
+## UPI and QR handoff
+
+The UPI & QR screen supports:
+- A personal receive QR generated from the UPI ID and display name that the account owner enters.
+- QR scanning with the device camera. DeepPay accepts a UPI pay QR or a plain UPI ID; it does not open arbitrary links encoded in a QR.
+- On Android, opening a standard upi://pay request in an installed UPI app.
+- After returning, the user can explicitly save an outgoing transfer as payer_reported, optionally with the UPI app's reference/UTR.
+- A personal list of payment records reported by the signed-in user.
+
+This is an external-app handoff only. DeepPay is not a UPI PSP, TPAP, bank, or payment gateway. It does not create UPI IDs, debit accounts, receive bank callbacks, verify UTRs, or confirm that money moved. A payer-reported item must never be described as bank-verified. A group settlement remains pending until the recipient confirms it through the existing group flow.
+
+NPCI's current BHIM-UPI guidelines describe UPI Intent as available for Android. The app therefore presents Android handoff on Android and keeps QR/VPA sharing available elsewhere. A QR generated from a self-entered UPI ID is only as accurate as the details the owner enters; verify the UPI ID independently before sharing it.
+
+### UPI dependencies
+
+The UPI screen uses Expo Camera and react-native-svg based QR rendering. After checkout, install the dependencies and refresh the package lock:
+
+    npx expo install expo-camera react-native-svg
+    npm install react-native-qrcode-svg
+    npm install
+    npm run typecheck
+
+Camera permission is only requested when the Scan tab is opened.
+
+
+## Personal finance insights and monthly budgets
+
+The Insights screen summarizes the signed-in user's share of personal and group expenses by calendar month. It shows category totals, a daily average, and a comparison with the previous month when prior-month records exist.
+
+Monthly category budgets are stored privately at `users/{uid}/budgets/{category}`. Each category has one reusable monthly limit. The screen compares the current month's recorded share against that limit and highlights overspending.
+
+UPI handoff records are intentionally excluded from spending analytics because they are payer-reported and are not verified by a bank. Budgets are planning tools only; they do not move, reserve, or restrict money in a bank account.
+
+Publish the updated owner-only budget rules before testing this screen:
+
+    firebase deploy --only firestore:rules
+
+ 
+## Friends and username discovery
+
+Each account can claim one unique username (3–20 lowercase letters, digits or underscores). Other signed-in users can find that account by exact username and send a friend request. The recipient can accept or decline; accepted friendships are stored in a record visible only to the two members. Username lookup documents can be fetched by exact ID but cannot be listed.
+
+The Friends screen is available from the Home header, Groups header, Profile, and the Create action sheet. Group membership still uses the existing seven-day invite-link flow; a friendship does not automatically add someone to a group.
+
+Publish the updated username and friend-request security rules before testing:
+
+    firebase deploy --only firestore:rules
+

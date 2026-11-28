@@ -1,7 +1,7 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
@@ -10,10 +10,8 @@ import { ExpenseRow } from "@/src/components/common/ExpenseRow";
 import { QuickAction } from "@/src/components/common/QuickAction";
 import { SectionHeader } from "@/src/components/common/SectionHeader";
 import { EmptyState } from "@/src/components/common/EmptyState";
-import { ErrorState } from "@/src/components/common/ErrorState";
 import { LoadingState } from "@/src/components/common/LoadingState";
 import { BottomTabBar } from "@/src/components/navigation/BottomTabBar";
-import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet";
 import { useHomeData } from "@/src/hooks/useHomeData";
 import { brand } from "@/src/config/brand";
 import { useTheme } from "@/src/theme";
@@ -33,17 +31,23 @@ function getGreeting() {
 export default function HomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { summary, expenses, groups, loading, error, refresh } = useHomeData();
-  const [sheetVisible, setSheetVisible] = useState(false);
+  const { summary, expenses, groups, loading, groupsLoading, groupsError, error, refresh } = useHomeData();
 
   useFocusEffect(useCallback(() => {
     void refresh();
   }, [refresh]));
 
-  const openCreate = () => setSheetVisible(true);
   const goToGroups = () => router.push("/(tabs)/groups" as any);
 
-  const handleQuickAction = (label: "Expense" | "Split" | "Groups" | "Friends") => {
+  const openUpiTab = (tab: "scan" | "my-qr") => {
+    if (tab === "scan") {
+      router.push("/upi/scan" as Href);
+      return;
+    }
+    router.push({ pathname: "/upi", params: { tab: "my-qr" } } as Href);
+  };
+
+  const handleQuickAction = (label: "Expense" | "Split" | "Groups" | "My QR" | "Spending insights" | "Scan") => {
     if (label === "Expense") {
       router.push("/expenses/new");
       return;
@@ -59,7 +63,17 @@ export default function HomeScreen() {
       return;
     }
 
-    router.push("/friends");
+    if (label === "My QR") {
+      openUpiTab("my-qr");
+      return;
+    }
+
+    if (label === "Spending insights") {
+      router.push("/insights" as Href);
+      return;
+    }
+
+    openUpiTab("scan");
   };
 
   const goTo = (tab: "home" | "groups" | "activity" | "profile") => {
@@ -86,7 +100,7 @@ export default function HomeScreen() {
     balanceValue: { color: "#FFFFFF", fontWeight: "800" },
     balanceOwedValue: { color: colors.accentYellow, fontWeight: "800" },
     balanceHint: { color: "rgba(255,255,255,0.68)" },
-    actions: { flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.xl },
+    actions: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: spacing.md, marginBottom: spacing.md },
     section: { marginBottom: spacing.xl },
     groupList: { paddingRight: spacing.lg, gap: spacing.md },
     groupCard: { width: 214, minHeight: 96, borderRadius: radius.lg, overflow: "hidden" },
@@ -97,6 +111,7 @@ export default function HomeScreen() {
     groupEmpty: { minHeight: 88, width: "100%", flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.lg },
     list: { borderRadius: radius.lg, overflow: "hidden" },
     retry: { alignItems: "center", paddingBottom: spacing.md },
+    inlineIssue: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: spacing.sm, paddingVertical: spacing.sm },
   });
 
   const visibleExpenses = expenses.slice(0, 4);
@@ -110,14 +125,7 @@ export default function HomeScreen() {
             <AppText variant="caption" style={{ color: colors.textMuted }}>{getGreeting()} 👋</AppText>
             <AppText variant="title">{brand.name}</AppText>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open profile"
-            onPress={() => router.push("/(tabs)/profile" as any)}
-            style={styles.avatar}
-          >
-            <Ionicons name="person" size={21} color={colors.primary} />
-          </Pressable>
+
         </View>
 
         <View style={styles.hero}>
@@ -164,15 +172,23 @@ export default function HomeScreen() {
             { label: "Expense", icon: "add-circle" },
             { label: "Split", icon: "git-branch" },
             { label: "Groups", icon: "people" },
-            { label: "Friends", icon: "person-add" },
+            { label: "My QR", icon: "qr-code" },
+            { label: "Spending insights", icon: "analytics-outline" },
+            { label: "Scan", icon: "scan-outline" },
           ] as const).map(({ label, icon }) => (
             <QuickAction key={label} label={label} icon={icon} onPress={() => handleQuickAction(label)} />
           ))}
         </View>
-
         <View style={styles.section}>
           <SectionHeader title="Your groups" action={groups.length ? "See all" : undefined} onAction={goToGroups} />
-          {loading && !groups.length ? <LoadingState message="Loading your groups…" /> : visibleGroups.length ? (
+          {groupsLoading && !groups.length ? <LoadingState message="Loading your groups…" /> : groupsError && !groups.length ? (
+            <View style={styles.inlineIssue}>
+              <AppText variant="caption" style={{ color: colors.textMuted }}>{groupsError}</AppText>
+              <Pressable accessibilityRole="button" onPress={() => void refresh()} hitSlop={10}>
+                <AppText variant="caption" style={{ color: colors.primary }}>Retry</AppText>
+              </Pressable>
+            </View>
+          ) : visibleGroups.length ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.groupList}>
               {visibleGroups.map((group, index) => {
                 const gradient = index % 2 === 0 ? colors.gradientSky : colors.gradientSunset;
@@ -215,10 +231,12 @@ export default function HomeScreen() {
           <SectionHeader title="Recent expenses" />
           <GlassPanel padding={spacing.lg} style={styles.list}>
             {loading ? <LoadingState message="Loading your expenses…" /> : error ? (
-              <Pressable accessibilityRole="button" onPress={() => void refresh()}>
-                <ErrorState message={error} />
-                <View style={styles.retry}><AppText variant="caption" style={{ color: colors.primary }}>Tap to try again</AppText></View>
-              </Pressable>
+              <View style={styles.inlineIssue}>
+                <AppText variant="caption" style={{ color: colors.textMuted }}>{error}</AppText>
+                <Pressable accessibilityRole="button" onPress={() => void refresh()} hitSlop={10}>
+                  <AppText variant="caption" style={{ color: colors.primary }}>Retry</AppText>
+                </Pressable>
+              </View>
             ) : expenses.length ? visibleExpenses.map((expense) => <ExpenseRow key={expense.id} expense={expense} />) : (
               <EmptyState icon="receipt" title="Nothing spent yet" message="Add your first expense and let DeepPay keep everything in the loop." />
             )}
@@ -226,8 +244,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <BottomTabBar activeTab="home" onTabPress={goTo} onAddPress={openCreate} />
-      <CreateActionSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
+      <BottomTabBar activeTab="home" onTabPress={goTo} onPayPress={() => router.push("/upi" as Href)} />
     </SafeAreaView>
   );
 }

@@ -2,7 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { AppText } from "@/src/components/common/AppText";
 import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { useTheme } from "@/src/theme";
@@ -12,6 +12,7 @@ type Action = { label: string; icon: keyof typeof Ionicons.glyphMap; description
 
 const actions: Action[] = [
   { label: "Create Group", icon: "people-outline", description: "Start a trip, club, or shared expense group" },
+  { label: "UPI & QR", icon: "qr-code-outline", description: "View and share your personal receive QR" },
   { label: "Add Friend", icon: "person-add-outline", description: "Add someone to your DeepPay friends" },
   { label: "Split a Bill", icon: "git-branch-outline", description: "Quickly split a bill with friends" },
   { label: "Add Expense", icon: "receipt-outline", description: "Record something you paid for" },
@@ -57,6 +58,7 @@ export function CreateActionSheet({
     if (label === "Add Expense") router.push("/expenses/new");
     if (label === "Create Group") router.push("/groups");
     if (label === "Add Friend") router.push("/friends");
+    if (label === "UPI & QR") router.push({ pathname: "/upi", params: { tab: "my-qr" } } as Href);
     onAction?.(label);
     onClose();
   };
@@ -81,7 +83,7 @@ export function CreateActionSheet({
           </View>
 
           {actions.map((action) => {
-            const gradient = action.label === "Create Group"
+            const gradient = action.label === "Create Group" || action.label === "UPI & QR"
               ? colors.gradientSky
               : action.label === "Add Friend"
                 ? colors.gradientSunset

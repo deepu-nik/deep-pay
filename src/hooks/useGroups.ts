@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/src/context/AuthContext";
 import {
   firebaseGroupService,
@@ -12,6 +12,7 @@ export function useGroups() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const inFlightRef = useRef<Promise<Group[]> | null>(null);
 
   const refresh = useCallback(async () => {
     if (!user?.id) {
@@ -19,52 +20,71 @@ export function useGroups() {
       setLoading(false);
       return [];
     }
+    if (inFlightRef.current) return inFlightRef.current;
     setLoading(true);
     setError(null);
-    try {
-      const next = await firebaseGroupService.listGroups();
-      setGroups(next);
-      return next;
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "We couldn't load your groups.";
-      setError(message);
-      throw cause;
-    } finally {
-      setLoading(false);
-    }
+    const request = firebaseGroupService.listGroups()
+      .then((next) => {
+        setGroups(next);
+        setError(null);
+        return next;
+      })
+      .catch((cause: unknown) => {
+        const code = cause && typeof cause === "object" && "code" in cause
+          ? String((cause as { code?: unknown }).code ?? "")
+          : "";
+        const message = code === "permission-denied" || code === "firestore/permission-denied"
+          ? "Firestore denied access to your groups. Deploy the latest rules with: firebase deploy --only firestore:rules --project deeppay-d3df2"
+          : cause instanceof Error ? cause.message : "We couldn't load your groups.";
+        setError(message);
+        throw cause;
+      })
+      .finally(() => {
+        setLoading(false);
+        inFlightRef.current = null;
+      });
+    inFlightRef.current = request;
+    return request;
   }, [user?.id]);
 
   useEffect(() => {
-    let active = true;
-    if (!user?.id) {
-      setGroups([]);
-      setLoading(false);
-      return () => { active = false; };
-    }
-    setLoading(true);
-    firebaseGroupService.listGroups()
-      .then((next) => { if (active) setGroups(next); })
-      .catch((cause: unknown) => {
-        if (active) setError(cause instanceof Error ? cause.message : "We couldn't load your groups.");
-      })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [user?.id]);
+    void refresh().catch(() => undefined);
+  }, [refresh]);
 
   const listMembers = useCallback((groupId: string): Promise<GroupMember[]> => {
     return firebaseGroupService.listMembers(groupId);
   }, []);
 
   const createGroup = useCallback(async (input: CreateGroupInput) => {
-    const group = await firebaseGroupService.createGroup(input);
-    setGroups((current) => [group, ...current]);
-    return group;
+    // Let an initial membership-index read finish before the new group is
+    // inserted into local state, so an older empty result cannot overwrite it.
+    if (inFlightRef.current) {
+      try {
+        await inFlightRef.current;
+      } catch {
+        // A read failure should not prevent the user from creating a group.
+      }
+    }
+    try {
+      const group = await firebaseGroupService.createGroup(input);
+      setGroups((current) => [group, ...current.filter((item) => item.id !== group.id)]);
+      setError(null);
+      return group;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "We couldn't create this group. Please retry.");
+      throw cause;
+    }
   }, []);
 
   const updateGroup = useCallback(async (id: string, input: CreateGroupInput) => {
     const group = await firebaseGroupService.updateGroup(id, input);
     setGroups((current) => current.map((item) => item.id === id ? group : item));
     return group;
+  }, []);
+
+  const archiveGroup = useCallback(async (id: string) => {
+    await firebaseGroupService.archiveGroup(id);
+    setGroups((current) => current.filter((item) => item.id !== id));
   }, []);
 
   const deleteGroup = useCallback(async (id: string) => {
@@ -92,6 +112,7 @@ export function useGroups() {
     listMembers,
     createGroup,
     updateGroup,
+    archiveGroup,
     deleteGroup,
     createInvite,
     joinGroupInvite,

@@ -3,23 +3,27 @@ import { Pressable, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
 import { useTheme } from "@/src/theme";
-import { radius, spacing } from "@/src/theme/tokens";
+import { spacing } from "@/src/theme/tokens";
 
 type Props = { label: string; icon: keyof typeof Ionicons.glyphMap; onPress?: () => void };
 
 export function QuickAction({ label, icon, onPress }: Props) {
   const { colors } = useTheme();
-  const gradient = label === "Groups"
+  const gradient = label === "Groups" || label === "UPI" || label === "My QR"
     ? colors.gradientSky
     : label === "Friends"
       ? colors.gradientSunset
       : label === "Split"
         ? colors.gradientMint
         : colors.gradientPrimary;
-  const iconColor = label === "Expense" ? colors.white : colors.onAccent;
+  // Primary-gradient actions use the foreground designed for that gradient.
+  // Accent gradients (sky, mint, sunset) keep their own onAccent foreground.
+  const iconColor = gradient === colors.gradientPrimary
+    ? colors.onPrimaryGradient
+    : colors.onAccent;
 
   const styles = StyleSheet.create({
-    container: { alignItems: "center", gap: spacing.sm, minWidth: 70, paddingVertical: spacing.xs },
+    container: { width: "31%", minWidth: 0, alignItems: "center", gap: spacing.sm, paddingVertical: spacing.xs },
     pressed: { opacity: 0.78, transform: [{ scale: 0.96 }] },
     icon: {
       width: 58,
@@ -36,7 +40,7 @@ export function QuickAction({ label, icon, onPress }: Props) {
       shadowRadius: 8,
       elevation: 3,
     },
-    label: { fontWeight: "700" },
+    label: { fontWeight: "700", textAlign: "center" },
   });
 
   return (
@@ -44,7 +48,7 @@ export function QuickAction({ label, icon, onPress }: Props) {
       <LinearGradient colors={gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.icon}>
         <Ionicons name={icon} size={25} color={iconColor} />
       </LinearGradient>
-      <AppText variant="caption" style={styles.label}>{label}</AppText>
+      <AppText variant="caption" numberOfLines={2} style={styles.label}>{label}</AppText>
     </Pressable>
   );
 }

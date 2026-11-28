@@ -1,4 +1,5 @@
 import { firebaseAuth } from "@/src/lib/firebase";
+import { withFirestoreTimeout } from "@/src/services/firebase/requestUtils";
 import { firebaseExpenseService } from "@/src/services/firebase/expenseService";
 import { firebaseGroupService } from "@/src/services/firebase/groupService";
 import { firebaseSettlementService } from "@/src/services/firebase/settlementService";
@@ -14,18 +15,35 @@ export type ActivityEntry = {
   groupId?: string;
 };
 
+export type ActivityResult = {
+  items: ActivityEntry[];
+  groupsUnavailable: boolean;
+};
+
 export const firebaseActivityService = {
-  async listRecent(): Promise<ActivityEntry[]> {
+  async listRecent(): Promise<ActivityResult> {
     const uid = firebaseAuth.currentUser?.uid;
     if (!uid) throw new Error("Sign in to continue.");
 
-    const [expenses, groups] = await Promise.all([
-      firebaseExpenseService.listRecent(),
-      firebaseGroupService.listGroups(),
-    ]);
+    let groupsUnavailable = false;
+    let groups: Awaited<ReturnType<typeof firebaseGroupService.listGroups>> = [];
+    try {
+      groups = await withFirestoreTimeout(
+        firebaseGroupService.listGroups(),
+        "Loading your groups took too long. Check your connection and retry.",
+      );
+    } catch {
+      groupsUnavailable = true;
+    }
+
+    const expenses = await withFirestoreTimeout(
+      firebaseExpenseService.listRecent(groups),
+      "Loading activity took too long. Check your connection and retry.",
+    );
     const groupNames = new Map(groups.map((group) => [group.id, group.name]));
-    const settlementsByGroup = await Promise.all(
-      groups.map((group) => firebaseSettlementService.listByGroup(group.id)),
+    const settlementsByGroup = await withFirestoreTimeout(
+      Promise.all(groups.map((group) => firebaseSettlementService.listByGroup(group.id))),
+      "Loading settlement activity took too long. Check your connection and retry.",
     );
 
     const expenseEntries: ActivityEntry[] = expenses.map((expense) => ({
@@ -71,8 +89,10 @@ export const firebaseActivityService = {
       groupId: settlement.groupId,
     }));
 
-    return [...expenseEntries, ...settlementEntries]
+    const items = [...expenseEntries, ...settlementEntries]
       .filter((item) => Number.isFinite(item.timestamp) && item.timestamp > 0)
       .sort((a, b) => b.timestamp - a.timestamp);
+
+    return { items, groupsUnavailable };
   },
 };

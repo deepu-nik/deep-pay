@@ -1,13 +1,14 @@
-import { useCallback, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
 import { GlassPanel } from "@/src/components/common/GlassPanel";
+import { PrimaryButton } from "@/src/components/common/PrimaryButton";
+import { firebaseFriendService, type FriendHandle } from "@/src/services/firebase/friendService";
 import { BottomTabBar, type TabKey } from "@/src/components/navigation/BottomTabBar";
-import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet";
 import { useAuth } from "@/src/context/AuthContext";
 import { useHomeData } from "@/src/hooks/useHomeData";
 import { useTheme, type ThemeMode } from "@/src/theme";
@@ -89,13 +90,58 @@ export default function ProfileScreen() {
   const { colors, mode, setMode } = useTheme();
   const { user, signOut, resetPassword } = useAuth();
   const { expenses, groups, refresh } = useHomeData();
-  const [sheetVisible, setSheetVisible] = useState(false);
   const [themeVisible, setThemeVisible] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
+  const [usernameHandle, setUsernameHandle] = useState<FriendHandle | null>(null);
+  const [usernameDraft, setUsernameDraft] = useState("");
+  const [usernameLoading, setUsernameLoading] = useState(true);
+  const [usernameSaving, setUsernameSaving] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [usernameNotice, setUsernameNotice] = useState<string | null>(null);
 
   useFocusEffect(useCallback(() => {
     void refresh();
   }, [refresh]));
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.id) {
+      setUsernameLoading(false);
+      return () => { cancelled = true; };
+    }
+    setUsernameLoading(true);
+    void firebaseFriendService.getMyHandle()
+      .then((handle) => {
+        if (!cancelled) {
+          setUsernameHandle(handle);
+          setUsernameError(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setUsernameError("Couldn't check your username. Please retry.");
+      })
+      .finally(() => {
+        if (!cancelled) setUsernameLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  const createUsername = async () => {
+    if (usernameSaving || usernameDraft.trim().length < 3) return;
+    setUsernameSaving(true);
+    setUsernameError(null);
+    setUsernameNotice(null);
+    try {
+      const saved = await firebaseFriendService.claimUsername(usernameDraft, user?.fullName);
+      setUsernameHandle(saved);
+      setUsernameDraft("");
+      setUsernameNotice("Your username is ready. Friends can find you as @" + saved.username + ".");
+    } catch (cause) {
+      setUsernameError(cause instanceof Error ? cause.message : "Couldn't create your username. Please try again.");
+    } finally {
+      setUsernameSaving(false);
+    }
+  };
 
   const currentTheme = modes.find((item) => item.key === mode) ?? modes[0]!;
   const initials = (user?.fullName ?? "D").trim().slice(0, 1).toUpperCase() || "D";
@@ -169,6 +215,9 @@ export default function ProfileScreen() {
     settingRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, minHeight: 72, paddingVertical: spacing.sm },
     settingIcon: { width: 44, height: 44, borderRadius: 15, alignItems: "center", justifyContent: "center" },
     settingCopy: { flex: 1, gap: 2 },
+    usernameLine: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+    usernamePrefix: { minHeight: 52, minWidth: 46, alignItems: "center", justifyContent: "center", borderRadius: radius.md, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.iconBackground },
+    usernameInput: { flex: 1, minHeight: 52, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: radius.md, paddingHorizontal: spacing.md, color: colors.text, fontSize: 16, backgroundColor: colors.glassGradient[0] },
     separator: { height: 1, backgroundColor: colors.glassBorder, marginLeft: 58 },
     signOut: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: spacing.sm, minHeight: 54 },
     footer: { textAlign: "center", color: colors.textMuted, marginTop: spacing.xs },
@@ -195,21 +244,13 @@ export default function ProfileScreen() {
             <AppText variant="title">Profile</AppText>
             <AppText variant="body" style={{ color: colors.textMuted }}>Your account, your settings, your DeepPay.</AppText>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open appearance settings"
-            onPress={() => setThemeVisible(true)}
-            style={stylesLocal.headerButton}
-          >
-            <Ionicons name="settings-outline" size={22} color={colors.primary} />
-          </Pressable>
         </View>
 
         <GlassPanel padding={spacing.lg} style={stylesLocal.hero}>
           <View style={stylesLocal.heroRow}>
             <View style={stylesLocal.avatar}>
               <LinearGradient colors={colors.gradientPrimary} style={StyleSheet.absoluteFill} />
-              <AppText variant="h2" style={{ color: colors.onAccent, fontSize: 28 }}>{initials}</AppText>
+              <AppText variant="h2" style={{ color: colors.onPrimaryGradient, fontSize: 28 }}>{initials}</AppText>
             </View>
             <View style={stylesLocal.identity}>
               <AppText style={stylesLocal.name} numberOfLines={1}>{user?.fullName ?? "DeepPay member"}</AppText>
@@ -257,8 +298,74 @@ export default function ProfileScreen() {
         </View>
 
         <View>
+          <AppText variant="h2" style={stylesLocal.sectionTitle}>Your DeepPay username</AppText>
+          <GlassPanel padding={spacing.lg} gap={spacing.md}>
+            {usernameLoading ? (
+              <AppText variant="caption" style={{ color: colors.textMuted }}>Checking your username…</AppText>
+            ) : usernameHandle ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+                <View style={[stylesLocal.usernamePrefix, { width: 52, height: 52 }]}>
+                  <Ionicons name="at" size={22} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1, gap: 3 }}>
+                  <AppText variant="bodyMedium">@{usernameHandle.username}</AppText>
+                  <AppText variant="caption" style={{ color: colors.textMuted }}>Your unique DeepPay username</AppText>
+                </View>
+                <Ionicons name="checkmark-circle" size={21} color={colors.success} />
+              </View>
+            ) : (
+              <>
+                <AppText variant="caption" style={{ color: colors.textMuted }}>
+                  Create a unique username so friends can find you without seeing your email. Usernames can only be claimed once.
+                </AppText>
+                <View style={stylesLocal.usernameLine}>
+                  <View style={stylesLocal.usernamePrefix}><AppText variant="bodyMedium" style={{ color: colors.primary }}>@</AppText></View>
+                  <TextInput
+                    value={usernameDraft}
+                    onChangeText={(value) => {
+                      setUsernameDraft(value.toLowerCase().replace(/[^a-z0-9_]/g, ""));
+                      setUsernameError(null);
+                      setUsernameNotice(null);
+                    }}
+                    placeholder="your_username"
+                    placeholderTextColor={colors.textMuted}
+                    style={stylesLocal.usernameInput}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    maxLength={20}
+                    returnKeyType="done"
+                    onSubmitEditing={() => { void createUsername(); }}
+                  />
+                </View>
+                <PrimaryButton
+                  title={usernameSaving ? "Creating username…" : "Create username"}
+                  onPress={() => { void createUsername(); }}
+                  disabled={usernameSaving || usernameDraft.trim().length < 3}
+                />
+              </>
+            )}
+            {usernameError ? <AppText variant="caption" style={{ color: colors.warning }}>{usernameError}</AppText> : null}
+            {usernameNotice ? <AppText variant="caption" style={{ color: colors.success }}>{usernameNotice}</AppText> : null}
+          </GlassPanel>
+        </View>
+
+        <View>
           <AppText variant="h2" style={stylesLocal.sectionTitle}>Account</AppText>
           <GlassPanel padding={spacing.md} style={stylesLocal.settingGroup}>
+            <ProfileSettingRow
+              icon="qr-code-outline"
+              title="UPI & QR"
+              description="Manage your UPI ID, receive QR and payment records"
+              onPress={() => router.push("/upi" as Href)}
+            />
+            <View style={stylesLocal.separator} />
+            <ProfileSettingRow
+              icon="people-outline"
+              title="Friends"
+              description="Find people, accept requests and manage your friends"
+              onPress={() => router.push("/friends" as Href)}
+            />
+            <View style={stylesLocal.separator} />
             <ProfileSettingRow
               icon="person-circle-outline"
               title="Personal information"
@@ -289,6 +396,32 @@ export default function ProfileScreen() {
         </View>
 
         <View>
+          <AppText variant="h2" style={stylesLocal.sectionTitle}>Legal & transparency</AppText>
+          <GlassPanel padding={spacing.md} style={stylesLocal.settingGroup}>
+            <ProfileSettingRow
+              icon="document-text-outline"
+              title="Terms & conditions"
+              description="How DeepPay may be used"
+              onPress={() => router.push("/legal?section=terms" as any)}
+            />
+            <View style={stylesLocal.separator} />
+            <ProfileSettingRow
+              icon="shield-checkmark-outline"
+              title="Privacy notice"
+              description="What information the app uses"
+              onPress={() => router.push("/legal?section=privacy" as any)}
+            />
+            <View style={stylesLocal.separator} />
+            <ProfileSettingRow
+              icon="wallet-outline"
+              title="UPI & payment disclosure"
+              description="Important payment and QR limitations"
+              onPress={() => router.push("/legal?section=payments" as any)}
+            />
+          </GlassPanel>
+        </View>
+
+        <View>
           <AppText variant="h2" style={stylesLocal.sectionTitle}>About</AppText>
           <GlassPanel padding={spacing.md} style={stylesLocal.settingGroup}>
             <View style={stylesLocal.settingRow}>
@@ -306,8 +439,7 @@ export default function ProfileScreen() {
         <AppText variant="caption" style={stylesLocal.footer}>Made to make shared money feel simple.</AppText>
       </ScrollView>
 
-      <BottomTabBar activeTab="profile" onTabPress={goTo} onAddPress={() => setSheetVisible(true)} />
-      <CreateActionSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
+      <BottomTabBar activeTab="profile" onTabPress={goTo} onPayPress={() => router.push("/upi" as Href)} />
 
       <Modal visible={themeVisible} transparent animationType="slide" onRequestClose={() => setThemeVisible(false)}>
         <View style={stylesLocal.modalRoot}>

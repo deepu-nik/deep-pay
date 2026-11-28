@@ -3,16 +3,18 @@ import {
   arrayUnion,
   collection,
   doc,
+  deleteDoc,
   getDoc,
   getDocs,
-  query,
   serverTimestamp,
   setDoc,
   updateDoc,
   where,
+  query,
   writeBatch,
 } from "firebase/firestore";
 import { firebaseAuth, firestore } from "@/src/lib/firebase";
+import { withFirestoreTimeout } from "@/src/services/firebase/requestUtils";
 import type { CreateGroupInput, Group, GroupMember } from "@/src/types/domain";
 
 export type GroupInviteDetails = {
@@ -57,20 +59,40 @@ function normalizeMemberIds(memberIds: string[], uid: string) {
 export const firebaseGroupService = {
   async listGroups(): Promise<Group[]> {
     const uid = requireUid();
-    const groupsQuery = query(
-      collection(firestore, "groups"),
-      where("memberUids", "array-contains", uid),
+
+    // Read the signed-in user's membership index first. This is an owner-scoped
+    // subcollection read and avoids a collection-wide groups query being
+    // rejected by Firestore query/rule proof.
+    const membershipsSnapshot = await withFirestoreTimeout(
+      getDocs(collection(firestore, "users", uid, "groupMemberships")),
+      "Loading your group memberships took too long. Check your connection and retry.",
     );
-    const snapshot = await getDocs(groupsQuery);
-    return snapshot.docs
-      .filter((item) => item.data().status === "active")
-      .map((item) => mapGroup(item.id, item.data()))
+    const groupIds = [...new Set(membershipsSnapshot.docs.map((item) => item.id))];
+    if (groupIds.length === 0) return [];
+
+    const groupSnapshots = await withFirestoreTimeout(
+      Promise.all(groupIds.map((groupId) => getDoc(doc(firestore, "groups", groupId)))),
+      "Loading your groups took too long. Check your connection and retry.",
+    );
+
+    return groupSnapshots
+      .filter((snapshot) => snapshot.exists())
+      .filter((snapshot) => {
+        const data = snapshot.data();
+        return data.status === "active"
+          && Array.isArray(data.memberUids)
+          && data.memberUids.includes(uid);
+      })
+      .map((snapshot) => mapGroup(snapshot.id, snapshot.data()))
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
 
   async listMembers(groupId: string): Promise<GroupMember[]> {
     requireUid();
-    const snapshot = await getDocs(collection(firestore, "groups", groupId, "members"));
+    const snapshot = await withFirestoreTimeout(
+      getDocs(collection(firestore, "groups", groupId, "members")),
+      "Loading group members took too long. Check your connection and retry.",
+    );
     return snapshot.docs
       .filter((item) => item.data().status === "active")
       .map((item) => {
@@ -119,7 +141,22 @@ export const firebaseGroupService = {
       role: "owner",
       joinedAt: serverTimestamp(),
     });
-    await batch.commit();
+    try {
+      await withFirestoreTimeout(
+        batch.commit(),
+        "Creating this group took too long. Check your connection and try again.",
+      );
+    } catch (cause) {
+      const code = cause && typeof cause === "object" && "code" in cause
+        ? String((cause as { code?: unknown }).code ?? "")
+        : "";
+      if (code === "permission-denied" || code === "firestore/permission-denied") {
+        throw new Error(
+          "Firestore denied group creation. Publish the latest DeepPay rules with: firebase deploy --only firestore:rules --project deeppay-d3df2",
+        );
+      }
+      throw cause;
+    }
 
     return {
       id: groupRef.id,
@@ -151,12 +188,95 @@ export const firebaseGroupService = {
     return { ...current, name };
   },
 
+  async archiveGroup(id: string): Promise<void> {
+    const uid = requireUid();
+    const groupRef = doc(firestore, "groups", id);
+    const groupSnapshot = await withFirestoreTimeout(
+      getDoc(groupRef),
+      "Opening this group took too long. Check your connection and retry.",
+    );
+    if (!groupSnapshot.exists()) throw new Error("Group not found.");
+    if (groupSnapshot.data().createdByUid !== uid) {
+      throw new Error("Only the group owner can archive this group.");
+    }
+    await withFirestoreTimeout(
+      updateDoc(groupRef, { status: "archived", updatedAt: serverTimestamp() }),
+      "Archiving this group took too long. Check your connection and retry.",
+    );
+  },
+
   async deleteGroup(id: string): Promise<void> {
-    requireUid();
-    await updateDoc(doc(firestore, "groups", id), {
-      status: "archived",
-      updatedAt: serverTimestamp(),
-    });
+    const uid = requireUid();
+    const groupRef = doc(firestore, "groups", id);
+    const groupSnapshot = await withFirestoreTimeout(
+      getDoc(groupRef),
+      "Opening this group took too long. Check your connection and retry.",
+    );
+    if (!groupSnapshot.exists()) throw new Error("Group not found.");
+
+    const groupData = groupSnapshot.data();
+    if (groupData.createdByUid !== uid) {
+      throw new Error("Only the group owner can permanently delete this group.");
+    }
+    const memberUids = Array.isArray(groupData.memberUids)
+      ? [...new Set(groupData.memberUids.filter((value): value is string => typeof value === "string"))]
+      : [uid];
+    if (!memberUids.includes(uid)) {
+      throw new Error("You are no longer a member of this group.");
+    }
+
+    const membersRef = collection(firestore, "groups", id, "members");
+    const expensesRef = collection(firestore, "groups", id, "expenses");
+    const settlementsRef = collection(firestore, "groups", id, "settlements");
+    const invitesQuery = query(
+      collection(firestore, "groupInvites"),
+      where("groupId", "==", id),
+    );
+
+    const [membersSnapshot, expensesSnapshot, settlementsSnapshot, invitesSnapshot] = await withFirestoreTimeout(
+      Promise.all([
+        getDocs(membersRef),
+        getDocs(expensesRef),
+        getDocs(settlementsRef),
+        getDocs(invitesQuery),
+      ]),
+      "Preparing group deletion took too long. Check your connection and retry.",
+    );
+
+    // Revoke live invitations first so old links cannot be used after deletion.
+    const relevantInvites = invitesSnapshot.docs.filter((item) => item.data().groupId === id && item.data().status === "active");
+    for (let index = 0; index < relevantInvites.length; index += 400) {
+      const batch = writeBatch(firestore);
+      relevantInvites.slice(index, index + 400).forEach((item) => {
+        batch.update(item.ref, { status: "revoked" });
+      });
+      await withFirestoreTimeout(
+        batch.commit(),
+        "Revoking group invitations took too long. Check your connection and retry.",
+      );
+    }
+
+    // Delete all child documents and membership indexes in bounded batches.
+    // The parent group remains until the final write, so owner checks stay valid.
+    const refs = [
+      ...membersSnapshot.docs.map((item) => item.ref),
+      ...expensesSnapshot.docs.map((item) => item.ref),
+      ...settlementsSnapshot.docs.map((item) => item.ref),
+      ...memberUids.map((memberUid) => doc(firestore, "users", memberUid, "groupMemberships", id)),
+    ];
+    for (let index = 0; index < refs.length; index += 400) {
+      const batch = writeBatch(firestore);
+      refs.slice(index, index + 400).forEach((reference) => batch.delete(reference));
+      await withFirestoreTimeout(
+        batch.commit(),
+        "Removing group records took too long. Check your connection and retry.",
+      );
+    }
+
+    await withFirestoreTimeout(
+      deleteDoc(groupRef),
+      "Finishing group deletion took too long. Check your connection and retry.",
+    );
   },
 
   async createInvite(groupId: string): Promise<string> {

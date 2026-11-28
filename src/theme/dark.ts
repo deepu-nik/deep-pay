@@ -26,6 +26,7 @@ export const darkColors: ThemeColors = {
   glassBorder: "rgba(196, 178, 255, 0.22)",
   glassHighlight: "rgba(255, 255, 255, 0.10)",
   onAccent: "#FFFFFF",
+  onPrimaryGradient: "#FFFFFF",
   white: "#FFFFFF",
   black: "#000000",
 };

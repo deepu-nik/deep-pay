@@ -8,10 +8,12 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { firebaseAuth, firestore } from "@/src/lib/firebase";
+import { withFirestoreTimeout } from "@/src/services/firebase/requestUtils";
 import { firebaseGroupService } from "@/src/services/firebase/groupService";
 import type {
   CreateExpenseInput,
   Expense,
+  Group,
   GroupBalance,
   HomeSummary,
   PaymentMethod,
@@ -71,7 +73,7 @@ function mapExpense(id: string, data: Record<string, unknown>): Expense {
 }
 
 function splitToMinor(input: CreateExpenseInput, uid: string, amountMinor: number, participantUids: string[]): StoredSplit[] {
-  const rawSplits = input.splits?.length
+  const rawSplits: NonNullable<CreateExpenseInput["splits"]> = input.splits?.length
     ? input.splits
     : (() => {
         const base = Math.floor(amountMinor / participantUids.length);
@@ -138,7 +140,10 @@ function calculateBalances(
 }
 
 async function listGroupExpenses(groupId: string) {
-  const snapshot = await getDocs(collection(firestore, "groups", groupId, "expenses"));
+  const snapshot = await withFirestoreTimeout(
+    getDocs(collection(firestore, "groups", groupId, "expenses")),
+    "Loading group expenses took too long. Check your connection and retry.",
+  );
   return snapshot.docs.map((item) => mapExpense(item.id, item.data()));
 }
 
@@ -224,10 +229,13 @@ export const firebaseExpenseService = {
     return expenses.sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
   },
 
-  async listRecent(): Promise<Expense[]> {
+  async listRecent(groupsInput?: Group[]): Promise<Expense[]> {
     const uid = requireUid();
-    const groups = await firebaseGroupService.listGroups();
-    const personalSnapshot = await getDocs(collection(firestore, "users", uid, "expenses"));
+    const groups = groupsInput ?? await firebaseGroupService.listGroups();
+    const personalSnapshot = await withFirestoreTimeout(
+      getDocs(collection(firestore, "users", uid, "expenses")),
+      "Loading your expenses took too long. Check your connection and retry.",
+    );
     const personal = personalSnapshot.docs.map((item) => mapExpense(item.id, item.data()));
     const groupExpenses = await Promise.all(groups.map((group) => listGroupExpenses(group.id)));
     return [...personal, ...groupExpenses.flat()]
@@ -237,9 +245,9 @@ export const firebaseExpenseService = {
   async getGroupBalances(groupId: string): Promise<GroupBalance[]> {
     const uid = requireUid();
     const [groupSnapshot, expensesSnapshot, settlementsSnapshot] = await Promise.all([
-      getDoc(doc(firestore, "groups", groupId)),
-      getDocs(collection(firestore, "groups", groupId, "expenses")),
-      getDocs(collection(firestore, "groups", groupId, "settlements")),
+      withFirestoreTimeout(getDoc(doc(firestore, "groups", groupId)), "Loading this group took too long. Retry in a moment."),
+      withFirestoreTimeout(getDocs(collection(firestore, "groups", groupId, "expenses")), "Loading group expenses took too long. Retry in a moment."),
+      withFirestoreTimeout(getDocs(collection(firestore, "groups", groupId, "settlements")), "Loading group settlements took too long. Retry in a moment."),
     ]);
     if (!groupSnapshot.exists()) throw new Error("Group not found.");
     const group = groupSnapshot.data();
@@ -260,12 +268,14 @@ export const firebaseExpenseService = {
     return calculateBalances(expenses, settlements, group.memberUids);
   },
 
-  async getHomeSummary(): Promise<HomeSummary> {
+  async getHomeSummary(expensesInput?: Expense[], groupsInput?: Group[]): Promise<HomeSummary> {
     const uid = requireUid();
-    const [expenses, groups] = await Promise.all([
-      firebaseExpenseService.listRecent(),
-      firebaseGroupService.listGroups(),
-    ]);
+    const [expenses, groups] = expensesInput && groupsInput
+      ? [expensesInput, groupsInput]
+      : await Promise.all([
+          firebaseExpenseService.listRecent(),
+          firebaseGroupService.listGroups(),
+        ]);
     const now = new Date();
     const totalSpentMinor = expenses.reduce((sum, expense) => {
       const created = expense.createdAt ? new Date(expense.createdAt) : new Date(0);
@@ -278,7 +288,23 @@ export const firebaseExpenseService = {
       return sum;
     }, 0);
 
-    const balances = await Promise.all(groups.map((group) => firebaseExpenseService.getGroupBalances(group.id)));
+    const balances = await Promise.all(groups.map(async (group) => {
+      const settlementsSnapshot = await withFirestoreTimeout(
+        getDocs(collection(firestore, "groups", group.id, "settlements")),
+        "Loading group balances took too long. Check your connection and retry.",
+      );
+      const settlements = settlementsSnapshot.docs.map((item) => {
+        const data = item.data();
+        return {
+          fromUid: typeof data.fromUid === "string" ? data.fromUid : "",
+          toUid: typeof data.toUid === "string" ? data.toUid : "",
+          amountMinor: typeof data.amountMinor === "number" ? data.amountMinor : 0,
+          status: typeof data.status === "string" ? data.status : "pending",
+        };
+      });
+      const groupExpenses = expenses.filter((expense) => expense.groupId === group.id);
+      return calculateBalances(groupExpenses, settlements, group.memberIds);
+    }));
     const ownBalances = balances.flat().filter((balance) => balance.userId === uid);
     const youOweMinor = ownBalances.reduce((sum, balance) => sum + Math.max(0, -Math.round(balance.net * 100)), 0);
     const owedToYouMinor = ownBalances.reduce((sum, balance) => sum + Math.max(0, Math.round(balance.net * 100)), 0);

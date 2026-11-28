@@ -5,9 +5,10 @@ import { radius, spacing } from "@/src/theme/tokens";
 
 type GlassPanelProps = ViewProps & {
   padding?: number;
+  gap?: number;
 };
 
-export function GlassPanel({ children, padding = spacing.lg, style, ...props }: GlassPanelProps) {
+export function GlassPanel({ children, padding = spacing.lg, gap = 0, style, ...props }: GlassPanelProps) {
   const { colors } = useTheme();
 
   return (
@@ -31,7 +32,7 @@ export function GlassPanel({ children, padding = spacing.lg, style, ...props }: 
         style={StyleSheet.absoluteFill}
       />
       <View pointerEvents="none" style={[styles.highlight, { backgroundColor: colors.glassHighlight }]} />
-      <View style={{ padding }}>{children}</View>
+      <View style={{ padding, gap }}>{children}</View>
     </View>
   );
 }
