@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FirebaseError } from "firebase/app";
 import {
   Timestamp,
@@ -15,6 +16,7 @@ export type UpiProfile = {
   vpa: string;
   displayName: string;
   updatedAt: string;
+  syncStatus: "local" | "synced";
 };
 
 export type UpiTransaction = {
@@ -33,6 +35,51 @@ function requireUid() {
   const uid = firebaseAuth.currentUser?.uid;
   if (!uid) throw new Error("Sign in to continue.");
   return uid;
+}
+
+const profileStorageKey = (uid: string) => `@deeppay/upi-profile:v1:${uid}`;
+
+function isStoredProfile(value: unknown): value is UpiProfile {
+  if (!value || typeof value !== "object") return false;
+  const profile = value as Partial<UpiProfile>;
+  return typeof profile.vpa === "string"
+    && isValidVpa(profile.vpa)
+    && typeof profile.displayName === "string"
+    && profile.displayName.length >= 2
+    && (profile.syncStatus === "local" || profile.syncStatus === "synced");
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
+function profileSyncError(cause: unknown) {
+  if (cause instanceof FirebaseError && cause.code === "permission-denied") {
+    return "Saved on this device, but Firebase rejected account sync. Deploy the latest rules with: firebase deploy --only firestore:rules";
+  }
+  if (cause instanceof FirebaseError && (
+    cause.code === "unavailable"
+    || cause.code === "deadline-exceeded"
+    || cause.code === "network-request-failed"
+  )) {
+    return "Saved on this device. Firebase is unreachable right now, so account sync will need to be retried.";
+  }
+  if (cause instanceof Error && cause.message.includes("timed out")) {
+    return "Saved on this device. Firebase did not respond in time; retry account sync when your connection is stable.";
+  }
+  return cause instanceof Error
+    ? `Saved on this device, but account sync failed: ${cause.message}`
+    : "Saved on this device, but account sync failed.";
 }
 
 function timestampToIso(value: unknown) {
@@ -60,49 +107,69 @@ function mapTransaction(id: string, data: Record<string, unknown>): UpiTransacti
 export const firebaseUpiService = {
   async getMyProfile(): Promise<UpiProfile | null> {
     const uid = requireUid();
-    const snapshot = await getDoc(doc(firestore, "users", uid, "paymentProfiles", "upi"));
+    const key = profileStorageKey(uid);
+    const stored = await AsyncStorage.getItem(key);
+    if (stored) {
+      try {
+        const parsed: unknown = JSON.parse(stored);
+        if (isStoredProfile(parsed)) return parsed;
+      } catch {
+        // Ignore a corrupt local cache and continue with the account copy.
+      }
+    }
+
+    const snapshot = await withTimeout(
+      getDoc(doc(firestore, "users", uid, "paymentProfiles", "upi")),
+      6000,
+      "Loading your UPI profile timed out. Check your connection and retry.",
+    );
     if (!snapshot.exists()) return null;
     const data = snapshot.data();
     if (typeof data.vpa !== "string" || typeof data.displayName !== "string") return null;
-    return {
+    const profile: UpiProfile = {
       vpa: data.vpa,
       displayName: data.displayName,
       updatedAt: timestampToIso(data.updatedAt),
+      syncStatus: "synced",
     };
+    await AsyncStorage.setItem(key, JSON.stringify(profile));
+    return profile;
   },
 
   async saveMyProfile(input: { vpa: string; displayName: string }): Promise<UpiProfile> {
     const uid = requireUid();
     const vpa = normalizeVpa(input.vpa);
-    const displayName = input.displayName.trim().replace(/\s+/g, " ");
+    const displayName = input.displayName.trim().replace(/\\s+/g, " ");
     if (!isValidVpa(vpa)) throw new Error("Enter a valid UPI ID, for example name@bank.");
     if (displayName.length < 2 || displayName.length > 80) throw new Error("Display name must be between 2 and 80 characters.");
 
-    try {
-      await setDoc(doc(firestore, "users", uid, "paymentProfiles", "upi"), {
-        vpa,
-        displayName,
-        updatedAt: serverTimestamp(),
-      });
-    } catch (cause) {
-      if (cause instanceof FirebaseError && cause.code === "permission-denied") {
-        throw new Error(
-          "Firebase denied saving your UPI profile. Deploy the latest Firestore rules from this branch using: firebase deploy --only firestore:rules",
-        );
-      }
-      if (cause instanceof FirebaseError && (
-        cause.code === "unavailable"
-        || cause.code === "deadline-exceeded"
-        || cause.code === "network-request-failed"
-      )) {
-        throw new Error("Couldn't reach Firebase to save your UPI details. Check your internet connection and try again.");
-      }
-      throw cause;
-    }
-
-    return { vpa, displayName, updatedAt: new Date().toISOString() };
+    const profile: UpiProfile = {
+      vpa,
+      displayName,
+      updatedAt: new Date().toISOString(),
+      syncStatus: "local",
+    };
+    await AsyncStorage.setItem(profileStorageKey(uid), JSON.stringify(profile));
+    return profile;
   },
 
+  async syncMyProfile(profile: UpiProfile): Promise<UpiProfile> {
+    const uid = requireUid();
+    await withTimeout(
+      setDoc(doc(firestore, "users", uid, "paymentProfiles", "upi"), {
+        vpa: profile.vpa,
+        displayName: profile.displayName,
+        updatedAt: serverTimestamp(),
+      }),
+      8000,
+      "Firebase profile sync timed out.",
+    );
+    const synced: UpiProfile = { ...profile, syncStatus: "synced", updatedAt: new Date().toISOString() };
+    await AsyncStorage.setItem(profileStorageKey(uid), JSON.stringify(synced));
+    return synced;
+  },
+
+  getProfileSyncError: profileSyncError,
   async recordOutgoing(input: {
     payeeVpa: string;
     payeeName: string;
