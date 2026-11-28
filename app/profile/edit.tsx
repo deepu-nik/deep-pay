@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
+import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { PrimaryButton } from "@/src/components/common/PrimaryButton";
 import { useAuth } from "@/src/context/AuthContext";
 import { useTheme } from "@/src/theme";
@@ -55,6 +56,7 @@ export default function EditProfileScreen() {
             <AppText variant="h2">Edit profile</AppText>
           </View>
 
+          <GlassPanel padding={spacing.lg} style={{ gap: spacing.lg }}>
           <View style={{ gap: spacing.xs }}>
             <AppText variant="bodyMedium">Full name</AppText>
             <TextInput
@@ -74,6 +76,8 @@ export default function EditProfileScreen() {
             <View style={styles.readOnly}><AppText variant="body" style={{ color: colors.textMuted }}>{user?.email ?? "—"}</AppText></View>
             <AppText variant="caption" style={{ color: colors.textMuted }}>Your sign-in email is managed by Firebase Authentication and can't be edited here.</AppText>
           </View>
+
+          </GlassPanel>
 
           {error ? <AppText variant="caption" style={{ color: colors.danger }}>{error}</AppText> : null}
           <PrimaryButton title={saving ? "Saving…" : "Save changes"} onPress={submit} disabled={saving} />
