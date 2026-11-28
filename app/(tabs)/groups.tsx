@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
+import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { BottomTabBar } from "@/src/components/navigation/BottomTabBar";
 import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet";
 import { EmptyState } from "@/src/components/common/EmptyState";
@@ -35,7 +36,7 @@ export default function GroupsScreen() {
     safe:{flex:1,backgroundColor:colors.background}, content:{padding:spacing.lg,paddingBottom:110},
     header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:spacing.xl},
     headerActions:{flexDirection:"row",gap:spacing.sm}, iconButton:{width:44,height:44,borderRadius:radius.md,backgroundColor:colors.glassGradient[0],borderWidth:1,borderColor:colors.glassBorder,alignItems:"center",justifyContent:"center"},
-    card:{backgroundColor:colors.glassGradient[0],borderRadius:radius.lg,borderWidth:1,borderColor:colors.glassBorder,padding:spacing.lg,marginBottom:spacing.md,shadowColor:colors.primary,shadowOpacity:0.08,shadowRadius:12,elevation:2},
+    card:{marginBottom:spacing.md},
     row:{flexDirection:"row",alignItems:"center",gap:spacing.md}, groupIcon:{width:48,height:48,borderRadius:24,backgroundColor:colors.iconBackground,alignItems:"center",justifyContent:"center"},
     muted:{color:colors.textMuted}, modal:{flex:1,justifyContent:"flex-end",backgroundColor:"rgba(0,0,0,0.35)"},
     sheet:{backgroundColor:colors.glassGradient[0],borderTopLeftRadius:radius.xl,borderTopRightRadius:radius.xl,padding:spacing.lg,paddingBottom:spacing.xxl,gap:spacing.lg,borderWidth:1,borderColor:colors.glassBorder},
@@ -94,13 +95,13 @@ export default function GroupsScreen() {
         </View>
       </View>
       {loading ? <LoadingState message="Loading groups…" /> : groups.length ? groups.map(group =>
-        <Pressable key={group.id} onPress={()=>router.push(`/groups/${group.id}`)} style={styles.card}>
-          <View style={styles.row}>
+        <GlassPanel key={group.id} padding={spacing.lg} style={styles.card}>
+          <Pressable onPress={()=>router.push(`/groups/${group.id}`)} style={styles.row}>
             <View style={styles.groupIcon}><Ionicons name="people-outline" size={23} color={colors.primary}/></View>
             <View style={{flex:1}}><AppText variant="bodyMedium">{group.name}</AppText><AppText variant="caption" style={styles.muted}>{memberCount(group.memberIds)}</AppText></View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted}/>
-          </View>
-        </Pressable>
+          </Pressable>
+        </GlassPanel>
       ) : <EmptyState icon="people-outline" title="No groups yet" message="Create a group for trips, roommates, clubs or projects." />}
     </ScrollView>
     <BottomTabBar activeTab="groups" onTabPress={goTo} onAddPress={()=>setSheetVisible(true)}/>

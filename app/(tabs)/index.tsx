@@ -5,6 +5,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
+import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { ExpenseRow } from "@/src/components/common/ExpenseRow";
 import { QuickAction } from "@/src/components/common/QuickAction";
 import { SectionHeader } from "@/src/components/common/SectionHeader";
@@ -88,11 +89,13 @@ export default function HomeScreen() {
     actions: { flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.xl },
     section: { marginBottom: spacing.xl },
     groupList: { paddingRight: spacing.lg, gap: spacing.md },
-    groupCard: { width: 214, minHeight: 96, backgroundColor: colors.glassGradient[0], borderRadius: radius.lg, borderWidth: 1, borderColor: colors.glassBorder, padding: spacing.md, flexDirection: "row", alignItems: "center", gap: spacing.md, overflow: "hidden", shadowColor: colors.primary, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.10, shadowRadius: 12, elevation: 3 },
+    groupCard: { width: 214, minHeight: 96, borderRadius: radius.lg, overflow: "hidden" },
+    groupCardAction: { minHeight: 96, width: "100%", padding: spacing.md, flexDirection: "row", alignItems: "center", gap: spacing.md },
     groupIcon: { width: 46, height: 46, borderRadius: 18, backgroundColor: colors.iconBackground, alignItems: "center", justifyContent: "center" },
     groupText: { flex: 1, gap: 3 },
-    groupEmpty: { minHeight: 88, borderRadius: radius.lg, borderWidth: 1, borderStyle: "dashed", borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0], flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.lg, overflow: "hidden" },
-    list: { backgroundColor: colors.glassGradient[0], borderRadius: radius.lg, paddingHorizontal: spacing.lg, borderWidth: 1, borderColor: colors.glassBorder, overflow: "hidden" },
+    groupEmptyPanel: { minHeight: 88, borderRadius: radius.lg, borderStyle: "dashed" },
+    groupEmpty: { minHeight: 88, width: "100%", flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.lg },
+    list: { borderRadius: radius.lg, overflow: "hidden" },
     retry: { alignItems: "center", paddingBottom: spacing.md },
   });
 
@@ -174,8 +177,8 @@ export default function HomeScreen() {
               {visibleGroups.map((group, index) => {
                 const gradient = index % 2 === 0 ? colors.gradientSky : colors.gradientSunset;
                 return (
+                  <GlassPanel key={group.id} padding={0} style={styles.groupCardAction}>
                   <Pressable
-                    key={group.id}
                     accessibilityRole="button"
                     accessibilityLabel={`Open ${group.name}, ${group.memberIds.length} members`}
                     onPress={() => router.push(`/groups/${group.id}` as any)}
@@ -191,11 +194,12 @@ export default function HomeScreen() {
                       </AppText>
                     </View>
                     <Ionicons name="chevron-forward" size={17} color={colors.textMuted} />
-                  </Pressable>
+                  </Pressable></GlassPanel>
                 );
               })}
             </ScrollView>
           ) : (
+            <GlassPanel padding={0} style={styles.groupEmptyPanel}>
             <Pressable accessibilityRole="button" onPress={goToGroups} style={styles.groupEmpty}>
               <View style={styles.groupIcon}><Ionicons name="add" size={22} color={colors.primary} /></View>
               <View style={{ flex: 1 }}>
@@ -203,13 +207,13 @@ export default function HomeScreen() {
                 <AppText variant="caption" style={{ color: colors.textMuted }}>For trips, roommates or shared bills</AppText>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.primary} />
-            </Pressable>
+            </Pressable></GlassPanel>
           )}
         </View>
 
         <View style={styles.section}>
           <SectionHeader title="Recent expenses" />
-          <View style={styles.list}>
+          <GlassPanel padding={spacing.lg} style={styles.list}>
             {loading ? <LoadingState message="Loading your expenses…" /> : error ? (
               <Pressable accessibilityRole="button" onPress={() => void refresh()}>
                 <ErrorState message={error} />
@@ -218,7 +222,7 @@ export default function HomeScreen() {
             ) : expenses.length ? visibleExpenses.map((expense) => <ExpenseRow key={expense.id} expense={expense} />) : (
               <EmptyState icon="receipt" title="Nothing spent yet" message="Add your first expense and let DeepPay keep everything in the loop." />
             )}
-          </View>
+          </GlassPanel>
         </View>
       </ScrollView>
 
