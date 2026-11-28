@@ -392,32 +392,31 @@ export default function UpiScreen() {
           ) : null}
         </View>
 
-        {activeTab === null ? (
-          <View style={styles.actionGrid}>
-            {([
-              { tab: "pay", title: "Pay someone", subtitle: "Enter UPI ID and amount", icon: "wallet-outline" },
-              { tab: "scan", title: "Scan to Pay", subtitle: "Scan any UPI QR", icon: "scan-outline" },
-              { tab: "my-qr", title: "My QR", subtitle: "Receive a payment", icon: "qr-code-outline" },
-              { tab: "history", title: "History", subtitle: "Your saved payment records", icon: "time-outline" },
-            ] as const).map((item) => (
-              <Pressable
-                key={item.tab}
-                accessibilityRole="button"
-                onPress={() => selectTab(item.tab)}
-                style={styles.actionCard}
-              >
-                <View style={styles.actionIcon}>
-                  <Ionicons name={item.icon} size={20} color={colors.primary} />
-                </View>
-                <View style={styles.actionCopy}>
-                  <AppText variant="bodyMedium">{item.title}</AppText>
-                  <AppText variant="caption" style={styles.muted}>{item.subtitle}</AppText>
-                </View>
-                <Ionicons name="arrow-forward" size={17} color={colors.textMuted} />
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
+        <View style={styles.actionGrid}>
+          {([
+            { tab: "pay", title: "Pay someone", subtitle: "Enter UPI ID and amount", icon: "wallet-outline" },
+            { tab: "scan", title: "Scan to Pay", subtitle: "Scan any UPI QR", icon: "scan-outline" },
+            { tab: "my-qr", title: "My QR", subtitle: "Receive a payment", icon: "qr-code-outline" },
+            { tab: "history", title: "History", subtitle: "Your saved payment records", icon: "time-outline" },
+          ] as const).map((item) => (
+            <Pressable
+              key={item.tab}
+              accessibilityRole="button"
+              accessibilityState={{ selected: activeTab === item.tab }}
+              onPress={() => selectTab(item.tab)}
+              style={[styles.actionCard, activeTab === item.tab && styles.actionCardActive]}
+            >
+              <View style={styles.actionIcon}>
+                <Ionicons name={item.icon} size={20} color={colors.primary} />
+              </View>
+              <View style={styles.actionCopy}>
+                <AppText variant="bodyMedium">{item.title}</AppText>
+                <AppText variant="caption" style={styles.muted}>{item.subtitle}</AppText>
+              </View>
+              <Ionicons name="arrow-forward" size={17} color={colors.textMuted} />
+            </Pressable>
+          ))}
+        </View>
 
         {message ? (
           <GlassPanel padding={spacing.md}>
