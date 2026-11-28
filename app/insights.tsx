@@ -68,7 +68,7 @@ export default function InsightsScreen() {
     [expenses, user?.id],
   );
   const budgetByCategory = useMemo(
-    () => new Map(budgets.map((budget) => [budget.category, budget])),
+    () => new Map<ExpenseCategory, MonthlyBudget>(budgets.map((budget): [ExpenseCategory, MonthlyBudget] => [budget.category, budget])),
     [budgets],
   );
   const totalBudgetMinor = budgets.reduce((sum, budget) => sum + budget.limitMinor, 0);
@@ -212,7 +212,7 @@ export default function InsightsScreen() {
     note: { color: colors.textMuted, lineHeight: 19 },
     addBudgetButton: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: spacing.xs, paddingVertical: spacing.sm },
     modalRoot: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(5,4,12,0.55)" },
-    modalScrim: { ...StyleSheet.absoluteFillObject },
+    modalScrim: { ...StyleSheet.absoluteFill },
     modalSheet: {
       padding: spacing.lg,
       paddingBottom: spacing.xl,
