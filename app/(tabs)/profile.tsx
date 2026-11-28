@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useFocusEffect, useRouter, type Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -238,7 +238,8 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={stylesLocal.safe} edges={["top"]}>
-      <ScrollView contentContainerStyle={stylesLocal.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView contentContainerStyle={stylesLocal.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={stylesLocal.header}>
           <View style={stylesLocal.heading}>
             <AppText variant="title">Profile</AppText>
@@ -439,7 +440,8 @@ export default function ProfileScreen() {
         <AppText variant="caption" style={stylesLocal.footer}>Made to make shared money feel simple.</AppText>
       </ScrollView>
 
-      <BottomTabBar activeTab="profile" onTabPress={goTo} onPayPress={() => router.push("/upi" as Href)} />
+        <BottomTabBar activeTab="profile" onTabPress={goTo} onPayPress={() => router.push("/upi" as Href)} />
+      </KeyboardAvoidingView>
 
       <Modal visible={themeVisible} transparent animationType="slide" onRequestClose={() => setThemeVisible(false)}>
         <View style={stylesLocal.modalRoot}>
