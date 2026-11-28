@@ -10,6 +10,7 @@ import {
 import { firebaseAuth, firestore } from "@/src/lib/firebase";
 import type { ExpenseCategory } from "@/src/types/domain";
 import { INSIGHT_CATEGORIES } from "@/src/services/analytics/insightsUtils";
+import { withFirestoreTimeout } from "@/src/services/firebase/requestUtils";
 
 export type MonthlyBudget = {
   category: ExpenseCategory;
@@ -52,7 +53,10 @@ function mapBudget(data: Record<string, unknown>): MonthlyBudget | null {
 export const firebaseBudgetService = {
   async listMonthlyBudgets(): Promise<MonthlyBudget[]> {
     const uid = requireUid();
-    const snapshot = await getDocs(collection(firestore, "users", uid, "budgets"));
+    const snapshot = await withFirestoreTimeout(
+      getDocs(collection(firestore, "users", uid, "budgets")),
+      "Loading your budgets took too long. Check your connection and retry.",
+    );
     return snapshot.docs
       .map((item) => mapBudget(item.data()))
       .filter((budget): budget is MonthlyBudget => budget !== null)
