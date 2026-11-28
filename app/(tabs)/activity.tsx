@@ -6,7 +6,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
 import { EmptyState } from "@/src/components/common/EmptyState";
-import { ErrorState } from "@/src/components/common/ErrorState";
 import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { LoadingState } from "@/src/components/common/LoadingState";
 import { PrimaryButton } from "@/src/components/common/PrimaryButton";
@@ -97,6 +96,7 @@ export default function ActivityScreen() {
   const [items, setItems] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [groupsUnavailable, setGroupsUnavailable] = useState(false);
   const [activityFilter, setActivityFilter] = useState<"all" | "expense" | "settlement">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -104,8 +104,9 @@ export default function ActivityScreen() {
     setLoading(true);
     setError(null);
     try {
-      const nextItems = await firebaseActivityService.listRecent();
-      setItems(nextItems);
+      const result = await firebaseActivityService.listRecent();
+      setItems(result.items);
+      setGroupsUnavailable(result.groupsUnavailable);
     } catch {
       setError("We couldn't load your activity. Please try again.");
     } finally {
@@ -178,14 +179,6 @@ export default function ActivityScreen() {
           </View>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Open monthly spending insights and budgets"
-            onPress={() => router.push("/insights" as any)}
-            style={localStyles.headerButton}
-          >
-            <Ionicons name="analytics-outline" size={21} color={colors.primary} />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
             accessibilityLabel="Refresh activity"
             onPress={() => { void refresh(); }}
             style={localStyles.headerButton}
@@ -249,12 +242,12 @@ export default function ActivityScreen() {
         {loading ? (
           <GlassPanel><LoadingState message="Gathering your latest activity…" /></GlassPanel>
         ) : error ? (
-          <GlassPanel>
-            <ErrorState message={error} />
-            <Pressable accessibilityRole="button" onPress={() => { void refresh(); }} style={localStyles.errorAction}>
-              <AppText variant="caption" style={{ color: colors.primary }}>Try again</AppText>
+          <View style={localStyles.errorAction}>
+            <AppText variant="caption" style={{ color: colors.textMuted }}>Activity is temporarily unavailable.</AppText>
+            <Pressable accessibilityRole="button" onPress={() => { void refresh(); }} hitSlop={10}>
+              <AppText variant="caption" style={{ color: colors.primary }}>Retry</AppText>
             </Pressable>
-          </GlassPanel>
+          </View>
         ) : items.length === 0 ? (
           <GlassPanel padding={spacing.xl} style={localStyles.emptyCard}>
             <EmptyState
@@ -309,12 +302,16 @@ export default function ActivityScreen() {
           })
         )}
 
-        <AppText variant="caption" style={localStyles.note}>
-          Activity is synced from your DeepPay groups, expenses and confirmed or pending settlements.
-        </AppText>
+        {groupsUnavailable ? (
+          <AppText variant="caption" style={localStyles.note}>Showing personal records. Group activity will return when group access is available.</AppText>
+        ) : (
+          <AppText variant="caption" style={localStyles.note}>
+            Activity is synced from your DeepPay groups, expenses and confirmed or pending settlements.
+          </AppText>
+        )}
       </ScrollView>
 
-      <BottomTabBar activeTab="activity" onTabPress={goTo} onPayPress={() => router.push({ pathname: "/upi", params: { tab: "my-qr" } } as any)} />
+      <BottomTabBar activeTab="activity" onTabPress={goTo} onPayPress={() => router.push("/upi" as any)} />
     </SafeAreaView>
   );
 }
