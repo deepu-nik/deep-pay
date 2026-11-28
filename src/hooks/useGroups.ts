@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/src/context/AuthContext";
 import {
   firebaseGroupService,
@@ -12,6 +12,7 @@ export function useGroups() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const inFlightRef = useRef<Promise<Group[]> | null>(null);
 
   const refresh = useCallback(async () => {
     if (!user?.id) {
@@ -19,19 +20,26 @@ export function useGroups() {
       setLoading(false);
       return [];
     }
+    if (inFlightRef.current) return inFlightRef.current;
     setLoading(true);
     setError(null);
-    try {
-      const next = await firebaseGroupService.listGroups();
-      setGroups(next);
-      return next;
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "We couldn't load your groups.";
-      setError(message);
-      throw cause;
-    } finally {
-      setLoading(false);
-    }
+    const request = firebaseGroupService.listGroups()
+      .then((next) => {
+        setGroups(next);
+        setError(null);
+        return next;
+      })
+      .catch((cause: unknown) => {
+        const message = cause instanceof Error ? cause.message : "We couldn't load your groups.";
+        setError(message);
+        throw cause;
+      })
+      .finally(() => {
+        setLoading(false);
+        inFlightRef.current = null;
+      });
+    inFlightRef.current = request;
+    return request;
   }, [user?.id]);
 
   useEffect(() => {
