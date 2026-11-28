@@ -38,6 +38,17 @@ const settingRowStyles = StyleSheet.create({
     minHeight: 72,
     paddingVertical: spacing.sm,
   },
+  icon: {
+    width: 44,
+    height: 44,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  copy: {
+    flex: 1,
+    gap: 2,
+  },
 });
 
 function ProfileSettingRow({
@@ -60,10 +71,10 @@ function ProfileSettingRow({
       settingRowStyles.row,
       pressed && { opacity: 0.72 },
     ]}>
-      <View style={[styles.settingIcon, { backgroundColor: colors.iconBackground }]}>
+      <View style={[settingRowStyles.icon, { backgroundColor: colors.iconBackground }]}>
         <Ionicons name={icon} size={20} color={colors.primary} />
       </View>
-      <View style={styles.settingCopy}>
+      <View style={settingRowStyles.copy}>
         <AppText variant="bodyMedium">{title}</AppText>
         <AppText variant="caption" style={{ color: colors.textMuted }}>{description}</AppText>
       </View>
