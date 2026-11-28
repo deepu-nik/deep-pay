@@ -134,34 +134,24 @@ export const firebaseFriendService = {
   async claimUsername(input: string, displayNameInput?: string): Promise<FriendHandle> {
     const uid = requireUid();
     const username = validateUsername(input);
-    const handleRef = doc(firestore, "userHandles", uid);
-    const current = await withFirestoreTimeout(
-      getDoc(handleRef),
-      "Checking your username took too long. Check your connection and retry.",
-    );
-    if (current.exists() && current.data().username !== username) {
-      throw new Error("Your username is already set and cannot be changed yet.");
-    }
-
     const displayName = displayNameInput?.trim()
       || firebaseAuth.currentUser?.displayName?.trim()
       || firebaseAuth.currentUser?.email?.split("@")[0]
       || "DeepPay member";
+
+    // Do not pre-read userHandles/{uid} or usernames/{username} here.
+    // Those server reads were causing username creation to time out before
+    // the write was even attempted. The atomic batch plus Firestore rules
+    // enforces one handle per account and one owner per username.
+    const handleRef = doc(firestore, "userHandles", uid);
     const userNameRef = doc(firestore, "usernames", username);
-    const reserved = await withFirestoreTimeout(
-      getDoc(userNameRef),
-      "Checking username availability took too long. Check your connection and retry.",
-    );
-    if (reserved.exists() && reserved.data().uid !== uid) {
-      throw new Error("That username is already taken. Try another.");
-    }
     const batch = writeBatch(firestore);
     batch.set(userNameRef, {
       uid,
       username,
       usernameLower: username,
       displayName,
-      createdAt: current.exists() ? current.data().createdAt : serverTimestamp(),
+      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
     batch.set(handleRef, {
@@ -169,18 +159,25 @@ export const firebaseFriendService = {
       username,
       usernameLower: username,
       displayName,
-      createdAt: current.exists() ? current.data().createdAt : serverTimestamp(),
+      createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
+
     try {
       await withFirestoreTimeout(
         batch.commit(),
-        "Saving your username took too long. Check your connection and retry.",
+        "Saving your username took too long. Firebase did not confirm the save. Check your connection and retry.",
         FIRESTORE_REQUEST_TIMEOUT_MS,
       );
     } catch (cause) {
+      if (cause instanceof FirebaseError && cause.code === "permission-denied") {
+        throw new Error(
+          "Firestore rejected this username claim. The username may already be taken, this account may already have a username, or the latest Friends rules are not deployed. Run: firebase deploy --only firestore:rules",
+        );
+      }
       throw mapFriendServiceError(cause, "saving your username");
     }
+
     return { uid, username, displayName };
   },
 
