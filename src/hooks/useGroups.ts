@@ -56,6 +56,15 @@ export function useGroups() {
   }, []);
 
   const createGroup = useCallback(async (input: CreateGroupInput) => {
+    // Let an initial membership-index read finish before the new group is
+    // inserted into local state, so an older empty result cannot overwrite it.
+    if (inFlightRef.current) {
+      try {
+        await inFlightRef.current;
+      } catch {
+        // A read failure should not prevent the user from creating a group.
+      }
+    }
     try {
       const group = await firebaseGroupService.createGroup(input);
       setGroups((current) => [group, ...current.filter((item) => item.id !== group.id)]);
