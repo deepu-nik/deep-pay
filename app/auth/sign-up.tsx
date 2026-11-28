@@ -4,6 +4,7 @@ import { useRouter, type Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
+import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { PrimaryButton } from "@/src/components/common/PrimaryButton";
 import { useAuth } from "@/src/context/AuthContext";
 import { useTheme } from "@/src/theme";
@@ -15,6 +16,8 @@ export default function SignUpScreen() {
   const { createProfile } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,14 +30,22 @@ export default function SignUpScreen() {
       setError("Enter a valid email address.");
       return;
     }
+    if (password.length < 8) {
+      setError("Use a password with at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Your passwords do not match.");
+      return;
+    }
 
     setSaving(true);
     setError(null);
     try {
-      await createProfile({ fullName, email });
+      await createProfile({ fullName, email, password });
       router.replace("/(tabs)");
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "We couldn't create your profile.");
+      setError(reason instanceof Error ? reason.message : "We couldn't create your account.");
     } finally {
       setSaving(false);
     }
@@ -44,11 +55,11 @@ export default function SignUpScreen() {
     safe: { flex: 1, backgroundColor: colors.background },
     content: { flexGrow: 1, padding: spacing.xl, gap: spacing.xl },
     header: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-    back: { width: 42, height: 42, borderRadius: radius.md, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+    back: { width: 42, height: 42, borderRadius: radius.md, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0] },
     form: { gap: spacing.md },
     field: { gap: spacing.xs },
-    input: { minHeight: 56, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, color: colors.text, fontSize: 16 },
-    note: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceMuted, gap: spacing.xs },
+    input: { minHeight: 56, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0], color: colors.text, fontSize: 16 },
+    note: { padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder, gap: spacing.xs },
   });
 
   return (
@@ -59,17 +70,17 @@ export default function SignUpScreen() {
             <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back" style={styles.back}>
               <Ionicons name="arrow-back" size={21} color={colors.text} />
             </Pressable>
-            <AppText variant="h2">Create profile</AppText>
+            <AppText variant="h2">Create account</AppText>
           </View>
 
           <View style={{ gap: spacing.sm }}>
             <AppText variant="title">Let's get you set up.</AppText>
             <AppText variant="body" style={{ color: colors.textMuted }}>
-              Add your details to start organising expenses with your friends.
+              Create your account to keep your profile synced across devices.
             </AppText>
           </View>
 
-          <View style={styles.form}>
+          <GlassPanel padding={spacing.lg} style={styles.form}>
             <View style={styles.field}>
               <AppText variant="bodyMedium">Full name</AppText>
               <TextInput
@@ -96,25 +107,57 @@ export default function SignUpScreen() {
                 autoCorrect={false}
                 autoComplete="email"
                 textContentType="emailAddress"
+                returnKeyType="next"
+                style={styles.input}
+              />
+            </View>
+            <View style={styles.field}>
+              <AppText variant="bodyMedium">Password</AppText>
+              <TextInput
+                value={password}
+                onChangeText={(value) => { setPassword(value); setError(null); }}
+                placeholder="At least 8 characters"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="new-password"
+                textContentType="newPassword"
+                returnKeyType="next"
+                style={styles.input}
+              />
+            </View>
+            <View style={styles.field}>
+              <AppText variant="bodyMedium">Confirm password</AppText>
+              <TextInput
+                value={confirmPassword}
+                onChangeText={(value) => { setConfirmPassword(value); setError(null); }}
+                placeholder="Re-enter your password"
+                placeholderTextColor={colors.textMuted}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="new-password"
+                textContentType="newPassword"
                 returnKeyType="done"
                 onSubmitEditing={() => void submit()}
                 style={styles.input}
               />
             </View>
-          </View>
+          </GlassPanel>
 
           <View style={styles.note}>
-            <Ionicons name="information-circle-outline" size={18} color={colors.primary} />
+            <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
             <AppText variant="caption" style={{ color: colors.textMuted }}>
-              This is a local demo profile. No password is requested or stored, and email ownership is not verified yet. Real authentication is part of the backend integration phase.
+              Firebase Authentication manages your credentials. DeepPay stores your profile separately in Cloud Firestore.
             </AppText>
           </View>
 
           {error ? <AppText variant="caption" style={{ color: colors.danger }}>{error}</AppText> : null}
-          <PrimaryButton title={saving ? "Creating profile…" : "Create profile"} onPress={submit} disabled={saving} />
+          <PrimaryButton title={saving ? "Creating account…" : "Create account"} onPress={submit} disabled={saving} />
 
           <AppText variant="body" style={{ color: colors.textMuted, textAlign: "center" }}>
-            Already have a profile? <AppText variant="bodyMedium" style={{ color: colors.primary }} onPress={() => router.replace("/auth/sign-in" as Href)}>Sign in</AppText>
+            Already have an account? <AppText variant="bodyMedium" style={{ color: colors.primary }} onPress={() => router.replace("/auth/sign-in" as Href)}>Sign in</AppText>
           </AppText>
         </ScrollView>
       </KeyboardAvoidingView>

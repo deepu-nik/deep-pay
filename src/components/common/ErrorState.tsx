@@ -7,7 +7,7 @@ import { spacing } from "@/src/theme/tokens";
 export function ErrorState({ message = "Something went wrong. Please try again." }: { message?: string }) {
   const { colors } = useTheme();
   return <View style={styles.container}>
-    <View style={[styles.icon, { backgroundColor: colors.surfaceMuted }]}>
+    <View style={[styles.icon, { backgroundColor: colors.glassGradient[0] }]}>
       <Ionicons name="alert-circle-outline" size={24} color={colors.danger} />
     </View>
     <AppText variant="bodyMedium">Unable to load</AppText>

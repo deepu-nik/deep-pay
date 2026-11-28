@@ -4,6 +4,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
+import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { BottomTabBar } from "@/src/components/navigation/BottomTabBar";
 import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet";
 import { EmptyState } from "@/src/components/common/EmptyState";
@@ -34,13 +35,13 @@ export default function GroupsScreen() {
   const styles = StyleSheet.create({
     safe:{flex:1,backgroundColor:colors.background}, content:{padding:spacing.lg,paddingBottom:110},
     header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:spacing.xl},
-    headerActions:{flexDirection:"row",gap:spacing.sm}, iconButton:{width:44,height:44,borderRadius:radius.md,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,alignItems:"center",justifyContent:"center"},
-    card:{backgroundColor:colors.surface,borderRadius:radius.lg,borderWidth:1,borderColor:colors.border,padding:spacing.lg,marginBottom:spacing.md},
+    headerActions:{flexDirection:"row",gap:spacing.sm}, iconButton:{width:44,height:44,borderRadius:radius.md,backgroundColor:colors.glassGradient[0],borderWidth:1,borderColor:colors.glassBorder,alignItems:"center",justifyContent:"center"},
+    card:{marginBottom:spacing.md},
     row:{flexDirection:"row",alignItems:"center",gap:spacing.md}, groupIcon:{width:48,height:48,borderRadius:24,backgroundColor:colors.iconBackground,alignItems:"center",justifyContent:"center"},
     muted:{color:colors.textMuted}, modal:{flex:1,justifyContent:"flex-end",backgroundColor:"rgba(0,0,0,0.35)"},
-    sheet:{backgroundColor:colors.surface,borderTopLeftRadius:radius.xl,borderTopRightRadius:radius.xl,padding:spacing.lg,paddingBottom:spacing.xxl,gap:spacing.lg},
-    input:{minHeight:52,borderWidth:1,borderColor:colors.border,borderRadius:radius.md,paddingHorizontal:spacing.lg,color:colors.text,fontSize:16,backgroundColor:colors.background},
-    chips:{flexDirection:"row",flexWrap:"wrap",gap:spacing.sm}, chip:{paddingHorizontal:spacing.md,paddingVertical:spacing.sm,borderRadius:radius.pill,borderWidth:1,borderColor:colors.border,backgroundColor:colors.background},
+    sheet:{borderTopLeftRadius:radius.xl,borderTopRightRadius:radius.xl,borderBottomLeftRadius:0,borderBottomRightRadius:0}, sheetContent:{gap:spacing.lg,paddingBottom:spacing.xxl - spacing.lg},
+    input:{minHeight:52,borderWidth:1,borderColor:colors.glassBorder,borderRadius:radius.md,paddingHorizontal:spacing.lg,color:colors.text,fontSize:16,backgroundColor:colors.glassGradient[0]},
+    chips:{flexDirection:"row",flexWrap:"wrap",gap:spacing.sm}, chip:{paddingHorizontal:spacing.md,paddingVertical:spacing.sm,borderRadius:radius.pill,borderWidth:1,borderColor:colors.glassBorder,backgroundColor:colors.glassGradient[0]},
     selectedChip:{borderColor:colors.primary,backgroundColor:colors.iconBackground},
   });
 
@@ -93,20 +94,20 @@ export default function GroupsScreen() {
           <Pressable onPress={openCreate} accessibilityLabel="Create group" style={styles.iconButton}><Ionicons name="add" size={24} color={colors.primary}/></Pressable>
         </View>
       </View>
-      {loading ? <LoadingState message="Loading groups…" /> : groups.length ? groups.map(group =>
-        <Pressable key={group.id} onPress={()=>router.push(`/groups/${group.id}`)} style={styles.card}>
-          <View style={styles.row}>
+      {loading ? <GlassPanel padding={spacing.xl}><LoadingState message="Loading groups…" /></GlassPanel> : groups.length ? groups.map(group =>
+        <GlassPanel key={group.id} padding={spacing.lg} style={styles.card}>
+          <Pressable onPress={()=>router.push(`/groups/${group.id}`)} style={styles.row}>
             <View style={styles.groupIcon}><Ionicons name="people-outline" size={23} color={colors.primary}/></View>
             <View style={{flex:1}}><AppText variant="bodyMedium">{group.name}</AppText><AppText variant="caption" style={styles.muted}>{memberCount(group.memberIds)}</AppText></View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted}/>
-          </View>
-        </Pressable>
-      ) : <EmptyState icon="people-outline" title="No groups yet" message="Create a group for trips, roommates, clubs or projects." />}
+          </Pressable>
+        </GlassPanel>
+      ) : <GlassPanel padding={spacing.xl}><EmptyState icon="people-outline" title="No groups yet" message="Create a group for trips, roommates, clubs or projects." /></GlassPanel>}
     </ScrollView>
     <BottomTabBar activeTab="groups" onTabPress={goTo} onAddPress={()=>setSheetVisible(true)}/>
     <CreateActionSheet visible={sheetVisible} onClose={()=>setSheetVisible(false)}/>
     <Modal visible={editorVisible} transparent animationType="slide" onRequestClose={()=>setEditorVisible(false)}>
-      <View style={styles.modal}><View style={styles.sheet}>
+      <View style={styles.modal}><GlassPanel padding={spacing.lg} style={styles.sheet}><View style={styles.sheetContent}>
         <View style={styles.header}><AppText variant="h2">{editingGroup ? "Edit group" : "Create group"}</AppText><Pressable onPress={()=>setEditorVisible(false)}><Ionicons name="close" size={24} color={colors.text}/></Pressable></View>
         <TextInput value={name} onChangeText={setName} placeholder="e.g. Goa Trip" placeholderTextColor={colors.textMuted} style={styles.input} autoFocus/>
         <AppText variant="bodyMedium">Members</AppText>
@@ -116,7 +117,7 @@ export default function GroupsScreen() {
           </Pressable>)}
         </View>}
         <PrimaryButton title={editingGroup ? "Save changes" : "Create group"} onPress={save} disabled={!name.trim()}/>
-      </View></View>
+      </View></GlassPanel></View>
     </Modal>
   </SafeAreaView>;
 }

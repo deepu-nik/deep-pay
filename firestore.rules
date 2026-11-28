@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function hasValidProfileFields() {
+      return request.resource.data.keys().hasAll([
+          'fullName',
+          'email',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'fullName',
+          'email',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.fullName is string
+        && request.resource.data.fullName.size() >= 2
+        && request.resource.data.fullName.size() <= 80
+        && request.resource.data.email is string
+        && request.resource.data.email == request.auth.token.email;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+
+      allow create: if isOwner(userId)
+        && hasValidProfileFields()
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if isOwner(userId)
+        && hasValidProfileFields()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['fullName', 'updatedAt']);
+
+      // Account deletion is handled through Firebase Authentication and a
+      // future trusted cleanup workflow, not direct client document deletion.
+      allow delete: if false;
+    }
+
+    // New collections remain closed until their ownership and membership
+    // rules are designed and tested.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

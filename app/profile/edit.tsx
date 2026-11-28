@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AppText } from "@/src/components/common/AppText";
+import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { PrimaryButton } from "@/src/components/common/PrimaryButton";
 import { useAuth } from "@/src/context/AuthContext";
 import { useTheme } from "@/src/theme";
@@ -38,10 +39,10 @@ export default function EditProfileScreen() {
     safe: { flex: 1, backgroundColor: colors.background },
     content: { flexGrow: 1, padding: spacing.lg, gap: spacing.xl },
     header: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-    back: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: "center", justifyContent: "center" },
+    back: { width: 42, height: 42, borderRadius: radius.md, backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder, alignItems: "center", justifyContent: "center" },
     field: { gap: spacing.xs },
-    input: { minHeight: 54, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, color: colors.text, fontSize: 16 },
-    readOnly: { minHeight: 54, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceMuted, justifyContent: "center" },
+    input: { minHeight: 54, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0], color: colors.text, fontSize: 16 },
+    readOnly: { minHeight: 54, paddingHorizontal: spacing.lg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.glassBorder, backgroundColor: colors.glassGradient[0], justifyContent: "center" },
   });
 
   return (
@@ -55,6 +56,7 @@ export default function EditProfileScreen() {
             <AppText variant="h2">Edit profile</AppText>
           </View>
 
+          <GlassPanel padding={spacing.lg} style={{ gap: spacing.lg }}>
           <View style={{ gap: spacing.xs }}>
             <AppText variant="bodyMedium">Full name</AppText>
             <TextInput
@@ -72,8 +74,10 @@ export default function EditProfileScreen() {
           <View style={{ gap: spacing.xs }}>
             <AppText variant="bodyMedium">Email address</AppText>
             <View style={styles.readOnly}><AppText variant="body" style={{ color: colors.textMuted }}>{user?.email ?? "—"}</AppText></View>
-            <AppText variant="caption" style={{ color: colors.textMuted }}>Email editing will be available after verified backend authentication is connected.</AppText>
+            <AppText variant="caption" style={{ color: colors.textMuted }}>Your sign-in email is managed by Firebase Authentication and can't be edited here.</AppText>
           </View>
+
+          </GlassPanel>
 
           {error ? <AppText variant="caption" style={{ color: colors.danger }}>{error}</AppText> : null}
           <PrimaryButton title={saving ? "Saving…" : "Save changes"} onPress={submit} disabled={saving} />

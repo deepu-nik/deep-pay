@@ -18,11 +18,11 @@ export default function WelcomeScreen() {
     brandRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginTop: spacing.md },
     brandMark: { width: 46, height: 46, borderRadius: 16, overflow: "hidden", alignItems: "center", justifyContent: "center" },
     hero: { gap: spacing.lg },
-    heroCard: { width: "100%", height: 230, borderRadius: radius.xl, overflow: "hidden", padding: spacing.xl, justifyContent: "space-between" },
+    heroCard: { width: "100%", height: 230, borderRadius: radius.xl, overflow: "hidden", padding: spacing.xl, justifyContent: "space-between", borderWidth: 1, borderColor: colors.glassBorder, shadowColor: colors.primary, shadowOpacity: 0.18, shadowRadius: 20, elevation: 5 },
     bubble: { position: "absolute", width: 170, height: 170, borderRadius: 85, backgroundColor: "rgba(255,255,255,0.12)", top: -64, right: -34 },
-    miniCard: { backgroundColor: "rgba(255,255,255,0.16)", borderWidth: 1, borderColor: "rgba(255,255,255,0.22)", borderRadius: radius.md, padding: spacing.md, alignSelf: "flex-start" },
+    miniCard: { backgroundColor: "rgba(255,255,255,0.16)", borderWidth: 1, borderColor: colors.glassBorder, borderRadius: radius.md, padding: spacing.md, alignSelf: "flex-start" },
     features: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-    feature: { flexDirection: "row", alignItems: "center", gap: spacing.xs, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+    feature: { flexDirection: "row", alignItems: "center", gap: spacing.xs, backgroundColor: colors.glassGradient[0], borderColor: colors.glassBorder, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
     footer: { gap: spacing.md },
   });
 
@@ -75,7 +75,7 @@ export default function WelcomeScreen() {
             Already set up on this device? <AppText variant="bodyMedium" style={{ color: colors.primary }} onPress={() => router.push("/auth/sign-in" as Href)}>Sign in</AppText>
           </AppText>
           <AppText variant="caption" style={{ color: colors.textMuted, textAlign: "center" }}>
-            Demo mode · Your profile stays on this device for now
+            Your DeepPay account syncs across devices
           </AppText>
         </View>
       </View>

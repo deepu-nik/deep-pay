@@ -9,4 +9,5 @@ export type AuthUser = {
 export type CreateProfileInput = {
   fullName: string;
   email: string;
+  password: string;
 };

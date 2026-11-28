@@ -27,10 +27,11 @@ export function BottomTabBar({ activeTab, onTabPress, onAddPress }: Props) {
       right: spacing.md,
       height: 76,
       paddingHorizontal: spacing.sm,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.glassGradient[0],
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: colors.glassBorder,
       borderRadius: 30,
+      overflow: "hidden",
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-around",
@@ -64,6 +65,14 @@ export function BottomTabBar({ activeTab, onTabPress, onAddPress }: Props) {
 
   return (
     <View style={styles.bar}>
+      <LinearGradient
+        pointerEvents="none"
+        colors={colors.glassGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 24, right: 24, height: 1, backgroundColor: colors.glassHighlight }} />
       {tabs.slice(0, 2).map((tab) => (
         <TabButton key={tab.key} tab={tab} active={activeTab === tab.key} onPress={() => onTabPress(tab.key)} colors={colors} styles={styles} />
       ))}

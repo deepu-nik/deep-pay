@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { AppText } from "@/src/components/common/AppText";
+import { GlassPanel } from "@/src/components/common/GlassPanel";
 import { useTheme } from "@/src/theme";
 import { radius, spacing } from "@/src/theme/tokens";
 
@@ -32,14 +33,14 @@ export function CreateActionSheet({
   const styles = StyleSheet.create({
     backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(12,7,28,0.48)" },
     sheet: {
-      backgroundColor: colors.surface,
       borderTopLeftRadius: 32,
       borderTopRightRadius: 32,
-      padding: spacing.lg,
-      paddingTop: spacing.xl,
-      paddingBottom: Math.max(spacing.lg, insets.bottom + spacing.md),
-      borderWidth: 1,
-      borderColor: colors.border,
+      borderBottomLeftRadius: 0,
+      borderBottomRightRadius: 0,
+    },
+    sheetContent: {
+      paddingTop: spacing.xl - spacing.lg,
+      paddingBottom: Math.max(0, Math.max(spacing.lg, insets.bottom + spacing.md) - spacing.lg),
       gap: spacing.xs,
     },
     handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: colors.border, alignSelf: "center", marginBottom: spacing.lg },
@@ -48,7 +49,7 @@ export function CreateActionSheet({
     actionPressed: { opacity: 0.72, transform: [{ scale: 0.99 }] },
     icon: { width: 52, height: 52, borderRadius: 19, alignItems: "center", justifyContent: "center", overflow: "hidden" },
     copy: { flex: 1, gap: 3 },
-    close: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: colors.surfaceMuted },
+    close: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder },
   });
 
   const handleAction = (label: string) => {
@@ -63,7 +64,9 @@ export function CreateActionSheet({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+        <Pressable onPress={(e) => e.stopPropagation()}>
+          <GlassPanel padding={spacing.lg} style={styles.sheet}>
+          <View style={styles.sheetContent}>
           <View style={styles.handle} />
           <View style={styles.header}>
             <View>
@@ -104,6 +107,8 @@ export function CreateActionSheet({
               </Pressable>
             );
           })}
+          </View>
+          </GlassPanel>
         </Pressable>
       </Pressable>
     </Modal>

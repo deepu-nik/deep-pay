@@ -20,6 +20,9 @@ export type ThemeColors = {
   gradientSunset: [string, string];
   gradientSky: [string, string];
   gradientMint: [string, string];
+  glassGradient: [string, string];
+  glassBorder: string;
+  glassHighlight: string;
   onAccent: string;
   white: string;
   black: string;
