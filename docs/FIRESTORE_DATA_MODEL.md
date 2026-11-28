@@ -18,12 +18,16 @@ The design deliberately avoids Cloud Functions, Firebase Admin credentials, paym
 | groups/{groupId}/expenses/{id} | Shared expense records | Group members |
 | groups/{groupId}/settlements/{id} | Pending and confirmed settlements | Group members |
 | groupInvites/{inviteId} | Seven-day invite tokens | Authenticated users with an active, unexpired invite |
+| userHandles/{uid} | The signed-in user's private, immutable username mapping | Owner |
+| usernames/{username} | Exact-match public username lookup with display name and UID | Authenticated direct get; listing is denied |
+| friendRequests/{fromUid}__{toUid} | Incoming/outgoing friend request and response status | Sender and recipient |
+| friendships/{pairId} | Accepted two-user friendship record | The two friend UIDs |
 
 ## Identity model
 
 Firebase Auth UID is the only identity key. The previous mock IDs (You, aarav, etc.) are not converted to Firebase IDs.
 
-The group document contains memberUids so the app can query a user's groups with an array-contains query. Each member also has a subdocument with a display name scoped to that group. The user's private groupMemberships subcollection mirrors membership for future navigation and indexes.
+The group document contains memberUids so the app can query a user's groups with an array-contains query. Friend discovery uses a unique, lowercase username selected by each account. Usernames are looked up by exact document ID; the directory cannot be listed or enumerated. Friend requests are created by the sender and can only be accepted or rejected by the recipient. An accepted request and its friendship record are written in one Firestore batch. Each member also has a subdocument with a display name scoped to that group. The user's private groupMemberships subcollection mirrors membership for future navigation and indexes.
 
 Group creation is owner-only. New members join through a random Firestore invite document that expires after seven days. The invite is not a UPI payment QR. It is a DeepPay membership invitation.
 
