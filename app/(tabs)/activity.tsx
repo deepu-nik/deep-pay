@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -171,7 +171,8 @@ export default function ActivityScreen() {
 
   return (
     <SafeAreaView style={localStyles.safe} edges={["top"]}>
-      <ScrollView contentContainerStyle={localStyles.content} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+        <ScrollView contentContainerStyle={localStyles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={localStyles.header}>
           <View style={{ flex: 1 }}>
             <AppText variant="title">Activity</AppText>
@@ -311,7 +312,8 @@ export default function ActivityScreen() {
         )}
       </ScrollView>
 
-      <BottomTabBar activeTab="activity" onTabPress={goTo} onPayPress={() => router.push("/upi" as any)} />
+        <BottomTabBar activeTab="activity" onTabPress={goTo} onPayPress={() => router.push("/upi" as any)} />
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
