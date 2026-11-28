@@ -48,7 +48,7 @@ export default function HomeScreen() {
     router.push({ pathname: "/upi", params: { tab: "my-qr" } } as Href);
   };
 
-  const handleQuickAction = (label: "Expense" | "Split" | "Groups" | "My QR" | "Insights" | "Scan to Pay") => {
+  const handleQuickAction = (label: "Expense" | "Split" | "Groups" | "My QR" | "Spending insights" | "Scan") => {
     if (label === "Expense") {
       router.push("/expenses/new");
       return;
@@ -69,7 +69,7 @@ export default function HomeScreen() {
       return;
     }
 
-    if (label === "Insights") {
+    if (label === "Spending insights") {
       router.push("/insights" as Href);
       return;
     }
@@ -125,14 +125,7 @@ export default function HomeScreen() {
             <AppText variant="caption" style={{ color: colors.textMuted }}>{getGreeting()} 👋</AppText>
             <AppText variant="title">{brand.name}</AppText>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Find and add friends"
-            onPress={() => router.push("/friends" as Href)}
-            style={styles.avatar}
-          >
-            <Ionicons name="person-add-outline" size={21} color={colors.primary} />
-          </Pressable>
+
         </View>
 
         <View style={styles.hero}>
@@ -180,8 +173,8 @@ export default function HomeScreen() {
             { label: "Split", icon: "git-branch" },
             { label: "Groups", icon: "people" },
             { label: "My QR", icon: "qr-code" },
-            { label: "Insights", icon: "analytics-outline" },
-            { label: "Scan to Pay", icon: "scan-outline" },
+            { label: "Spending insights", icon: "analytics-outline" },
+            { label: "Scan", icon: "scan-outline" },
           ] as const).map(({ label, icon }) => (
             <QuickAction key={label} label={label} icon={icon} onPress={() => handleQuickAction(label)} />
           ))}
@@ -247,7 +240,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <BottomTabBar activeTab="home" onTabPress={goTo} onPayPress={() => router.push({ pathname: "/upi", params: { tab: "pay" } } as Href)} />
+      <BottomTabBar activeTab="home" onTabPress={goTo} onPayPress={() => router.push({ pathname: "/upi", params: { tab: "my-qr" } } as Href)} />
     </SafeAreaView>
   );
 }
