@@ -382,7 +382,8 @@ export default function InsightsScreen() {
                     const spent = budgetUsed(budget.category);
                     const ratio = spent / budget.limitMinor;
                     const overBudget = ratio > 1;
-                    const fillColor = overBudget ? colors.danger : colors.primary;
+                    const almostAtBudget = ratio >= 0.8 && !overBudget;
+                    const fillColor = overBudget ? colors.danger : almostAtBudget ? colors.warning : colors.primary;
                     return (
                       <Pressable
                         key={budget.category}
@@ -406,7 +407,11 @@ export default function InsightsScreen() {
                           </View>
                           <View style={styles.budgetFooter}>
                             <AppText variant="caption" style={{ color: overBudget ? colors.danger : colors.textMuted }}>
-                              {overBudget ? "Over by " + formatMoneyMinor(spent - budget.limitMinor) : formatPercent(ratio * 100) + " used"}
+                              {overBudget
+                                ? "Over by " + formatMoneyMinor(spent - budget.limitMinor)
+                                : almostAtBudget
+                                  ? formatMoneyMinor(budget.limitMinor - spent) + " left · nearing limit"
+                                  : formatPercent(ratio * 100) + " used"}
                             </AppText>
                             <AppText variant="caption" style={styles.muted}>Monthly limit {formatMoneyMinor(budget.limitMinor)}</AppText>
                           </View>
