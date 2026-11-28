@@ -11,6 +11,8 @@ export function PrimaryButton({ title, onPress, disabled }: { title: string; onP
       minHeight: 56,
       borderRadius: radius.lg,
       overflow: "hidden",
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
       width: "100%",
       shadowColor: colors.primary,
       shadowOffset: { width: 0, height: 7 },
