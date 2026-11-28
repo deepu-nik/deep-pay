@@ -63,6 +63,7 @@ export default function FriendsScreen() {
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<"friends" | "find" | "requests">("friends");
   const syncIssue = handleError || requestsError || friendsError;
 
   const saveHandle = async () => {
@@ -217,6 +218,36 @@ export default function FriendsScreen() {
       justifyContent: "center",
       backgroundColor: colors.iconBackground,
     },
+    sectionTabs: {
+      flexDirection: "row",
+      padding: 4,
+      gap: 4,
+      borderRadius: radius.lg,
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
+      backgroundColor: colors.glassGradient[0],
+    },
+    sectionTab: {
+      flex: 1,
+      minHeight: 46,
+      borderRadius: radius.md,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: spacing.xs,
+    },
+    sectionTabActive: {
+      backgroundColor: colors.primary,
+    },
+    sectionTabText: {
+      color: colors.textMuted,
+      textAlign: "center",
+    },
+    sectionTabTextActive: {
+      color: "#FFFFFF",
+    },
+    sectionStack: {
+      gap: spacing.sm,
+    },
   });
 
   return (
@@ -342,170 +373,247 @@ export default function FriendsScreen() {
             ) : null}
           </GlassPanel>
 
-          <GlassPanel padding={spacing.lg} gap={spacing.md}>
-            <View>
-              <AppText variant="h2">2. Find people</AppText>
-              <AppText variant="caption" style={styles.muted}>
-                Search for an existing DeepPay user with their exact username.
+          <View style={styles.sectionTabs} accessibilityRole="tablist">
+            <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeSection === "friends" }}
+              onPress={() => setActiveSection("friends")}
+              style={[styles.sectionTab, activeSection === "friends" && styles.sectionTabActive]}
+            >
+              <AppText variant="caption" style={[styles.sectionTabText, activeSection === "friends" && styles.sectionTabTextActive]}>Friends</AppText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeSection === "find" }}
+              onPress={() => setActiveSection("find")}
+              style={[styles.sectionTab, activeSection === "find" && styles.sectionTabActive]}
+            >
+              <AppText variant="caption" style={[styles.sectionTabText, activeSection === "find" && styles.sectionTabTextActive]}>Find Friends</AppText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeSection === "requests" }}
+              onPress={() => setActiveSection("requests")}
+              style={[styles.sectionTab, activeSection === "requests" && styles.sectionTabActive]}
+            >
+              <AppText variant="caption" style={[styles.sectionTabText, activeSection === "requests" && styles.sectionTabTextActive]}>
+                Requests{incomingRequests.length > 0 ? " · " + incomingRequests.length : ""}
               </AppText>
-            </View>
-            <View style={styles.inline}>
-              <View style={styles.prefix}><AppText variant="bodyMedium" style={{ color: colors.primary }}>@</AppText></View>
-              <TextInput
-                value={searchUsername}
-                onChangeText={(value) => {
-                  setSearchUsername(value.toLowerCase().replace(/[^a-z0-9_]/g, ""));
-                  setFoundUser(null);
-                  setActionError(null);
-                }}
-                placeholder="friend_username"
-                placeholderTextColor={colors.textMuted}
-                style={[styles.input, { flex: 1, opacity: handle ? 1 : 0.55 }]}
-                autoCapitalize="none"
-                autoCorrect={false}
-                maxLength={20}
-                editable={Boolean(handle)}
-                returnKeyType="send"
-                onSubmitEditing={() => { void addFriend(); }}
-              />
-            </View>
-            {!handle ? (
-              <AppText variant="caption" style={styles.muted}>Create your username above to enable friend requests.</AppText>
-            ) : null}
-            <PrimaryButton
-              title={searchingUser ? "Searching…" : "Find user"}
-              onPress={() => { void findUser(); }}
-              disabled={!handle || searchingUser || searchUsername.trim().length < 3}
-            />
-          </GlassPanel>
+            </Pressable>
+          </View>
 
-          {foundUser ? (
-            <GlassPanel padding={spacing.md} gap={spacing.md}>
+          {activeSection === "friends" ? (
+            <View style={styles.sectionStack}>
               <View style={styles.row}>
-                <FriendAvatar name={foundUser.displayName} />
-                <View style={styles.copy}>
-                  <AppText variant="bodyMedium">{foundUser.displayName}</AppText>
-                  <AppText variant="caption" style={{ color: colors.primary }}>@{foundUser.username}</AppText>
-                  <AppText variant="caption" style={styles.muted}>DeepPay account found</AppText>
+                <AppText variant="h2" style={styles.sectionTitle}>Your friends</AppText>
+                <View style={styles.count}>
+                  <AppText variant="caption" style={{ color: colors.primary }}>{friends.length}</AppText>
                 </View>
-                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
               </View>
-              <PrimaryButton
-                title={sendingRequest ? "Sending request…" : "Send friend request"}
-                onPress={() => { void addFriend(); }}
-                disabled={sendingRequest}
-              />
-            </GlassPanel>
-          ) : null}
-
-          {actionError ? (
-            <GlassPanel padding={spacing.md}>
-              <AppText variant="caption" style={{ color: colors.danger }}>{actionError}</AppText>
-            </GlassPanel>
-          ) : null}
-          {notice ? (
-            <GlassPanel padding={spacing.md}>
-              <AppText variant="caption" style={{ color: colors.success }}>{notice}</AppText>
-            </GlassPanel>
-          ) : null}
-
-          <View style={{ gap: spacing.sm }}>
-            <View style={styles.row}>
-              <AppText variant="h2" style={styles.sectionTitle}>3. Incoming requests</AppText>
-              <View style={styles.count}>
-                <AppText variant="caption" style={{ color: colors.primary }}>{incomingRequests.length}</AppText>
-              </View>
-            </View>
-            {requestsLoading ? (
-              <GlassPanel padding={spacing.md}><LoadingState message="Loading friend requests…" /></GlassPanel>
-            ) : incomingRequests.length ? incomingRequests.map((request) => (
-              <GlassPanel key={request.id} padding={spacing.md}>
-                <View style={styles.row}>
-                  <FriendAvatar name={request.fromDisplayName} />
-                  <View style={styles.copy}>
-                    <AppText variant="bodyMedium">{request.fromDisplayName}</AppText>
-                    <AppText variant="caption" style={styles.muted}>@{request.fromUsername}</AppText>
+              {friendsLoading ? (
+                <GlassPanel padding={spacing.md}><LoadingState message="Loading your friends…" /></GlassPanel>
+              ) : friends.length ? friends.map((friend) => (
+                <GlassPanel key={friend.id} padding={spacing.md}>
+                  <View style={styles.row}>
+                    <FriendAvatar name={friend.name} />
+                    <View style={styles.copy}>
+                      <AppText variant="bodyMedium">{friend.name}</AppText>
+                      <AppText variant="caption" style={styles.muted}>@{friend.username}</AppText>
+                    </View>
+                    <Ionicons name="checkmark-circle" size={20} color={colors.success} />
                   </View>
-                </View>
-                <View style={styles.requestActions}>
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={respondingId === request.id}
-                    onPress={() => { void handleResponse(request.id, false); }}
-                    style={styles.secondaryButton}
-                  >
-                    <AppText variant="caption" style={{ color: colors.textMuted }}>
-                      {respondingId === request.id ? "Saving…" : "Reject"}
-                    </AppText>
+                </GlassPanel>
+              )) : (
+                <GlassPanel padding={spacing.md}>
+                  <EmptyState
+                    icon="people-outline"
+                    title="Your friend list is empty"
+                    message="Find someone by username and send a request. Accepted requests will appear here."
+                  />
+                  <Pressable onPress={() => setActiveSection("find")} style={{ alignSelf: "center", paddingTop: spacing.sm }}>
+                    <AppText variant="caption" style={{ color: colors.primary }}>Find friends</AppText>
                   </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={respondingId === request.id}
-                    onPress={() => { void handleResponse(request.id, true); }}
-                    style={styles.primarySmall}
-                  >
-                    <AppText variant="caption" style={{ color: "#FFFFFF" }}>
-                      {respondingId === request.id ? "Saving…" : "Accept"}
-                    </AppText>
+                </GlassPanel>
+              )}
+              {friendsError ? (
+                <GlassPanel padding={spacing.md}>
+                  <AppText variant="caption" style={{ color: colors.danger }}>{friendsError}</AppText>
+                  <Pressable onPress={() => { void refresh(); }} style={{ paddingTop: spacing.sm }}>
+                    <AppText variant="caption" style={{ color: colors.primary }}>Retry friends</AppText>
                   </Pressable>
-                </View>
-              </GlassPanel>
-            )) : (
-              <GlassPanel padding={spacing.md}>
-                <AppText variant="caption" style={styles.muted}>No incoming requests right now. New requests will appear here with Accept and Reject actions.</AppText>
-              </GlassPanel>
-            )}
-          </View>
-
-          <View style={{ gap: spacing.sm }}>
-            <AppText variant="h2" style={styles.sectionTitle}>Sent requests</AppText>
-            {requestsLoading ? (
-              <AppText variant="caption" style={styles.muted}>Loading sent requests…</AppText>
-            ) : outgoingRequests.length ? outgoingRequests.map((request) => (
-              <GlassPanel key={request.id} padding={spacing.md}>
-                <View style={styles.row}>
-                  <FriendAvatar name={request.toDisplayName} />
-                  <View style={styles.copy}>
-                    <AppText variant="bodyMedium">{request.toDisplayName}</AppText>
-                    <AppText variant="caption" style={styles.muted}>@{request.toUsername}</AppText>
-                  </View>
-                  <AppText variant="caption" style={{ color: colors.warning }}>Pending</AppText>
-                </View>
-              </GlassPanel>
-            )) : (
-              <AppText variant="caption" style={styles.muted}>You have no pending sent requests.</AppText>
-            )}
-          </View>
-
-          <View style={{ gap: spacing.sm }}>
-            <View style={styles.row}>
-              <AppText variant="h2" style={styles.sectionTitle}>Your friends</AppText>
-              <View style={styles.count}>
-                <AppText variant="caption" style={{ color: colors.primary }}>{friends.length}</AppText>
-              </View>
+                </GlassPanel>
+              ) : null}
             </View>
-            {friendsLoading ? (
-              <GlassPanel padding={spacing.md}><LoadingState message="Loading your friends…" /></GlassPanel>
-            ) : friends.length ? friends.map((friend) => (
-              <GlassPanel key={friend.id} padding={spacing.md}>
-                <View style={styles.row}>
-                  <FriendAvatar name={friend.name} />
-                  <View style={styles.copy}>
-                    <AppText variant="bodyMedium">{friend.name}</AppText>
-                    <AppText variant="caption" style={styles.muted}>@{friend.username}</AppText>
-                  </View>
-                  <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+          ) : null}
+
+          {activeSection === "find" ? (
+            <View style={styles.sectionStack}>
+              <GlassPanel padding={spacing.lg} gap={spacing.md}>
+                <View>
+                  <AppText variant="h2">Find people</AppText>
+                  <AppText variant="caption" style={styles.muted}>
+                    Search for an existing DeepPay user with their exact username.
+                  </AppText>
                 </View>
-              </GlassPanel>
-            )) : (
-              <GlassPanel padding={spacing.md}>
-                <EmptyState
-                  icon="people-outline"
-                  title="Your friend list is empty"
-                  message="Find someone by username and send a request. Accepted requests will appear here."
+                <View style={styles.inline}>
+                  <View style={styles.prefix}><AppText variant="bodyMedium" style={{ color: colors.primary }}>@</AppText></View>
+                  <TextInput
+                    value={searchUsername}
+                    onChangeText={(value) => {
+                      setSearchUsername(value.toLowerCase().replace(/[^a-z0-9_]/g, ""));
+                      setFoundUser(null);
+                      setActionError(null);
+                    }}
+                    placeholder="friend_username"
+                    placeholderTextColor={colors.textMuted}
+                    style={[styles.input, { flex: 1, opacity: handle ? 1 : 0.55 }]}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    maxLength={20}
+                    editable={Boolean(handle)}
+                    returnKeyType="search"
+                    onSubmitEditing={() => { void findUser(); }}
+                  />
+                </View>
+                {!handle ? (
+                  <AppText variant="caption" style={styles.muted}>Create your username above to enable friend requests.</AppText>
+                ) : null}
+                <PrimaryButton
+                  title={searchingUser ? "Searching…" : "Find user"}
+                  onPress={() => { void findUser(); }}
+                  disabled={!handle || searchingUser || searchUsername.trim().length < 3}
                 />
               </GlassPanel>
-            )}
+
+              {foundUser ? (
+                <GlassPanel padding={spacing.md} gap={spacing.md}>
+                  <View style={styles.row}>
+                    <FriendAvatar name={foundUser.displayName} />
+                    <View style={styles.copy}>
+                      <AppText variant="bodyMedium">{foundUser.displayName}</AppText>
+                      <AppText variant="caption" style={{ color: colors.primary }}>@{foundUser.username}</AppText>
+                      <AppText variant="caption" style={styles.muted}>DeepPay account found</AppText>
+                    </View>
+                    <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                  </View>
+                  <PrimaryButton
+                    title={sendingRequest ? "Sending request…" : "Send friend request"}
+                    onPress={() => { void addFriend(); }}
+                    disabled={sendingRequest}
+                  />
+                </GlassPanel>
+              ) : null}
+
+              {actionError ? (
+                <GlassPanel padding={spacing.md}>
+                  <AppText variant="caption" style={{ color: colors.danger }}>{actionError}</AppText>
+                </GlassPanel>
+              ) : null}
+              {notice ? (
+                <GlassPanel padding={spacing.md}>
+                  <AppText variant="caption" style={{ color: colors.success }}>{notice}</AppText>
+                </GlassPanel>
+              ) : null}
+            </View>
+          ) : null}
+
+          {activeSection === "requests" ? (
+            <View style={styles.sectionStack}>
+              <View style={styles.row}>
+                <AppText variant="h2" style={styles.sectionTitle}>Incoming requests</AppText>
+                <View style={styles.count}>
+                  <AppText variant="caption" style={{ color: colors.primary }}>{incomingRequests.length}</AppText>
+                </View>
+              </View>
+              {requestsLoading ? (
+                <GlassPanel padding={spacing.md}><LoadingState message="Loading friend requests…" /></GlassPanel>
+              ) : incomingRequests.length ? incomingRequests.map((request) => (
+                <GlassPanel key={request.id} padding={spacing.md}>
+                  <View style={styles.row}>
+                    <FriendAvatar name={request.fromDisplayName} />
+                    <View style={styles.copy}>
+                      <AppText variant="bodyMedium">{request.fromDisplayName}</AppText>
+                      <AppText variant="caption" style={styles.muted}>@{request.fromUsername}</AppText>
+                    </View>
+                  </View>
+                  <View style={styles.requestActions}>
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={respondingId === request.id}
+                      onPress={() => { void handleResponse(request.id, false); }}
+                      style={styles.secondaryButton}
+                    >
+                      <AppText variant="caption" style={{ color: colors.textMuted }}>
+                        {respondingId === request.id ? "Saving…" : "Reject"}
+                      </AppText>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      disabled={respondingId === request.id}
+                      onPress={() => { void handleResponse(request.id, true); }}
+                      style={styles.primarySmall}
+                    >
+                      <AppText variant="caption" style={{ color: "#FFFFFF" }}>
+                        {respondingId === request.id ? "Saving…" : "Accept"}
+                      </AppText>
+                    </Pressable>
+                  </View>
+                </GlassPanel>
+              )) : (
+                <GlassPanel padding={spacing.md}>
+                  <EmptyState
+                    icon="mail-open-outline"
+                    title="No incoming requests"
+                    message="New friend requests will appear here. You can find people by username and send them a request."
+                  />
+                </GlassPanel>
+              )}
+
+              <View style={styles.row}>
+                <AppText variant="h2" style={styles.sectionTitle}>Sent requests</AppText>
+                <View style={styles.count}>
+                  <AppText variant="caption" style={{ color: colors.primary }}>{outgoingRequests.length}</AppText>
+                </View>
+              </View>
+              {requestsLoading ? (
+                <GlassPanel padding={spacing.md}><LoadingState message="Loading sent requests…" /></GlassPanel>
+              ) : outgoingRequests.length ? outgoingRequests.map((request) => (
+                <GlassPanel key={request.id} padding={spacing.md}>
+                  <View style={styles.row}>
+                    <FriendAvatar name={request.toDisplayName} />
+                    <View style={styles.copy}>
+                      <AppText variant="bodyMedium">{request.toDisplayName}</AppText>
+                      <AppText variant="caption" style={styles.muted}>@{request.toUsername}</AppText>
+                    </View>
+                    <AppText variant="caption" style={{ color: colors.warning }}>Pending</AppText>
+                  </View>
+                </GlassPanel>
+              )) : (
+                <GlassPanel padding={spacing.md}>
+                  <AppText variant="caption" style={styles.muted}>You have no pending sent requests.</AppText>
+                </GlassPanel>
+              )}
+
+              {requestsError ? (
+                <GlassPanel padding={spacing.md}>
+                  <AppText variant="caption" style={{ color: colors.danger }}>{requestsError}</AppText>
+                  <Pressable onPress={() => { void refresh(); }} style={{ paddingTop: spacing.sm }}>
+                    <AppText variant="caption" style={{ color: colors.primary }}>Retry requests</AppText>
+                  </Pressable>
+                </GlassPanel>
+              ) : null}
+              {actionError ? (
+                <GlassPanel padding={spacing.md}>
+                  <AppText variant="caption" style={{ color: colors.danger }}>{actionError}</AppText>
+                </GlassPanel>
+              ) : null}
+              {notice ? (
+                <GlassPanel padding={spacing.md}>
+                  <AppText variant="caption" style={{ color: colors.success }}>{notice}</AppText>
+                </GlassPanel>
+              ) : null}
+            </View>
+          ) : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
