@@ -166,6 +166,14 @@ export default function ActivityScreen() {
           </View>
           <Pressable
             accessibilityRole="button"
+            accessibilityLabel="Open monthly spending insights and budgets"
+            onPress={() => router.push("/insights" as any)}
+            style={localStyles.headerButton}
+          >
+            <Ionicons name="analytics-outline" size={21} color={colors.primary} />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
             accessibilityLabel="Refresh activity"
             onPress={() => { void refresh(); }}
             style={localStyles.headerButton}
