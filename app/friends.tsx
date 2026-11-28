@@ -41,9 +41,6 @@ export default function FriendsScreen() {
     handleLoading,
     friendsLoading,
     requestsLoading,
-    handleError,
-    friendsError,
-    requestsError,
     refresh,
     checkFirestoreConnection,
     claimUsername,
@@ -64,7 +61,6 @@ export default function FriendsScreen() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<"friends" | "find" | "requests">("friends");
-  const syncIssue = handleError || requestsError || friendsError;
 
   const saveHandle = async () => {
     if (savingHandle) return;
@@ -285,19 +281,6 @@ export default function FriendsScreen() {
               <Ionicons name="refresh-outline" size={20} color={colors.primary} />
             </Pressable>
           </View>
-
-          {syncIssue ? (
-            <GlassPanel padding={spacing.md} gap={spacing.xs}>
-              <AppText variant="bodyMedium" style={{ color: colors.warning }}>Friends couldn't sync some account data</AppText>
-              <AppText variant="caption" style={styles.muted}>{syncIssue}</AppText>
-              <AppText variant="caption" style={styles.muted}>
-                An account with no friends or requests is normal. These sections will populate when other users connect with you.
-              </AppText>
-              <Pressable onPress={() => { void refresh(); }} style={{ paddingTop: spacing.xs }}>
-                <AppText variant="caption" style={{ color: colors.primary }}>Retry sync</AppText>
-              </Pressable>
-            </GlassPanel>
-          ) : null}
 
           <GlassPanel padding={spacing.lg} gap={spacing.md}>
             <View style={styles.row}>
