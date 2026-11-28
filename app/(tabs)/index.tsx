@@ -43,7 +43,7 @@ export default function HomeScreen() {
   const openCreate = () => setSheetVisible(true);
   const goToGroups = () => router.push("/(tabs)/groups" as any);
 
-  const openUpiTab = (tab: "scan" | "my-qr") => tab === "scan" ? router.push("/upi/scan" as Href) : router.push({ pathname: "/upi", params: { tab } } as Href);
+  const openUpiTab = (tab: "scan" | "my-qr") => tab === "scan" ? router.push("/upi/scan" as Href) : router.push("/upi" as Href);
 
   const handleQuickAction = (label: "Expense" | "Split" | "Groups" | "My QR") => {
     if (label === "Expense") {
