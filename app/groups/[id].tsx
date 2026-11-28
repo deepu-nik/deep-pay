@@ -101,7 +101,7 @@ export default function GroupDetailScreen() {
     selectedChip: { borderColor: colors.primary, backgroundColor: colors.iconBackground },
   });
 
-  if (loading) return <SafeAreaView style={styles.safe}><LoadingState message="Loading group…" /></SafeAreaView>;
+  if (loading) return <SafeAreaView style={styles.safe}><GlassPanel padding={spacing.xl}><LoadingState message="Loading group…" /></GlassPanel></SafeAreaView>;
 
   if (!group) return <SafeAreaView style={styles.safe}><View style={styles.content}><Pressable onPress={() => router.back()} style={styles.iconButton}><Ionicons name="arrow-back" size={21} color={colors.text} /></Pressable><AppText variant="h2" style={{ marginTop: spacing.xl }}>Group not found</AppText></View></SafeAreaView>;
 

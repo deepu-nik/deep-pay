@@ -94,7 +94,7 @@ export default function GroupsScreen() {
           <Pressable onPress={openCreate} accessibilityLabel="Create group" style={styles.iconButton}><Ionicons name="add" size={24} color={colors.primary}/></Pressable>
         </View>
       </View>
-      {loading ? <LoadingState message="Loading groups…" /> : groups.length ? groups.map(group =>
+      {loading ? <GlassPanel padding={spacing.xl}><LoadingState message="Loading groups…" /></GlassPanel> : groups.length ? groups.map(group =>
         <GlassPanel key={group.id} padding={spacing.lg} style={styles.card}>
           <Pressable onPress={()=>router.push(`/groups/${group.id}`)} style={styles.row}>
             <View style={styles.groupIcon}><Ionicons name="people-outline" size={23} color={colors.primary}/></View>
@@ -102,7 +102,7 @@ export default function GroupsScreen() {
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted}/>
           </Pressable>
         </GlassPanel>
-      ) : <EmptyState icon="people-outline" title="No groups yet" message="Create a group for trips, roommates, clubs or projects." />}
+      ) : <GlassPanel padding={spacing.xl}><EmptyState icon="people-outline" title="No groups yet" message="Create a group for trips, roommates, clubs or projects." /></GlassPanel>}
     </ScrollView>
     <BottomTabBar activeTab="groups" onTabPress={goTo} onAddPress={()=>setSheetVisible(true)}/>
     <CreateActionSheet visible={sheetVisible} onClose={()=>setSheetVisible(false)}/>
