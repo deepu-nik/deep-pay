@@ -171,11 +171,8 @@ export const firebaseFriendService = {
     return { uid, username, displayName };
   },
 
-  async sendFriendRequest(usernameInput: string): Promise<void> {
+  async findUserByUsername(usernameInput: string): Promise<FriendHandle> {
     const uid = requireUid();
-    const sender = await firebaseFriendService.getMyHandle();
-    if (!sender) throw new Error("Choose your DeepPay username before adding friends.");
-
     const username = validateUsername(usernameInput);
     const targetSnapshot = await withTimeout(
       getDoc(doc(firestore, "usernames", username)),
@@ -186,29 +183,40 @@ export const firebaseFriendService = {
     if (typeof targetData.uid !== "string" || typeof targetData.displayName !== "string") {
       throw new Error("That username is not available.");
     }
-    const targetUid = targetData.uid;
-    if (targetUid === uid) throw new Error("That's your own username.");
+    if (targetData.uid === uid) throw new Error("That's your own username.");
+    return {
+      uid: targetData.uid,
+      username,
+      displayName: targetData.displayName,
+    };
+  },
 
-    const pairRef = doc(firestore, "friendships", friendshipId(uid, targetUid));
-    const outgoingRef = doc(firestore, "friendRequests", requestId(uid, targetUid));
-    const incomingRef = doc(firestore, "friendRequests", requestId(targetUid, uid));
+  async sendFriendRequest(usernameInput: string): Promise<void> {
+    const uid = requireUid();
+    const sender = await firebaseFriendService.getMyHandle();
+    if (!sender) throw new Error("Choose your DeepPay username before adding friends.");
+
+    const target = await firebaseFriendService.findUserByUsername(usernameInput);
+    const pairRef = doc(firestore, "friendships", friendshipId(uid, target.uid));
+    const outgoingRef = doc(firestore, "friendRequests", requestId(uid, target.uid));
+    const incomingRef = doc(firestore, "friendRequests", requestId(target.uid, uid));
     const [existingFriend, existingRequest, incomingRequest] = await withTimeout(
       Promise.all([getDoc(pairRef), getDoc(outgoingRef), getDoc(incomingRef)]),
       "Checking friend status took too long. Check your connection and retry.",
     );
-    if (existingFriend.exists()) throw new Error("You're already friends with @" + username + ".");
-    if (existingRequest.exists()) throw new Error("You've already sent a request to @" + username + ".");
+    if (existingFriend.exists()) throw new Error("You're already friends with @" + target.username + ".");
+    if (existingRequest.exists()) throw new Error("You've already sent a request to @" + target.username + ".");
     if (incomingRequest.exists() && incomingRequest.data().status === "pending") {
-      throw new Error("@" + username + " already sent you a request. You can accept it below.");
+      throw new Error("@" + target.username + " already sent you a request. You can accept it below.");
     }
 
     await setDoc(outgoingRef, {
       fromUid: uid,
-      toUid: targetUid,
+      toUid: target.uid,
       fromUsername: sender.username,
-      toUsername: username,
+      toUsername: target.username,
       fromDisplayName: sender.displayName,
-      toDisplayName: targetData.displayName,
+      toDisplayName: target.displayName,
       status: "pending",
       createdAt: serverTimestamp(),
     });
