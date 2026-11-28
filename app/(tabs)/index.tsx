@@ -172,6 +172,16 @@ export default function HomeScreen() {
             <AppText variant="caption" style={{ color: "#FFFFFF", fontWeight: "700" }}>View QR to receive payment</AppText>
             <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
           </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open monthly spending insights and budgets"
+            onPress={() => router.push("/insights" as Href)}
+            style={styles.receiveQrAction}
+          >
+            <Ionicons name="analytics-outline" size={18} color="#FFFFFF" />
+            <AppText variant="caption" style={{ color: "#FFFFFF", fontWeight: "700" }}>View spending insights</AppText>
+            <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
+          </Pressable>
         </View>
 
         <SectionHeader title="Quick actions" />
