@@ -234,6 +234,55 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
+      match /budgets/{budgetId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && budgetId in [
+            'food',
+            'transport',
+            'rent',
+            'education',
+            'entertainment',
+            'shopping',
+            'technology',
+            'travel',
+            'health',
+            'other'
+          ]
+          && request.resource.data.keys().hasAll(['category', 'limitMinor', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['category', 'limitMinor', 'updatedAt'])
+          && request.resource.data.category is string
+          && (
+            (budgetId == 'food' && request.resource.data.category == 'Food')
+            || (budgetId == 'transport' && request.resource.data.category == 'Transport')
+            || (budgetId == 'rent' && request.resource.data.category == 'Rent')
+            || (budgetId == 'education' && request.resource.data.category == 'Education')
+            || (budgetId == 'entertainment' && request.resource.data.category == 'Entertainment')
+            || (budgetId == 'shopping' && request.resource.data.category == 'Shopping')
+            || (budgetId == 'technology' && request.resource.data.category == 'Technology')
+            || (budgetId == 'travel' && request.resource.data.category == 'Travel')
+            || (budgetId == 'health' && request.resource.data.category == 'Health')
+            || (budgetId == 'other' && request.resource.data.category == 'Other')
+          )
+          && request.resource.data.limitMinor is int
+          && request.resource.data.limitMinor > 0
+          && request.resource.data.limitMinor <= 100000000000
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if isOwner(userId)
+          && budgetId in [
+            'food',
+            'transport',
+            'rent',
+            'education',
+            'entertainment',
+            'shopping',
+            'technology',
+            'travel',
+            'health',
+            'other'
+          ];
+      }
+
       match /groupMemberships/{groupId} {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId)
