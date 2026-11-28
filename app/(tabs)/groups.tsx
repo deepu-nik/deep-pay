@@ -96,10 +96,12 @@ export default function GroupsScreen() {
         {loading ? (
           <GlassPanel padding={spacing.xl}><LoadingState message="Loading groups…" /></GlassPanel>
         ) : error ? (
-          <GlassPanel padding={spacing.xl}>
-            <AppText variant="body" style={styles.muted}>{error}</AppText>
-            <PrimaryButton title="Try again" onPress={() => { void refresh().catch(() => undefined); }} />
-          </GlassPanel>
+          <View style={{ alignItems: "center", gap: spacing.sm, paddingVertical: spacing.lg }}>
+            <AppText variant="caption" style={styles.muted}>Groups are temporarily unavailable.</AppText>
+            <Pressable accessibilityRole="button" onPress={() => { void refresh().catch(() => undefined); }}>
+              <AppText variant="caption" style={{ color: colors.primary }}>Retry</AppText>
+            </Pressable>
+          </View>
         ) : groups.length ? groups.map((group) => (
           <GlassPanel key={group.id} padding={spacing.lg} style={styles.card}>
             <Pressable onPress={() => router.push(("/groups/" + group.id) as any)} style={styles.row}>
@@ -118,7 +120,7 @@ export default function GroupsScreen() {
         )}
       </ScrollView>
 
-      <BottomTabBar activeTab="groups" onTabPress={goTo} onPayPress={() => router.push({ pathname: "/upi", params: { tab: "my-qr" } } as any)} />
+      <BottomTabBar activeTab="groups" onTabPress={goTo} onPayPress={() => router.push("/upi" as any)} />
 
       <Modal visible={editorVisible} transparent animationType="slide" onRequestClose={() => setEditorVisible(false)}>
         <View style={styles.modal}>
