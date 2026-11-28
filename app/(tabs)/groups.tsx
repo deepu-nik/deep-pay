@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -220,7 +220,8 @@ export default function GroupsScreen() {
       <BottomTabBar activeTab="groups" onTabPress={goTo} onPayPress={() => router.push("/upi" as any)} />
 
       <Modal visible={editorVisible} transparent animationType="slide" onRequestClose={() => setEditorVisible(false)}>
-        <View style={styles.modal}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+<View style={styles.modal}>
           <GlassPanel padding={spacing.lg} style={styles.sheet}>
             <View style={styles.sheetContent}>
               <View style={styles.modalHeader}>
@@ -254,6 +255,7 @@ export default function GroupsScreen() {
             </View>
           </GlassPanel>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
