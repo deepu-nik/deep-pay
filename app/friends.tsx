@@ -43,17 +43,14 @@ export default function FriendsScreen() {
     requestsLoading,
     refresh,
     checkFirestoreConnection,
-    claimUsername,
     findUserByUsername,
     sendFriendRequest,
     respondToRequest,
   } = useFriends();
 
-  const [usernameDraft, setUsernameDraft] = useState("");
   const [searchUsername, setSearchUsername] = useState("");
   const [foundUser, setFoundUser] = useState<{ uid: string; username: string; displayName: string } | null>(null);
   const [searchingUser, setSearchingUser] = useState(false);
-  const [savingHandle, setSavingHandle] = useState(false);
   const [checkingConnection, setCheckingConnection] = useState(false);
   const [connectionResult, setConnectionResult] = useState<string | null>(null);
   const [sendingRequest, setSendingRequest] = useState(false);
@@ -61,22 +58,6 @@ export default function FriendsScreen() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<"friends" | "find" | "requests">("friends");
-
-  const saveHandle = async () => {
-    if (savingHandle) return;
-    setSavingHandle(true);
-    setActionError(null);
-    setNotice(null);
-    try {
-      const saved = await claimUsername(usernameDraft);
-      setUsernameDraft("");
-      setNotice("Your DeepPay username is @" + saved.username + ". People can now find you.");
-    } catch (cause) {
-      setActionError(cause instanceof Error ? cause.message : "We couldn't save your username. Run the Firebase connection test below.");
-    } finally {
-      setSavingHandle(false);
-    }
-  };
 
   const findUser = async () => {
     if (searchingUser || !handle || !searchUsername.trim()) return;
@@ -305,38 +286,24 @@ export default function FriendsScreen() {
                 <AppText variant="caption" style={{ color: colors.success }}>Active</AppText>
               </View>
             ) : (
-              <>
+              <View style={styles.sectionStack}>
                 {handleLoading ? (
-                  <AppText variant="caption" style={styles.muted}>Checking whether you already have a username…</AppText>
-                ) : null}
-                <AppText variant="caption" style={styles.muted}>
-                  Create your unique DeepPay username once. Use 3–20 lowercase letters, numbers or underscores.
-                </AppText>
-                <View style={styles.inline}>
-                  <View style={styles.prefix}><AppText variant="bodyMedium" style={{ color: colors.primary }}>@</AppText></View>
-                  <TextInput
-                    value={usernameDraft}
-                    onChangeText={(value) => {
-                      setUsernameDraft(value.toLowerCase().replace(/[^a-z0-9_]/g, ""));
-                      setActionError(null);
-                    }}
-                    placeholder="your_username"
-                    placeholderTextColor={colors.textMuted}
-                    style={[styles.input, { flex: 1 }]}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    maxLength={20}
-                    returnKeyType="done"
-                    onSubmitEditing={() => { void saveHandle(); }}
-                  />
-                </View>
-                <PrimaryButton
-                  title={savingHandle ? "Saving username…" : "Create my username"}
-                  onPress={() => { void saveHandle(); }}
-                  disabled={handleLoading || savingHandle || usernameDraft.trim().length < 3}
-                />
-
-              </>
+                  <AppText variant="caption" style={styles.muted}>Checking your account…</AppText>
+                ) : (
+                  <>
+                    <AppText variant="caption" style={styles.muted}>
+                      New here? Create your unique @username from Profile first. It lets friends find you without sharing your email.
+                    </AppText>
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => router.push("/(tabs)/profile" as any)}
+                      style={{ alignSelf: "flex-start", paddingVertical: spacing.xs }}
+                    >
+                      <AppText variant="caption" style={{ color: colors.primary, fontWeight: "700" }}>Set up username in Profile</AppText>
+                    </Pressable>
+                  </>
+                )}
+              </View>
             )}
 
             <Pressable
