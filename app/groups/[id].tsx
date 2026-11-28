@@ -205,7 +205,7 @@ export default function GroupDetailScreen() {
       {balances.length > 0 ? (() => {
         const current = balances.find((balance) => balance.userId === CURRENT_USER.id);
         const net = current?.net ?? 0;
-        return <View style={{ backgroundColor: colors.surfaceMuted, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.xl }}>
+        return <View style={{ backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.xl }}>
           <AppText variant="bodyMedium">{Math.abs(net) < 0.005 ? "You're settled up" : net > 0 ? `You're owed ${formatMoney(net)}` : `You owe ${formatMoney(Math.abs(net))}`}</AppText>
           <AppText variant="caption" style={styles.muted}>Based on expenses and recorded settlements in this group.</AppText>
           {net < -0.005 ? <Pressable onPress={openSettlement} style={{ marginTop: spacing.md }}>
@@ -235,7 +235,7 @@ export default function GroupDetailScreen() {
       </View>
 
       {expensesLoading ? <LoadingState message="Loading expenses…" /> : expenses.length === 0 ? (
-        <View style={{ backgroundColor: colors.surfaceMuted, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.xl }}>
+        <View style={{ backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder, borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.xl }}>
           <AppText variant="bodyMedium">No expenses yet</AppText>
           <AppText variant="caption" style={styles.muted}>Add an expense and select this group to start tracking shared spending.</AppText>
         </View>
