@@ -139,6 +139,10 @@ export const firebaseFriendService = {
       || firebaseAuth.currentUser?.email?.split("@")[0]
       || "DeepPay member";
     const userNameRef = doc(firestore, "usernames", username);
+    const reserved = await getDoc(userNameRef);
+    if (reserved.exists() && reserved.data().uid !== uid) {
+      throw new Error("That username is already taken. Try another.");
+    }
     const batch = writeBatch(firestore);
     batch.set(userNameRef, {
       uid,
