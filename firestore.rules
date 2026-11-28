@@ -319,7 +319,1862 @@ service cloud.firestore {
         && request.resource.data.uid == userId
         && request.resource.data.username is string
         && request.resource.data.username.matches('^[a-z0-9_]{3,20}
+      allow get: if signedIn()
+        && (
+          friendshipId.matches('^' + request.auth.uid + '__.*
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'createdByUid',
+          'memberUids',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 1
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if (isGroupOwner(groupId) && validGroupOwnerUpdate())
+        || validInviteJoin(groupId);
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if isGroupMember(groupId) || isOwner(memberUid);
+        allow list: if isGroupMember(groupId);
+        allow create: if isOwner(memberUid)
+          && request.resource.data.keys().hasOnly(['uid', 'displayName', 'role', 'status', 'joinedAt'])
+          && request.resource.data.uid == memberUid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status == 'active'
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(groupPath(groupId))
+          && getAfter(groupPath(groupId)).data.memberUids.hasAny([memberUid])
+          && request.resource.data.role == (
+            getAfter(groupPath(groupId)).data.createdByUid == memberUid ? 'owner' : 'member'
+          );
+        allow update, delete: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && validExpense(request.resource.data, get(groupPath(groupId)).data.memberUids)
+          && request.resource.data.groupId == groupId;
+        allow update, delete: if false;
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.keys().hasOnly([
+            'fromUid',
+            'toUid',
+            'amountMinor',
+            'date',
+            'paymentMethod',
+            'status',
+            'createdByUid',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid in get(groupPath(groupId)).data.memberUids
+          && request.resource.data.toUid != request.auth.uid
+          && request.resource.data.amountMinor is int
+          && request.resource.data.amountMinor > 0
+          && request.resource.data.date is string
+          && request.resource.data.paymentMethod in ['cash', 'upi']
+          && request.resource.data.status == 'payer_marked_paid'
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isGroupMember(groupId)
+          && resource.data.toUid == request.auth.uid
+          && resource.data.status == 'payer_marked_paid'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'recipientConfirmedAt', 'updatedAt'])
+          && request.resource.data.status in ['confirmed', 'rejected']
+          && request.resource.data.recipientConfirmedAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+    }
+
+    match /groupInvites/{inviteId} {
+      allow get: if signedIn()
+        && resource.data.status == 'active'
+        && resource.data.expiresAt is timestamp
+        && resource.data.expiresAt > request.time;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'groupId',
+          'groupName',
+          'createdByUid',
+          'status',
+          'expiresAt',
+          'createdAt'
+        ])
+        && request.resource.data.groupId is string
+        && isGroupMember(request.resource.data.groupId)
+        && request.resource.data.groupName is string
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.createdByUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'revoked';
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+)
+        && request.resource.data.usernameLower == request.resource.data.username
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(usernamePath(request.resource.data.usernameLower))
+        && getAfter(usernamePath(request.resource.data.usernameLower)).data.uid == userId;
+      allow update: if isOwner(userId)
+        && request.resource.data.keys().hasAll(['uid', 'username', 'usernameLower', 'displayName', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'username', 'usernameLower', 'displayName', 'createdAt', 'updatedAt'])
+        && request.resource.data.uid == userId
+        && request.resource.data.username == resource.data.username
+        && request.resource.data.usernameLower == resource.data.usernameLower
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(usernamePath(request.resource.data.usernameLower))
+        && getAfter(usernamePath(request.resource.data.usernameLower)).data.uid == userId;
+      allow delete: if false;
+    }
+
+    match /usernames/{username} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['uid', 'username', 'usernameLower', 'displayName', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'username', 'usernameLower', 'displayName', 'createdAt', 'updatedAt'])
+        && request.resource.data.uid == request.auth.uid
+        && username.matches('^[a-z0-9_]{3,20}
       allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'createdByUid',
+          'memberUids',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 1
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if (isGroupOwner(groupId) && validGroupOwnerUpdate())
+        || validInviteJoin(groupId);
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if isGroupMember(groupId) || isOwner(memberUid);
+        allow list: if isGroupMember(groupId);
+        allow create: if isOwner(memberUid)
+          && request.resource.data.keys().hasOnly(['uid', 'displayName', 'role', 'status', 'joinedAt'])
+          && request.resource.data.uid == memberUid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status == 'active'
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(groupPath(groupId))
+          && getAfter(groupPath(groupId)).data.memberUids.hasAny([memberUid])
+          && request.resource.data.role == (
+            getAfter(groupPath(groupId)).data.createdByUid == memberUid ? 'owner' : 'member'
+          );
+        allow update, delete: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && validExpense(request.resource.data, get(groupPath(groupId)).data.memberUids)
+          && request.resource.data.groupId == groupId;
+        allow update, delete: if false;
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.keys().hasOnly([
+            'fromUid',
+            'toUid',
+            'amountMinor',
+            'date',
+            'paymentMethod',
+            'status',
+            'createdByUid',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid in get(groupPath(groupId)).data.memberUids
+          && request.resource.data.toUid != request.auth.uid
+          && request.resource.data.amountMinor is int
+          && request.resource.data.amountMinor > 0
+          && request.resource.data.date is string
+          && request.resource.data.paymentMethod in ['cash', 'upi']
+          && request.resource.data.status == 'payer_marked_paid'
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isGroupMember(groupId)
+          && resource.data.toUid == request.auth.uid
+          && resource.data.status == 'payer_marked_paid'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'recipientConfirmedAt', 'updatedAt'])
+          && request.resource.data.status in ['confirmed', 'rejected']
+          && request.resource.data.recipientConfirmedAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+    }
+
+    match /groupInvites/{inviteId} {
+      allow get: if signedIn()
+        && resource.data.status == 'active'
+        && resource.data.expiresAt is timestamp
+        && resource.data.expiresAt > request.time;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'groupId',
+          'groupName',
+          'createdByUid',
+          'status',
+          'expiresAt',
+          'createdAt'
+        ])
+        && request.resource.data.groupId is string
+        && isGroupMember(request.resource.data.groupId)
+        && request.resource.data.groupName is string
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.createdByUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'revoked';
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+)
+        && request.resource.data.username == username
+        && request.resource.data.usernameLower == username
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(userHandlePath(request.auth.uid))
+        && getAfter(userHandlePath(request.auth.uid)).data.usernameLower == username;
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasAll(['uid', 'username', 'usernameLower', 'displayName', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'username', 'usernameLower', 'displayName', 'createdAt', 'updatedAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.username == username
+        && request.resource.data.usernameLower == username
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(userHandlePath(request.auth.uid))
+        && getAfter(userHandlePath(request.auth.uid)).data.usernameLower == username;
+      allow delete: if false;
+    }
+
+    match /friendRequests/{requestId} {
+      allow get: if signedIn()
+        && (
+          requestId.matches('^' + request.auth.uid + '__.*
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && requestId == request.auth.uid + '__' + request.resource.data.toUid
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.fromUsername is string
+        && request.resource.data.toUsername is string
+        && request.resource.data.fromDisplayName is string
+        && request.resource.data.toDisplayName is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && exists(usernamePath(request.resource.data.fromUsername))
+        && get(usernamePath(request.resource.data.fromUsername)).data.uid == request.auth.uid
+        && exists(usernamePath(request.resource.data.toUsername))
+        && get(usernamePath(request.resource.data.toUsername)).data.uid == request.resource.data.toUid;
+      allow update: if signedIn()
+        && resource.data.toUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+        && request.resource.data.status in ['accepted', 'rejected']
+        && request.resource.data.respondedAt == request.time;
+      allow delete: if false;
+    }
+
+    match /friendships/{friendshipId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.requestId is string
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 2
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.members is list
+        && request.resource.data.members.size() == 2
+        && request.resource.data.createdAt == request.time
+        && existsAfter(friendRequestPath(request.resource.data.requestId))
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.status == 'accepted'
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.toUid == request.auth.uid
+        && (
+          friendshipId == getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
+            + '__' + request.auth.uid
+          || friendshipId == request.auth.uid + '__'
+            + getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
+        )
+        && request.resource.data.memberUids.hasAny([
+          getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
+        ]);
+      allow update, delete: if false;
+    }
+
+    match /groups/{groupId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'createdByUid',
+          'memberUids',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 1
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if (isGroupOwner(groupId) && validGroupOwnerUpdate())
+        || validInviteJoin(groupId);
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if isGroupMember(groupId) || isOwner(memberUid);
+        allow list: if isGroupMember(groupId);
+        allow create: if isOwner(memberUid)
+          && request.resource.data.keys().hasOnly(['uid', 'displayName', 'role', 'status', 'joinedAt'])
+          && request.resource.data.uid == memberUid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status == 'active'
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(groupPath(groupId))
+          && getAfter(groupPath(groupId)).data.memberUids.hasAny([memberUid])
+          && request.resource.data.role == (
+            getAfter(groupPath(groupId)).data.createdByUid == memberUid ? 'owner' : 'member'
+          );
+        allow update, delete: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && validExpense(request.resource.data, get(groupPath(groupId)).data.memberUids)
+          && request.resource.data.groupId == groupId;
+        allow update, delete: if false;
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.keys().hasOnly([
+            'fromUid',
+            'toUid',
+            'amountMinor',
+            'date',
+            'paymentMethod',
+            'status',
+            'createdByUid',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid in get(groupPath(groupId)).data.memberUids
+          && request.resource.data.toUid != request.auth.uid
+          && request.resource.data.amountMinor is int
+          && request.resource.data.amountMinor > 0
+          && request.resource.data.date is string
+          && request.resource.data.paymentMethod in ['cash', 'upi']
+          && request.resource.data.status == 'payer_marked_paid'
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isGroupMember(groupId)
+          && resource.data.toUid == request.auth.uid
+          && resource.data.status == 'payer_marked_paid'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'recipientConfirmedAt', 'updatedAt'])
+          && request.resource.data.status in ['confirmed', 'rejected']
+          && request.resource.data.recipientConfirmedAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+    }
+
+    match /groupInvites/{inviteId} {
+      allow get: if signedIn()
+        && resource.data.status == 'active'
+        && resource.data.expiresAt is timestamp
+        && resource.data.expiresAt > request.time;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'groupId',
+          'groupName',
+          'createdByUid',
+          'status',
+          'expiresAt',
+          'createdAt'
+        ])
+        && request.resource.data.groupId is string
+        && isGroupMember(request.resource.data.groupId)
+        && request.resource.data.groupName is string
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.createdByUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'revoked';
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+)
+          || requestId.matches('^.*__' + request.auth.uid + '
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && requestId == request.auth.uid + '__' + request.resource.data.toUid
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.fromUsername is string
+        && request.resource.data.toUsername is string
+        && request.resource.data.fromDisplayName is string
+        && request.resource.data.toDisplayName is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && exists(usernamePath(request.resource.data.fromUsername))
+        && get(usernamePath(request.resource.data.fromUsername)).data.uid == request.auth.uid
+        && exists(usernamePath(request.resource.data.toUsername))
+        && get(usernamePath(request.resource.data.toUsername)).data.uid == request.resource.data.toUid;
+      allow update: if signedIn()
+        && resource.data.toUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+        && request.resource.data.status in ['accepted', 'rejected']
+        && request.resource.data.respondedAt == request.time;
+      allow delete: if false;
+    }
+
+    match /friendships/{friendshipId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.requestId is string
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 2
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.members is list
+        && request.resource.data.members.size() == 2
+        && request.resource.data.createdAt == request.time
+        && existsAfter(friendRequestPath(request.resource.data.requestId))
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.status == 'accepted'
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.toUid == request.auth.uid
+        && request.resource.data.memberUids.hasAny([
+          getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
+        ]);
+      allow update, delete: if false;
+    }
+
+    match /groups/{groupId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'createdByUid',
+          'memberUids',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 1
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if (isGroupOwner(groupId) && validGroupOwnerUpdate())
+        || validInviteJoin(groupId);
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if isGroupMember(groupId) || isOwner(memberUid);
+        allow list: if isGroupMember(groupId);
+        allow create: if isOwner(memberUid)
+          && request.resource.data.keys().hasOnly(['uid', 'displayName', 'role', 'status', 'joinedAt'])
+          && request.resource.data.uid == memberUid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status == 'active'
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(groupPath(groupId))
+          && getAfter(groupPath(groupId)).data.memberUids.hasAny([memberUid])
+          && request.resource.data.role == (
+            getAfter(groupPath(groupId)).data.createdByUid == memberUid ? 'owner' : 'member'
+          );
+        allow update, delete: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && validExpense(request.resource.data, get(groupPath(groupId)).data.memberUids)
+          && request.resource.data.groupId == groupId;
+        allow update, delete: if false;
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.keys().hasOnly([
+            'fromUid',
+            'toUid',
+            'amountMinor',
+            'date',
+            'paymentMethod',
+            'status',
+            'createdByUid',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid in get(groupPath(groupId)).data.memberUids
+          && request.resource.data.toUid != request.auth.uid
+          && request.resource.data.amountMinor is int
+          && request.resource.data.amountMinor > 0
+          && request.resource.data.date is string
+          && request.resource.data.paymentMethod in ['cash', 'upi']
+          && request.resource.data.status == 'payer_marked_paid'
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isGroupMember(groupId)
+          && resource.data.toUid == request.auth.uid
+          && resource.data.status == 'payer_marked_paid'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'recipientConfirmedAt', 'updatedAt'])
+          && request.resource.data.status in ['confirmed', 'rejected']
+          && request.resource.data.recipientConfirmedAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+    }
+
+    match /groupInvites/{inviteId} {
+      allow get: if signedIn()
+        && resource.data.status == 'active'
+        && resource.data.expiresAt is timestamp
+        && resource.data.expiresAt > request.time;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'groupId',
+          'groupName',
+          'createdByUid',
+          'status',
+          'expiresAt',
+          'createdAt'
+        ])
+        && request.resource.data.groupId is string
+        && isGroupMember(request.resource.data.groupId)
+        && request.resource.data.groupName is string
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.createdByUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'revoked';
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+)
+        );
+      allow list: if signedIn()
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && requestId == request.auth.uid + '__' + request.resource.data.toUid
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.fromUsername is string
+        && request.resource.data.toUsername is string
+        && request.resource.data.fromDisplayName is string
+        && request.resource.data.toDisplayName is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && exists(usernamePath(request.resource.data.fromUsername))
+        && get(usernamePath(request.resource.data.fromUsername)).data.uid == request.auth.uid
+        && exists(usernamePath(request.resource.data.toUsername))
+        && get(usernamePath(request.resource.data.toUsername)).data.uid == request.resource.data.toUid;
+      allow update: if signedIn()
+        && resource.data.toUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+        && request.resource.data.status in ['accepted', 'rejected']
+        && request.resource.data.respondedAt == request.time;
+      allow delete: if false;
+    }
+
+    match /friendships/{friendshipId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.requestId is string
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 2
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.members is list
+        && request.resource.data.members.size() == 2
+        && request.resource.data.createdAt == request.time
+        && existsAfter(friendRequestPath(request.resource.data.requestId))
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.status == 'accepted'
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.toUid == request.auth.uid
+        && request.resource.data.memberUids.hasAny([
+          getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
+        ]);
+      allow update, delete: if false;
+    }
+
+    match /groups/{groupId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'createdByUid',
+          'memberUids',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 1
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if (isGroupOwner(groupId) && validGroupOwnerUpdate())
+        || validInviteJoin(groupId);
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if isGroupMember(groupId) || isOwner(memberUid);
+        allow list: if isGroupMember(groupId);
+        allow create: if isOwner(memberUid)
+          && request.resource.data.keys().hasOnly(['uid', 'displayName', 'role', 'status', 'joinedAt'])
+          && request.resource.data.uid == memberUid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status == 'active'
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(groupPath(groupId))
+          && getAfter(groupPath(groupId)).data.memberUids.hasAny([memberUid])
+          && request.resource.data.role == (
+            getAfter(groupPath(groupId)).data.createdByUid == memberUid ? 'owner' : 'member'
+          );
+        allow update, delete: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && validExpense(request.resource.data, get(groupPath(groupId)).data.memberUids)
+          && request.resource.data.groupId == groupId;
+        allow update, delete: if false;
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.keys().hasOnly([
+            'fromUid',
+            'toUid',
+            'amountMinor',
+            'date',
+            'paymentMethod',
+            'status',
+            'createdByUid',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid in get(groupPath(groupId)).data.memberUids
+          && request.resource.data.toUid != request.auth.uid
+          && request.resource.data.amountMinor is int
+          && request.resource.data.amountMinor > 0
+          && request.resource.data.date is string
+          && request.resource.data.paymentMethod in ['cash', 'upi']
+          && request.resource.data.status == 'payer_marked_paid'
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isGroupMember(groupId)
+          && resource.data.toUid == request.auth.uid
+          && resource.data.status == 'payer_marked_paid'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'recipientConfirmedAt', 'updatedAt'])
+          && request.resource.data.status in ['confirmed', 'rejected']
+          && request.resource.data.recipientConfirmedAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+    }
+
+    match /groupInvites/{inviteId} {
+      allow get: if signedIn()
+        && resource.data.status == 'active'
+        && resource.data.expiresAt is timestamp
+        && resource.data.expiresAt > request.time;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'groupId',
+          'groupName',
+          'createdByUid',
+          'status',
+          'expiresAt',
+          'createdAt'
+        ])
+        && request.resource.data.groupId is string
+        && isGroupMember(request.resource.data.groupId)
+        && request.resource.data.groupName is string
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.createdByUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'revoked';
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+)
+          || friendshipId.matches('^.*__' + request.auth.uid + '
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'createdByUid',
+          'memberUids',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 1
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if (isGroupOwner(groupId) && validGroupOwnerUpdate())
+        || validInviteJoin(groupId);
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if isGroupMember(groupId) || isOwner(memberUid);
+        allow list: if isGroupMember(groupId);
+        allow create: if isOwner(memberUid)
+          && request.resource.data.keys().hasOnly(['uid', 'displayName', 'role', 'status', 'joinedAt'])
+          && request.resource.data.uid == memberUid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status == 'active'
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(groupPath(groupId))
+          && getAfter(groupPath(groupId)).data.memberUids.hasAny([memberUid])
+          && request.resource.data.role == (
+            getAfter(groupPath(groupId)).data.createdByUid == memberUid ? 'owner' : 'member'
+          );
+        allow update, delete: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && validExpense(request.resource.data, get(groupPath(groupId)).data.memberUids)
+          && request.resource.data.groupId == groupId;
+        allow update, delete: if false;
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.keys().hasOnly([
+            'fromUid',
+            'toUid',
+            'amountMinor',
+            'date',
+            'paymentMethod',
+            'status',
+            'createdByUid',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid in get(groupPath(groupId)).data.memberUids
+          && request.resource.data.toUid != request.auth.uid
+          && request.resource.data.amountMinor is int
+          && request.resource.data.amountMinor > 0
+          && request.resource.data.date is string
+          && request.resource.data.paymentMethod in ['cash', 'upi']
+          && request.resource.data.status == 'payer_marked_paid'
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isGroupMember(groupId)
+          && resource.data.toUid == request.auth.uid
+          && resource.data.status == 'payer_marked_paid'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'recipientConfirmedAt', 'updatedAt'])
+          && request.resource.data.status in ['confirmed', 'rejected']
+          && request.resource.data.recipientConfirmedAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+    }
+
+    match /groupInvites/{inviteId} {
+      allow get: if signedIn()
+        && resource.data.status == 'active'
+        && resource.data.expiresAt is timestamp
+        && resource.data.expiresAt > request.time;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'groupId',
+          'groupName',
+          'createdByUid',
+          'status',
+          'expiresAt',
+          'createdAt'
+        ])
+        && request.resource.data.groupId is string
+        && isGroupMember(request.resource.data.groupId)
+        && request.resource.data.groupName is string
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.createdByUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'revoked';
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+)
+        && request.resource.data.usernameLower == request.resource.data.username
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(usernamePath(request.resource.data.usernameLower))
+        && getAfter(usernamePath(request.resource.data.usernameLower)).data.uid == userId;
+      allow update: if isOwner(userId)
+        && request.resource.data.keys().hasAll(['uid', 'username', 'usernameLower', 'displayName', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'username', 'usernameLower', 'displayName', 'createdAt', 'updatedAt'])
+        && request.resource.data.uid == userId
+        && request.resource.data.username == resource.data.username
+        && request.resource.data.usernameLower == resource.data.usernameLower
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(usernamePath(request.resource.data.usernameLower))
+        && getAfter(usernamePath(request.resource.data.usernameLower)).data.uid == userId;
+      allow delete: if false;
+    }
+
+    match /usernames/{username} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['uid', 'username', 'usernameLower', 'displayName', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'username', 'usernameLower', 'displayName', 'createdAt', 'updatedAt'])
+        && request.resource.data.uid == request.auth.uid
+        && username.matches('^[a-z0-9_]{3,20}
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'createdByUid',
+          'memberUids',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 1
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if (isGroupOwner(groupId) && validGroupOwnerUpdate())
+        || validInviteJoin(groupId);
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if isGroupMember(groupId) || isOwner(memberUid);
+        allow list: if isGroupMember(groupId);
+        allow create: if isOwner(memberUid)
+          && request.resource.data.keys().hasOnly(['uid', 'displayName', 'role', 'status', 'joinedAt'])
+          && request.resource.data.uid == memberUid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status == 'active'
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(groupPath(groupId))
+          && getAfter(groupPath(groupId)).data.memberUids.hasAny([memberUid])
+          && request.resource.data.role == (
+            getAfter(groupPath(groupId)).data.createdByUid == memberUid ? 'owner' : 'member'
+          );
+        allow update, delete: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && validExpense(request.resource.data, get(groupPath(groupId)).data.memberUids)
+          && request.resource.data.groupId == groupId;
+        allow update, delete: if false;
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.keys().hasOnly([
+            'fromUid',
+            'toUid',
+            'amountMinor',
+            'date',
+            'paymentMethod',
+            'status',
+            'createdByUid',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid in get(groupPath(groupId)).data.memberUids
+          && request.resource.data.toUid != request.auth.uid
+          && request.resource.data.amountMinor is int
+          && request.resource.data.amountMinor > 0
+          && request.resource.data.date is string
+          && request.resource.data.paymentMethod in ['cash', 'upi']
+          && request.resource.data.status == 'payer_marked_paid'
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isGroupMember(groupId)
+          && resource.data.toUid == request.auth.uid
+          && resource.data.status == 'payer_marked_paid'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'recipientConfirmedAt', 'updatedAt'])
+          && request.resource.data.status in ['confirmed', 'rejected']
+          && request.resource.data.recipientConfirmedAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+    }
+
+    match /groupInvites/{inviteId} {
+      allow get: if signedIn()
+        && resource.data.status == 'active'
+        && resource.data.expiresAt is timestamp
+        && resource.data.expiresAt > request.time;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'groupId',
+          'groupName',
+          'createdByUid',
+          'status',
+          'expiresAt',
+          'createdAt'
+        ])
+        && request.resource.data.groupId is string
+        && isGroupMember(request.resource.data.groupId)
+        && request.resource.data.groupName is string
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.createdByUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'revoked';
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+)
+        && request.resource.data.username == username
+        && request.resource.data.usernameLower == username
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(userHandlePath(request.auth.uid))
+        && getAfter(userHandlePath(request.auth.uid)).data.usernameLower == username;
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasAll(['uid', 'username', 'usernameLower', 'displayName', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'username', 'usernameLower', 'displayName', 'createdAt', 'updatedAt'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.username == username
+        && request.resource.data.usernameLower == username
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && existsAfter(userHandlePath(request.auth.uid))
+        && getAfter(userHandlePath(request.auth.uid)).data.usernameLower == username;
+      allow delete: if false;
+    }
+
+    match /friendRequests/{requestId} {
+      allow get: if signedIn()
+        && (
+          requestId.matches('^' + request.auth.uid + '__.*
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && requestId == request.auth.uid + '__' + request.resource.data.toUid
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.fromUsername is string
+        && request.resource.data.toUsername is string
+        && request.resource.data.fromDisplayName is string
+        && request.resource.data.toDisplayName is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && exists(usernamePath(request.resource.data.fromUsername))
+        && get(usernamePath(request.resource.data.fromUsername)).data.uid == request.auth.uid
+        && exists(usernamePath(request.resource.data.toUsername))
+        && get(usernamePath(request.resource.data.toUsername)).data.uid == request.resource.data.toUid;
+      allow update: if signedIn()
+        && resource.data.toUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+        && request.resource.data.status in ['accepted', 'rejected']
+        && request.resource.data.respondedAt == request.time;
+      allow delete: if false;
+    }
+
+    match /friendships/{friendshipId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.requestId is string
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 2
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.members is list
+        && request.resource.data.members.size() == 2
+        && request.resource.data.createdAt == request.time
+        && existsAfter(friendRequestPath(request.resource.data.requestId))
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.status == 'accepted'
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.toUid == request.auth.uid
+        && request.resource.data.memberUids.hasAny([
+          getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
+        ]);
+      allow update, delete: if false;
+    }
+
+    match /groups/{groupId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'createdByUid',
+          'memberUids',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 1
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if (isGroupOwner(groupId) && validGroupOwnerUpdate())
+        || validInviteJoin(groupId);
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if isGroupMember(groupId) || isOwner(memberUid);
+        allow list: if isGroupMember(groupId);
+        allow create: if isOwner(memberUid)
+          && request.resource.data.keys().hasOnly(['uid', 'displayName', 'role', 'status', 'joinedAt'])
+          && request.resource.data.uid == memberUid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status == 'active'
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(groupPath(groupId))
+          && getAfter(groupPath(groupId)).data.memberUids.hasAny([memberUid])
+          && request.resource.data.role == (
+            getAfter(groupPath(groupId)).data.createdByUid == memberUid ? 'owner' : 'member'
+          );
+        allow update, delete: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && validExpense(request.resource.data, get(groupPath(groupId)).data.memberUids)
+          && request.resource.data.groupId == groupId;
+        allow update, delete: if false;
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.keys().hasOnly([
+            'fromUid',
+            'toUid',
+            'amountMinor',
+            'date',
+            'paymentMethod',
+            'status',
+            'createdByUid',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid in get(groupPath(groupId)).data.memberUids
+          && request.resource.data.toUid != request.auth.uid
+          && request.resource.data.amountMinor is int
+          && request.resource.data.amountMinor > 0
+          && request.resource.data.date is string
+          && request.resource.data.paymentMethod in ['cash', 'upi']
+          && request.resource.data.status == 'payer_marked_paid'
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isGroupMember(groupId)
+          && resource.data.toUid == request.auth.uid
+          && resource.data.status == 'payer_marked_paid'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'recipientConfirmedAt', 'updatedAt'])
+          && request.resource.data.status in ['confirmed', 'rejected']
+          && request.resource.data.recipientConfirmedAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+    }
+
+    match /groupInvites/{inviteId} {
+      allow get: if signedIn()
+        && resource.data.status == 'active'
+        && resource.data.expiresAt is timestamp
+        && resource.data.expiresAt > request.time;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'groupId',
+          'groupName',
+          'createdByUid',
+          'status',
+          'expiresAt',
+          'createdAt'
+        ])
+        && request.resource.data.groupId is string
+        && isGroupMember(request.resource.data.groupId)
+        && request.resource.data.groupName is string
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.createdByUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'revoked';
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+)
+          || requestId.matches('^.*__' + request.auth.uid + '
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && requestId == request.auth.uid + '__' + request.resource.data.toUid
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.fromUsername is string
+        && request.resource.data.toUsername is string
+        && request.resource.data.fromDisplayName is string
+        && request.resource.data.toDisplayName is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && exists(usernamePath(request.resource.data.fromUsername))
+        && get(usernamePath(request.resource.data.fromUsername)).data.uid == request.auth.uid
+        && exists(usernamePath(request.resource.data.toUsername))
+        && get(usernamePath(request.resource.data.toUsername)).data.uid == request.resource.data.toUid;
+      allow update: if signedIn()
+        && resource.data.toUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+        && request.resource.data.status in ['accepted', 'rejected']
+        && request.resource.data.respondedAt == request.time;
+      allow delete: if false;
+    }
+
+    match /friendships/{friendshipId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.requestId is string
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 2
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.members is list
+        && request.resource.data.members.size() == 2
+        && request.resource.data.createdAt == request.time
+        && existsAfter(friendRequestPath(request.resource.data.requestId))
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.status == 'accepted'
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.toUid == request.auth.uid
+        && request.resource.data.memberUids.hasAny([
+          getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
+        ]);
+      allow update, delete: if false;
+    }
+
+    match /groups/{groupId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'createdByUid',
+          'memberUids',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 1
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if (isGroupOwner(groupId) && validGroupOwnerUpdate())
+        || validInviteJoin(groupId);
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if isGroupMember(groupId) || isOwner(memberUid);
+        allow list: if isGroupMember(groupId);
+        allow create: if isOwner(memberUid)
+          && request.resource.data.keys().hasOnly(['uid', 'displayName', 'role', 'status', 'joinedAt'])
+          && request.resource.data.uid == memberUid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status == 'active'
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(groupPath(groupId))
+          && getAfter(groupPath(groupId)).data.memberUids.hasAny([memberUid])
+          && request.resource.data.role == (
+            getAfter(groupPath(groupId)).data.createdByUid == memberUid ? 'owner' : 'member'
+          );
+        allow update, delete: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && validExpense(request.resource.data, get(groupPath(groupId)).data.memberUids)
+          && request.resource.data.groupId == groupId;
+        allow update, delete: if false;
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.keys().hasOnly([
+            'fromUid',
+            'toUid',
+            'amountMinor',
+            'date',
+            'paymentMethod',
+            'status',
+            'createdByUid',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid in get(groupPath(groupId)).data.memberUids
+          && request.resource.data.toUid != request.auth.uid
+          && request.resource.data.amountMinor is int
+          && request.resource.data.amountMinor > 0
+          && request.resource.data.date is string
+          && request.resource.data.paymentMethod in ['cash', 'upi']
+          && request.resource.data.status == 'payer_marked_paid'
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isGroupMember(groupId)
+          && resource.data.toUid == request.auth.uid
+          && resource.data.status == 'payer_marked_paid'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'recipientConfirmedAt', 'updatedAt'])
+          && request.resource.data.status in ['confirmed', 'rejected']
+          && request.resource.data.recipientConfirmedAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+    }
+
+    match /groupInvites/{inviteId} {
+      allow get: if signedIn()
+        && resource.data.status == 'active'
+        && resource.data.expiresAt is timestamp
+        && resource.data.expiresAt > request.time;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'groupId',
+          'groupName',
+          'createdByUid',
+          'status',
+          'expiresAt',
+          'createdAt'
+        ])
+        && request.resource.data.groupId is string
+        && isGroupMember(request.resource.data.groupId)
+        && request.resource.data.groupName is string
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.createdByUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'revoked';
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+)
+        );
+      allow list: if signedIn()
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && requestId == request.auth.uid + '__' + request.resource.data.toUid
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.fromUsername is string
+        && request.resource.data.toUsername is string
+        && request.resource.data.fromDisplayName is string
+        && request.resource.data.toDisplayName is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && exists(usernamePath(request.resource.data.fromUsername))
+        && get(usernamePath(request.resource.data.fromUsername)).data.uid == request.auth.uid
+        && exists(usernamePath(request.resource.data.toUsername))
+        && get(usernamePath(request.resource.data.toUsername)).data.uid == request.resource.data.toUid;
+      allow update: if signedIn()
+        && resource.data.toUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+        && request.resource.data.status in ['accepted', 'rejected']
+        && request.resource.data.respondedAt == request.time;
+      allow delete: if false;
+    }
+
+    match /friendships/{friendshipId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.requestId is string
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 2
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.members is list
+        && request.resource.data.members.size() == 2
+        && request.resource.data.createdAt == request.time
+        && existsAfter(friendRequestPath(request.resource.data.requestId))
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.status == 'accepted'
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.toUid == request.auth.uid
+        && request.resource.data.memberUids.hasAny([
+          getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
+        ]);
+      allow update, delete: if false;
+    }
+
+    match /groups/{groupId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'createdByUid',
+          'memberUids',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 1
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if (isGroupOwner(groupId) && validGroupOwnerUpdate())
+        || validInviteJoin(groupId);
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if isGroupMember(groupId) || isOwner(memberUid);
+        allow list: if isGroupMember(groupId);
+        allow create: if isOwner(memberUid)
+          && request.resource.data.keys().hasOnly(['uid', 'displayName', 'role', 'status', 'joinedAt'])
+          && request.resource.data.uid == memberUid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status == 'active'
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(groupPath(groupId))
+          && getAfter(groupPath(groupId)).data.memberUids.hasAny([memberUid])
+          && request.resource.data.role == (
+            getAfter(groupPath(groupId)).data.createdByUid == memberUid ? 'owner' : 'member'
+          );
+        allow update, delete: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && validExpense(request.resource.data, get(groupPath(groupId)).data.memberUids)
+          && request.resource.data.groupId == groupId;
+        allow update, delete: if false;
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.keys().hasOnly([
+            'fromUid',
+            'toUid',
+            'amountMinor',
+            'date',
+            'paymentMethod',
+            'status',
+            'createdByUid',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid in get(groupPath(groupId)).data.memberUids
+          && request.resource.data.toUid != request.auth.uid
+          && request.resource.data.amountMinor is int
+          && request.resource.data.amountMinor > 0
+          && request.resource.data.date is string
+          && request.resource.data.paymentMethod in ['cash', 'upi']
+          && request.resource.data.status == 'payer_marked_paid'
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isGroupMember(groupId)
+          && resource.data.toUid == request.auth.uid
+          && resource.data.status == 'payer_marked_paid'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'recipientConfirmedAt', 'updatedAt'])
+          && request.resource.data.status in ['confirmed', 'rejected']
+          && request.resource.data.recipientConfirmedAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+    }
+
+    match /groupInvites/{inviteId} {
+      allow get: if signedIn()
+        && resource.data.status == 'active'
+        && resource.data.expiresAt is timestamp
+        && resource.data.expiresAt > request.time;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'groupId',
+          'groupName',
+          'createdByUid',
+          'status',
+          'expiresAt',
+          'createdAt'
+        ])
+        && request.resource.data.groupId is string
+        && isGroupMember(request.resource.data.groupId)
+        && request.resource.data.groupName is string
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.createdByUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'revoked';
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+)
+        );
+      allow list: if signedIn()
         && resource.data.memberUids is list
         && resource.data.memberUids.hasAny([request.auth.uid]);
 
@@ -640,7 +2495,410 @@ service cloud.firestore {
     }
 
     match /friendRequests/{requestId} {
+      allow get: if signedIn()
+        && (
+          requestId.matches('^' + request.auth.uid + '__.*
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && requestId == request.auth.uid + '__' + request.resource.data.toUid
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.fromUsername is string
+        && request.resource.data.toUsername is string
+        && request.resource.data.fromDisplayName is string
+        && request.resource.data.toDisplayName is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && exists(usernamePath(request.resource.data.fromUsername))
+        && get(usernamePath(request.resource.data.fromUsername)).data.uid == request.auth.uid
+        && exists(usernamePath(request.resource.data.toUsername))
+        && get(usernamePath(request.resource.data.toUsername)).data.uid == request.resource.data.toUid;
+      allow update: if signedIn()
+        && resource.data.toUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+        && request.resource.data.status in ['accepted', 'rejected']
+        && request.resource.data.respondedAt == request.time;
+      allow delete: if false;
+    }
+
+    match /friendships/{friendshipId} {
       allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.requestId is string
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 2
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.members is list
+        && request.resource.data.members.size() == 2
+        && request.resource.data.createdAt == request.time
+        && existsAfter(friendRequestPath(request.resource.data.requestId))
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.status == 'accepted'
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.toUid == request.auth.uid
+        && request.resource.data.memberUids.hasAny([
+          getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
+        ]);
+      allow update, delete: if false;
+    }
+
+    match /groups/{groupId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'createdByUid',
+          'memberUids',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 1
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if (isGroupOwner(groupId) && validGroupOwnerUpdate())
+        || validInviteJoin(groupId);
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if isGroupMember(groupId) || isOwner(memberUid);
+        allow list: if isGroupMember(groupId);
+        allow create: if isOwner(memberUid)
+          && request.resource.data.keys().hasOnly(['uid', 'displayName', 'role', 'status', 'joinedAt'])
+          && request.resource.data.uid == memberUid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status == 'active'
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(groupPath(groupId))
+          && getAfter(groupPath(groupId)).data.memberUids.hasAny([memberUid])
+          && request.resource.data.role == (
+            getAfter(groupPath(groupId)).data.createdByUid == memberUid ? 'owner' : 'member'
+          );
+        allow update, delete: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && validExpense(request.resource.data, get(groupPath(groupId)).data.memberUids)
+          && request.resource.data.groupId == groupId;
+        allow update, delete: if false;
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.keys().hasOnly([
+            'fromUid',
+            'toUid',
+            'amountMinor',
+            'date',
+            'paymentMethod',
+            'status',
+            'createdByUid',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid in get(groupPath(groupId)).data.memberUids
+          && request.resource.data.toUid != request.auth.uid
+          && request.resource.data.amountMinor is int
+          && request.resource.data.amountMinor > 0
+          && request.resource.data.date is string
+          && request.resource.data.paymentMethod in ['cash', 'upi']
+          && request.resource.data.status == 'payer_marked_paid'
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isGroupMember(groupId)
+          && resource.data.toUid == request.auth.uid
+          && resource.data.status == 'payer_marked_paid'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'recipientConfirmedAt', 'updatedAt'])
+          && request.resource.data.status in ['confirmed', 'rejected']
+          && request.resource.data.recipientConfirmedAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+    }
+
+    match /groupInvites/{inviteId} {
+      allow get: if signedIn()
+        && resource.data.status == 'active'
+        && resource.data.expiresAt is timestamp
+        && resource.data.expiresAt > request.time;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'groupId',
+          'groupName',
+          'createdByUid',
+          'status',
+          'expiresAt',
+          'createdAt'
+        ])
+        && request.resource.data.groupId is string
+        && isGroupMember(request.resource.data.groupId)
+        && request.resource.data.groupName is string
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.createdByUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'revoked';
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+)
+          || requestId.matches('^.*__' + request.auth.uid + '
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'fromUid',
+          'toUid',
+          'fromUsername',
+          'toUsername',
+          'fromDisplayName',
+          'toDisplayName',
+          'status',
+          'createdAt'
+        ])
+        && requestId == request.auth.uid + '__' + request.resource.data.toUid
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.fromUsername is string
+        && request.resource.data.toUsername is string
+        && request.resource.data.fromDisplayName is string
+        && request.resource.data.toDisplayName is string
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && exists(usernamePath(request.resource.data.fromUsername))
+        && get(usernamePath(request.resource.data.fromUsername)).data.uid == request.auth.uid
+        && exists(usernamePath(request.resource.data.toUsername))
+        && get(usernamePath(request.resource.data.toUsername)).data.uid == request.resource.data.toUid;
+      allow update: if signedIn()
+        && resource.data.toUid == request.auth.uid
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+        && request.resource.data.status in ['accepted', 'rejected']
+        && request.resource.data.respondedAt == request.time;
+      allow delete: if false;
+    }
+
+    match /friendships/{friendshipId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasAll(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['requestId', 'memberUids', 'members', 'createdAt'])
+        && request.resource.data.requestId is string
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 2
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.members is list
+        && request.resource.data.members.size() == 2
+        && request.resource.data.createdAt == request.time
+        && existsAfter(friendRequestPath(request.resource.data.requestId))
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.status == 'accepted'
+        && getAfter(friendRequestPath(request.resource.data.requestId)).data.toUid == request.auth.uid
+        && request.resource.data.memberUids.hasAny([
+          getAfter(friendRequestPath(request.resource.data.requestId)).data.fromUid
+        ]);
+      allow update, delete: if false;
+    }
+
+    match /groups/{groupId} {
+      allow get, list: if signedIn()
+        && resource.data.memberUids is list
+        && resource.data.memberUids.hasAny([request.auth.uid]);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'createdByUid',
+          'memberUids',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.memberUids is list
+        && request.resource.data.memberUids.size() == 1
+        && request.resource.data.memberUids.hasAny([request.auth.uid])
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if (isGroupOwner(groupId) && validGroupOwnerUpdate())
+        || validInviteJoin(groupId);
+      allow delete: if false;
+
+      match /members/{memberUid} {
+        allow get: if isGroupMember(groupId) || isOwner(memberUid);
+        allow list: if isGroupMember(groupId);
+        allow create: if isOwner(memberUid)
+          && request.resource.data.keys().hasOnly(['uid', 'displayName', 'role', 'status', 'joinedAt'])
+          && request.resource.data.uid == memberUid
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() >= 1
+          && request.resource.data.displayName.size() <= 80
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status == 'active'
+          && request.resource.data.joinedAt == request.time
+          && existsAfter(groupPath(groupId))
+          && getAfter(groupPath(groupId)).data.memberUids.hasAny([memberUid])
+          && request.resource.data.role == (
+            getAfter(groupPath(groupId)).data.createdByUid == memberUid ? 'owner' : 'member'
+          );
+        allow update, delete: if false;
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && validExpense(request.resource.data, get(groupPath(groupId)).data.memberUids)
+          && request.resource.data.groupId == groupId;
+        allow update, delete: if false;
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if isGroupMember(groupId);
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.keys().hasOnly([
+            'fromUid',
+            'toUid',
+            'amountMinor',
+            'date',
+            'paymentMethod',
+            'status',
+            'createdByUid',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.fromUid == request.auth.uid
+          && request.resource.data.toUid is string
+          && request.resource.data.toUid in get(groupPath(groupId)).data.memberUids
+          && request.resource.data.toUid != request.auth.uid
+          && request.resource.data.amountMinor is int
+          && request.resource.data.amountMinor > 0
+          && request.resource.data.date is string
+          && request.resource.data.paymentMethod in ['cash', 'upi']
+          && request.resource.data.status == 'payer_marked_paid'
+          && request.resource.data.createdByUid == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isGroupMember(groupId)
+          && resource.data.toUid == request.auth.uid
+          && resource.data.status == 'payer_marked_paid'
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'recipientConfirmedAt', 'updatedAt'])
+          && request.resource.data.status in ['confirmed', 'rejected']
+          && request.resource.data.recipientConfirmedAt == request.time
+          && request.resource.data.updatedAt == request.time;
+        allow delete: if false;
+      }
+    }
+
+    match /groupInvites/{inviteId} {
+      allow get: if signedIn()
+        && resource.data.status == 'active'
+        && resource.data.expiresAt is timestamp
+        && resource.data.expiresAt > request.time;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'groupId',
+          'groupName',
+          'createdByUid',
+          'status',
+          'expiresAt',
+          'createdAt'
+        ])
+        && request.resource.data.groupId is string
+        && isGroupMember(request.resource.data.groupId)
+        && request.resource.data.groupName is string
+        && request.resource.data.createdByUid == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.createdByUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'revoked';
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+)
+        );
+      allow list: if signedIn()
         && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
       allow create: if signedIn()
         && request.resource.data.keys().hasAll([
