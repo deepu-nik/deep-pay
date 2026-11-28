@@ -1,6 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import { AppText } from "@/src/components/common/AppText";
 import { BottomTabBar, type TabKey } from "@/src/components/navigation/BottomTabBar";
 import { useTheme } from "@/src/theme";
@@ -25,7 +25,7 @@ export function PlaceholderScreen({ icon, title, description, activeTab }: { ico
     <BottomTabBar
       activeTab={activeTab}
       onTabPress={goTo}
-      onPayPress={() => router.push({ pathname: "/upi", params: { tab: "my-qr" } })}
+      onPayPress={() => router.push({ pathname: "/upi", params: { tab: "my-qr" } } as Href)}
     />
   </View>;
 }
