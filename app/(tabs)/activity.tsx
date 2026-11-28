@@ -17,12 +17,13 @@ import { useTheme } from "@/src/theme";
 import { spacing } from "@/src/theme/tokens";
 
 const sectionOrder = ["Today", "Yesterday", "This week", "Earlier"] as const;
+type ActivitySection = (typeof sectionOrder)[number];
 
 function formatMoney(value: number) {
   return "₹" + value.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
-function getSection(timestamp: number) {
+function getSection(timestamp: number): ActivitySection {
   const eventDate = new Date(timestamp);
   const today = new Date();
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
