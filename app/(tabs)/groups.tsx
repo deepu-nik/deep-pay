@@ -99,7 +99,6 @@ export default function GroupsScreen() {
     setSaving(true);
     try {
       await createGroup({ name: name.trim(), memberIds: [user.id] });
-      setActiveSection("groups");
       setEditorVisible(false);
       setName("");
     } catch (cause) {
@@ -128,6 +127,7 @@ export default function GroupsScreen() {
           <Pressable
             accessibilityRole="tab"
             accessibilityState={{ selected: true }}
+            onPress={() => { void refresh().catch(() => undefined); }}
             style={[styles.tab, styles.tabActive]}
           >
 <Ionicons name="people-outline" size={19} color={colors.white} />
