@@ -28,14 +28,14 @@ function requireUid() {
   return uid;
 }
 
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message = "Loading your groups took too long. Check your connection and tap to retry."): Promise<T> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       promise,
       new Promise<T>((_, reject) => {
         timeoutId = setTimeout(
-          () => reject(new Error("Loading your groups took too long. Check your connection and tap to retry.")),
+          () => reject(new Error(message)),
           timeoutMs,
         );
       }),
@@ -87,7 +87,11 @@ export const firebaseGroupService = {
 
   async listMembers(groupId: string): Promise<GroupMember[]> {
     requireUid();
-    const snapshot = await getDocs(collection(firestore, "groups", groupId, "members"));
+    const snapshot = await withTimeout(
+      getDocs(collection(firestore, "groups", groupId, "members")),
+      7000,
+      "Loading group members took too long. Check your connection and retry.",
+    );
     return snapshot.docs
       .filter((item) => item.data().status === "active")
       .map((item) => {
