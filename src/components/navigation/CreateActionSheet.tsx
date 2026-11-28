@@ -12,6 +12,7 @@ type Action = { label: string; icon: keyof typeof Ionicons.glyphMap; description
 
 const actions: Action[] = [
   { label: "Create Group", icon: "people-outline", description: "Start a trip, club, or shared expense group" },
+  { label: "UPI & QR", icon: "qr-code-outline", description: "Scan, pay or share your personal UPI QR" },
   { label: "Add Friend", icon: "person-add-outline", description: "Add someone to your DeepPay friends" },
   { label: "Split a Bill", icon: "git-branch-outline", description: "Quickly split a bill with friends" },
   { label: "Add Expense", icon: "receipt-outline", description: "Record something you paid for" },
@@ -57,6 +58,7 @@ export function CreateActionSheet({
     if (label === "Add Expense") router.push("/expenses/new");
     if (label === "Create Group") router.push("/groups");
     if (label === "Add Friend") router.push("/friends");
+    if (label === "UPI & QR") router.push("/upi");
     onAction?.(label);
     onClose();
   };
@@ -81,7 +83,7 @@ export function CreateActionSheet({
           </View>
 
           {actions.map((action) => {
-            const gradient = action.label === "Create Group"
+            const gradient = action.label === "Create Group" || action.label === "UPI & QR"
               ? colors.gradientSky
               : action.label === "Add Friend"
                 ? colors.gradientSunset

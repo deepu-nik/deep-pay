@@ -63,3 +63,14 @@ The old local AsyncStorage mock data is retained on the device but not automatic
 ## Free-tier constraints
 
 This implementation uses Firebase's client SDK and the Firestore Spark plan within its published quotas. No payment gateway, Cloud Functions or sponsor-bank UPI integration is required. Quotas are limits, not a guarantee of unlimited free service. UPI handoff, QR and transaction import features are subsequent milestones.
+
+
+## UPI & QR handoff
+
+The UPI screen stores the signed-in user's self-entered UPI ID and display name under `users/{uid}/paymentProfiles/upi`. The QR is generated locally from a standard `upi://pay` URI with INR currency and no fixed amount, so the payer enters the amount in their UPI app.
+
+Scanning accepts a UPI payment URI (or a plain UPI ID) only. It does not open arbitrary URLs from QR codes. The recipient VPA, display name, amount and note are shown for review before handoff.
+
+On Android, the app opens the standard UPI payment URI using the operating system so installed UPI apps can handle it. The current NPCI BHIM-UPI guidance describes UPI Intent as Android-only. iOS keeps the QR and VPA sharing functions but does not present the Android intent as available.
+
+Returning from an external UPI app is not a payment confirmation callback. DeepPay therefore asks the user to explicitly report completion and may store an optional reference/UTR as `payer_reported` under `users/{uid}/upiTransactions/{id}`. These records are personal and do not change group balances. They are not verified by a bank, PSP, NPCI, or DeepPay. A UPI ID entered in the profile is also not validated as belonging to that user; it should be checked independently before sharing the QR.

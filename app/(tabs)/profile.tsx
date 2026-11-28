@@ -260,6 +260,13 @@ export default function ProfileScreen() {
           <AppText variant="h2" style={stylesLocal.sectionTitle}>Account</AppText>
           <GlassPanel padding={spacing.md} style={stylesLocal.settingGroup}>
             <ProfileSettingRow
+              icon="qr-code-outline"
+              title="UPI & QR"
+              description="Manage your UPI ID, receive QR and payment records"
+              onPress={() => router.push("/upi" as Href)}
+            />
+            <View style={stylesLocal.separator} />
+            <ProfileSettingRow
               icon="person-circle-outline"
               title="Personal information"
               description="Name and account email"

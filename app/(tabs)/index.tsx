@@ -43,7 +43,7 @@ export default function HomeScreen() {
   const openCreate = () => setSheetVisible(true);
   const goToGroups = () => router.push("/(tabs)/groups" as any);
 
-  const handleQuickAction = (label: "Expense" | "Split" | "Groups" | "Friends") => {
+  const handleQuickAction = (label: "Expense" | "Split" | "Groups" | "UPI") => {
     if (label === "Expense") {
       router.push("/expenses/new");
       return;
@@ -59,7 +59,7 @@ export default function HomeScreen() {
       return;
     }
 
-    router.push("/friends");
+    router.push("/upi");
   };
 
   const goTo = (tab: "home" | "groups" | "activity" | "profile") => {
@@ -164,7 +164,7 @@ export default function HomeScreen() {
             { label: "Expense", icon: "add-circle" },
             { label: "Split", icon: "git-branch" },
             { label: "Groups", icon: "people" },
-            { label: "Friends", icon: "person-add" },
+            { label: "UPI", icon: "qr-code" },
           ] as const).map(({ label, icon }) => (
             <QuickAction key={label} label={label} icon={icon} onPress={() => handleQuickAction(label)} />
           ))}
