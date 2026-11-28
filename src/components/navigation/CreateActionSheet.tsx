@@ -40,7 +40,7 @@ export function CreateActionSheet({
     },
     sheetContent: {
       paddingTop: spacing.xl - spacing.lg,
-      paddingBottom: Math.max(spacing.lg, insets.bottom + spacing.md),
+      paddingBottom: Math.max(0, Math.max(spacing.lg, insets.bottom + spacing.md) - spacing.lg),
       gap: spacing.xs,
     },
     handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: colors.border, alignSelf: "center", marginBottom: spacing.lg },

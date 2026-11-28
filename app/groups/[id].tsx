@@ -93,7 +93,7 @@ export default function GroupDetailScreen() {
     expenseMeta: { flex: 1 },
     modal: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" },
     sheet: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
-    sheetContent: { gap: spacing.lg, paddingBottom: spacing.xxl },
+    sheetContent: { gap: spacing.lg, paddingBottom: spacing.xxl - spacing.lg },
     input: { minHeight: 52, borderWidth: 1, borderColor: colors.glassBorder, borderRadius: radius.md, paddingHorizontal: spacing.lg, color: colors.text, fontSize: 16, backgroundColor: colors.glassGradient[0] },
     chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
     settlementSummary: { marginBottom: spacing.lg },
