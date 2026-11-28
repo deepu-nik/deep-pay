@@ -28,6 +28,8 @@ export function QuickAction({ label, icon, onPress }: Props) {
       alignItems: "center",
       justifyContent: "center",
       overflow: "hidden",
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
       shadowColor: colors.primary,
       shadowOffset: { width: 0, height: 5 },
       shadowOpacity: 0.16,
