@@ -34,13 +34,13 @@ export default function GroupsScreen() {
   const styles = StyleSheet.create({
     safe:{flex:1,backgroundColor:colors.background}, content:{padding:spacing.lg,paddingBottom:110},
     header:{flexDirection:"row",alignItems:"center",justifyContent:"space-between",marginBottom:spacing.xl},
-    headerActions:{flexDirection:"row",gap:spacing.sm}, iconButton:{width:44,height:44,borderRadius:radius.md,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,alignItems:"center",justifyContent:"center"},
-    card:{backgroundColor:colors.surface,borderRadius:radius.lg,borderWidth:1,borderColor:colors.border,padding:spacing.lg,marginBottom:spacing.md},
+    headerActions:{flexDirection:"row",gap:spacing.sm}, iconButton:{width:44,height:44,borderRadius:radius.md,backgroundColor:colors.glassGradient[0],borderWidth:1,borderColor:colors.glassBorder,alignItems:"center",justifyContent:"center"},
+    card:{backgroundColor:colors.glassGradient[0],borderRadius:radius.lg,borderWidth:1,borderColor:colors.glassBorder,padding:spacing.lg,marginBottom:spacing.md,shadowColor:colors.primary,shadowOpacity:0.08,shadowRadius:12,elevation:2},
     row:{flexDirection:"row",alignItems:"center",gap:spacing.md}, groupIcon:{width:48,height:48,borderRadius:24,backgroundColor:colors.iconBackground,alignItems:"center",justifyContent:"center"},
     muted:{color:colors.textMuted}, modal:{flex:1,justifyContent:"flex-end",backgroundColor:"rgba(0,0,0,0.35)"},
-    sheet:{backgroundColor:colors.surface,borderTopLeftRadius:radius.xl,borderTopRightRadius:radius.xl,padding:spacing.lg,paddingBottom:spacing.xxl,gap:spacing.lg},
-    input:{minHeight:52,borderWidth:1,borderColor:colors.border,borderRadius:radius.md,paddingHorizontal:spacing.lg,color:colors.text,fontSize:16,backgroundColor:colors.background},
-    chips:{flexDirection:"row",flexWrap:"wrap",gap:spacing.sm}, chip:{paddingHorizontal:spacing.md,paddingVertical:spacing.sm,borderRadius:radius.pill,borderWidth:1,borderColor:colors.border,backgroundColor:colors.background},
+    sheet:{backgroundColor:colors.glassGradient[0],borderTopLeftRadius:radius.xl,borderTopRightRadius:radius.xl,padding:spacing.lg,paddingBottom:spacing.xxl,gap:spacing.lg,borderWidth:1,borderColor:colors.glassBorder},
+    input:{minHeight:52,borderWidth:1,borderColor:colors.glassBorder,borderRadius:radius.md,paddingHorizontal:spacing.lg,color:colors.text,fontSize:16,backgroundColor:colors.glassGradient[0]},
+    chips:{flexDirection:"row",flexWrap:"wrap",gap:spacing.sm}, chip:{paddingHorizontal:spacing.md,paddingVertical:spacing.sm,borderRadius:radius.pill,borderWidth:1,borderColor:colors.glassBorder,backgroundColor:colors.glassGradient[0]},
     selectedChip:{borderColor:colors.primary,backgroundColor:colors.iconBackground},
   });
 
