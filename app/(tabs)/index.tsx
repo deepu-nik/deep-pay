@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useFocusEffect, useRouter, type Href } from "expo-router";
@@ -13,7 +13,6 @@ import { EmptyState } from "@/src/components/common/EmptyState";
 import { ErrorState } from "@/src/components/common/ErrorState";
 import { LoadingState } from "@/src/components/common/LoadingState";
 import { BottomTabBar } from "@/src/components/navigation/BottomTabBar";
-import { CreateActionSheet } from "@/src/components/navigation/CreateActionSheet";
 import { useHomeData } from "@/src/hooks/useHomeData";
 import { brand } from "@/src/config/brand";
 import { useTheme } from "@/src/theme";
@@ -34,18 +33,22 @@ export default function HomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { summary, expenses, groups, loading, groupsLoading, groupsError, error, refresh } = useHomeData();
-  const [sheetVisible, setSheetVisible] = useState(false);
 
   useFocusEffect(useCallback(() => {
     void refresh();
   }, [refresh]));
 
-  const openCreate = () => setSheetVisible(true);
   const goToGroups = () => router.push("/(tabs)/groups" as any);
 
-  const openUpiTab = (tab: "scan" | "my-qr") => tab === "scan" ? router.push("/upi/scan" as Href) : router.push("/upi" as Href);
+  const openUpiTab = (tab: "scan" | "my-qr") => {
+    if (tab === "scan") {
+      router.push("/upi/scan" as Href);
+      return;
+    }
+    router.push({ pathname: "/upi", params: { tab: "my-qr" } } as Href);
+  };
 
-  const handleQuickAction = (label: "Expense" | "Split" | "Groups" | "My QR") => {
+  const handleQuickAction = (label: "Expense" | "Split" | "Groups" | "My QR" | "Insights" | "Scan to Pay") => {
     if (label === "Expense") {
       router.push("/expenses/new");
       return;
@@ -61,7 +64,17 @@ export default function HomeScreen() {
       return;
     }
 
-    openUpiTab("my-qr");
+    if (label === "My QR") {
+      openUpiTab("my-qr");
+      return;
+    }
+
+    if (label === "Insights") {
+      router.push("/insights" as Href);
+      return;
+    }
+
+    openUpiTab("scan");
   };
 
   const goTo = (tab: "home" | "groups" | "activity" | "profile") => {
@@ -88,11 +101,7 @@ export default function HomeScreen() {
     balanceValue: { color: "#FFFFFF", fontWeight: "800" },
     balanceOwedValue: { color: colors.accentYellow, fontWeight: "800" },
     balanceHint: { color: "rgba(255,255,255,0.68)" },
-    actions: { flexDirection: "row", justifyContent: "space-between", marginBottom: spacing.md },
-    scanAction: { flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.glassGradient[0], borderWidth: 1, borderColor: colors.glassBorder },
-    scanActionIcon: { width: 46, height: 46, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: colors.iconBackground },
-    scanActionCopy: { flex: 1, gap: 3 },
-    receiveQrAction: { flexDirection: "row", alignItems: "center", gap: spacing.sm, alignSelf: "flex-start", marginTop: spacing.lg, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: "rgba(255,255,255,0.32)", backgroundColor: "rgba(255,255,255,0.14)" },
+    actions: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: spacing.md, marginBottom: spacing.md },
     section: { marginBottom: spacing.xl },
     groupList: { paddingRight: spacing.lg, gap: spacing.md },
     groupCard: { width: 214, minHeight: 96, borderRadius: radius.lg, overflow: "hidden" },
@@ -116,24 +125,14 @@ export default function HomeScreen() {
             <AppText variant="caption" style={{ color: colors.textMuted }}>{getGreeting()} 👋</AppText>
             <AppText variant="title">{brand.name}</AppText>
           </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Find and add friends"
-              onPress={() => router.push("/friends" as Href)}
-              style={styles.avatar}
-            >
-              <Ionicons name="person-add-outline" size={21} color={colors.primary} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open profile"
-              onPress={() => router.push("/(tabs)/profile" as any)}
-              style={styles.avatar}
-            >
-              <Ionicons name="person" size={21} color={colors.primary} />
-            </Pressable>
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Find and add friends"
+            onPress={() => router.push("/friends" as Href)}
+            style={styles.avatar}
+          >
+            <Ionicons name="person-add-outline" size={21} color={colors.primary} />
+          </Pressable>
         </View>
 
         <View style={styles.hero}>
@@ -172,26 +171,6 @@ export default function HomeScreen() {
               <AppText variant="caption" style={styles.balanceHint}>Across groups</AppText>
             </Pressable>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="View QR to receive payment"
-            onPress={() => openUpiTab("my-qr")}
-            style={styles.receiveQrAction}
-          >
-            <Ionicons name="qr-code-outline" size={18} color="#FFFFFF" />
-            <AppText variant="caption" style={{ color: "#FFFFFF", fontWeight: "700" }}>View QR to receive payment</AppText>
-            <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open monthly spending insights and budgets"
-            onPress={() => router.push("/insights" as Href)}
-            style={styles.receiveQrAction}
-          >
-            <Ionicons name="analytics-outline" size={18} color="#FFFFFF" />
-            <AppText variant="caption" style={{ color: "#FFFFFF", fontWeight: "700" }}>View spending insights</AppText>
-            <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
-          </Pressable>
         </View>
 
         <SectionHeader title="Quick actions" />
@@ -201,26 +180,12 @@ export default function HomeScreen() {
             { label: "Split", icon: "git-branch" },
             { label: "Groups", icon: "people" },
             { label: "My QR", icon: "qr-code" },
+            { label: "Insights", icon: "analytics-outline" },
+            { label: "Scan to Pay", icon: "scan-outline" },
           ] as const).map(({ label, icon }) => (
             <QuickAction key={label} label={label} icon={icon} onPress={() => handleQuickAction(label)} />
           ))}
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Scan to Pay"
-          onPress={() => openUpiTab("scan")}
-          style={styles.scanAction}
-        >
-          <View style={styles.scanActionIcon}>
-            <Ionicons name="scan-outline" size={23} color={colors.primary} />
-          </View>
-          <View style={styles.scanActionCopy}>
-            <AppText variant="bodyMedium">Scan to Pay</AppText>
-            <AppText variant="caption" style={{ color: colors.textMuted }}>Scan a UPI QR code and pay with your UPI app</AppText>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
-        </Pressable>
-
         <View style={styles.section}>
           <SectionHeader title="Your groups" action={groups.length ? "See all" : undefined} onAction={goToGroups} />
           {groupsLoading && !groups.length ? <LoadingState message="Loading your groups…" /> : groupsError && !groups.length ? (
@@ -282,8 +247,7 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <BottomTabBar activeTab="home" onTabPress={goTo} onAddPress={openCreate} />
-      <CreateActionSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
+      <BottomTabBar activeTab="home" onTabPress={goTo} onPayPress={() => router.push("/upi" as Href)} />
     </SafeAreaView>
   );
 }
